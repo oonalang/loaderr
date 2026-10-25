@@ -86,16 +86,34 @@ change = inside('findViewById<View>(R.id.change_key_link).setOnClickListener {',
 check('forgetRememberedKey()' in change, 'switching keys clears the remembered key')
 check('saveRememberedKey(licenseKey)' in redeem, 'accepted key is persisted for the next launch')
 
-# The two phases are distinct, deliberate systems, not one recolored theme.
+# The redesign deliberately shares composition across paper and night inks.
 visuals = (APP / 'kotlin/astral/LoaderVisuals.kt').read_text()
-check('drawConceptSheet' in visuals and 'drawVioletCourt' in visuals, 'each phase has its own backdrop')
-check('gold = Color.rgb(233, 199, 126)' in visuals, 'maximal court gilding token exists')
-check('drawCornerScroll' in visuals and 'guilloche' in visuals, 'maximal ornament layers exist')
+check('ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.void, phase)' in visuals,
+      'paper and night backgrounds remain phase-aware')
+check('gold = Color.rgb(233, 199, 126)' in visuals, 'night accent token retained')
+check(all(term not in visuals for term in ('RadialGradient', 'drawCornerScroll', 'guilloche', 'sheen')),
+      'notebook removes halos, ornamental frames and shimmer')
+check('if (ruled)' in visuals and 'state_pressed' in visuals and 'state_focused' in visuals,
+      'ruled surfaces preserve pressed and focus rendering')
 check('class OrnamentRuleView' in visuals and 'OrnamentRuleView' in KOTLIN,
       'ornament rule is phase-aware')
 check('hero_ethereal' in KOTLIN and 'hero_sketch' in KOTLIN, 'crest swaps with auth state')
 crest = (APP / 'res/drawable/hero_ethereal.xml').read_text()
-check('#E9C77E' in crest and '#925CF4' in crest, 'crest uses the maximal gold/violet palette')
+check('#E9C77E' in crest and '#C2A3FF' in crest, 'night illustration uses gold and lilac inks')
+sketch = ET.parse(APP / 'res/drawable/hero_sketch.xml').getroot()
+night = ET.parse(APP / 'res/drawable/hero_ethereal.xml').getroot()
+check([p.attrib.get(ns + 'pathData') for p in sketch] ==
+      [p.attrib.get(ns + 'pathData') for p in night],
+      'keykeeper geometry remains identical across authentication')
+check(by_id['hero_art'].attrib.get(ns + 'layout_width') == 'match_parent',
+      'illustration is full width rather than a thumbnail')
+check(by_id['hero_art'].attrib.get(ns + 'importantForAccessibility') == 'no',
+      'decorative illustration does not repeat task announcements')
+check('if (handMode) 26f else 31f' not in KOTLIN and
+      'heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)' in KOTLIN,
+      'display size is stable across authentication')
+check(by_id['drawer_close'].attrib.get(ns + 'layout_height') == '48dp',
+      'drawer close has a 48dp touch target')
 
 # Motion is a named system with short feedback and one deliberate phase change.
 motion_path = APP / 'kotlin/astral/ShaiMotion.kt'

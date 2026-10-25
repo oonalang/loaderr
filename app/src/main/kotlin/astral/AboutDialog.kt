@@ -149,9 +149,9 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
                 is TextView -> {
                     val normalText = view.textSize / context.resources.displayMetrics.scaledDensity >= 13f
                     view.setTextColor(if (normalText) foreground else secondary)
-                    if (normalText) {
-                        view.typeface = Typeface.create(if (signedIn) "serif" else "casual", Typeface.BOLD)
-                        if (signedIn) view.letterSpacing = .04f
+                    // Body keeps its XML weight; display faces are reserved for large headings.
+                    if (view.textSize / context.resources.displayMetrics.scaledDensity >= 24f) {
+                        view.typeface = Typeface.create("serif", Typeface.BOLD)
                     }
                     view.setBackgroundColor(Color.TRANSPARENT)
                 }

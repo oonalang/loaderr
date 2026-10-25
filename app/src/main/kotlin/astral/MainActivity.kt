@@ -589,10 +589,6 @@ class MainActivity : AppCompatActivity() {
         drawerSearchSurface.phase = phaseProgress
         delaySurface.phase = phaseProgress
         methodSurface.phase = phaseProgress
-        val sheenProgress = if (phaseTarget > 0f) {
-            ((phaseProgress - .58f) / .42f).coerceIn(0f, 1f)
-        } else 1f
-        primarySurface.sheen = if (sheenProgress < 1f) sheenProgress else -1f
         findViewById<OrnamentRuleView>(R.id.hero_rule).phase = phaseProgress
         findViewById<OrnamentRuleView>(R.id.success_rule).phase = phaseProgress
         findViewById<OrnamentRuleView>(R.id.drawer_rule).phase = phaseProgress
@@ -662,20 +658,20 @@ class MainActivity : AppCompatActivity() {
         appBanner.colorFilter = ColorMatrixColorFilter(filter)
         val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
-            val display = Typeface.create(if (handMode) "casual" else "serif", Typeface.BOLD)
+            val display = Typeface.create("serif", Typeface.BOLD)
             val brand = findViewById<TextView>(R.id.brand_title)
             val success = findViewById<TextView>(R.id.success_title)
             brand.typeface = display
             heroHeadline.typeface = display
             success.typeface = display
-            brand.letterSpacing = if (handMode) .01f else .08f
-            heroHeadline.letterSpacing = if (handMode) 0f else (-.01f)
-            heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (handMode) 26f else 31f)
-            success.letterSpacing = if (handMode) 0f else .06f
-            success.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (handMode) 17f else 18f)
+            brand.letterSpacing = 0f
+            heroHeadline.letterSpacing = 0f
+            heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            success.letterSpacing = 0f
+            success.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             findViewById<TextView>(R.id.phase_marker).apply {
-                text = if (handMode) "◇" else "✦"
-                textSize = if (handMode) 24f else 20f
+                text = if (handMode) "01" else "02"
+                textSize = 14f
             }
             if (::delayAdapter.isInitialized) delayAdapter.applyPhase(phaseProgress)
             if (::methodAdapter.isInitialized) methodAdapter.applyPhase(phaseProgress)
@@ -683,7 +679,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (lastDisplayedSignedIn != displaySignedIn) {
             findViewById<TextView>(R.id.sheet_plate).text =
-                if (displaySignedIn) "SHAI · ACCESS PLATE" else "CONCEPT SHEET · 01"
+                if (displaySignedIn) "SHAI / 02" else "SHAI / 01"
             findViewById<TextView>(R.id.sheet_note).text =
                 if (displaySignedIn) "LICENSE ACTIVE" else "NOT YET VERIFIED"
             findViewById<TextView>(R.id.operation_heading).text =
@@ -691,7 +687,7 @@ class MainActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.operation_note).text =
                 if (displaySignedIn) "SET BEFORE PREPARE" else "APPLIES AFTER ACCESS"
             findViewById<TextView>(R.id.brand_subtitle).text =
-                if (displaySignedIn) "ACCESS CONFIRMED · SHAI" else "CONCEPT SHEET · ONE"
+                "THE KEYKEEPER’S NOTEBOOK"
             findViewById<TextView>(R.id.chapter_label).text =
                 if (displaySignedIn) "YOUR COLLECTION" else "LIBRARY ACCESS"
             heroHeadline.text =
@@ -704,7 +700,7 @@ class MainActivity : AppCompatActivity() {
             val heroArt = findViewById<ImageView>(R.id.hero_art)
             heroArt.setImageResource(if (displaySignedIn) R.drawable.hero_ethereal else R.drawable.hero_sketch)
             heroArt.contentDescription =
-                if (displaySignedIn) "Gilded SHAI crest" else "Hand-drawn concept figure"
+                "Illustrated keykeeper holding a key"
             if (ValueAnimator.areAnimatorsEnabled()) {
                 heroArt.animate().cancel()
                 if (displaySignedIn) {

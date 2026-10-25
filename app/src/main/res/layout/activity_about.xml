@@ -137,16 +137,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="5dp"
-                        android:text="A clean, modern library selector for configured products."
+                        android:text="Redeem your key, choose a library, then prepare it when you are ready."
                         android:textColor="@color/loader_text_secondary"
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="More information"
-                    android:src="@drawable/ic_chevron_right" />
             </LinearLayout>
 
             <TextView
@@ -169,7 +164,7 @@
                 android:textSize="12sp"
                 android:textStyle="bold"
                 app:backgroundTint="@color/loader_surface"
-                app:cornerRadius="25dp"
+                app:cornerRadius="3dp"
                 app:icon="@drawable/ic_telegram"
                 app:iconGravity="textStart"
                 app:iconTint="@color/loader_text_primary"

@@ -40,7 +40,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.18"
-                    android:text="CONCEPT SHEET · 01"
+                    android:text="SHAI / 01"
                     android:textSize="11sp" />
 
                 <View
@@ -54,9 +54,11 @@
 
                 <TextView
                     android:id="@+id/sheet_note"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:gravity="end"
                     android:layout_height="wrap_content"
-                    android:letterSpacing="0.14"
+                    android:letterSpacing="0.08"
                     android:text="NOT YET VERIFIED"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -88,7 +90,7 @@
                         android:id="@+id/brand_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="casual"
+                        android:fontFamily="serif"
                         android:includeFontPadding="false"
                         android:text="SHAI LOADER"
                         android:textSize="25sp"
@@ -99,8 +101,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:letterSpacing="0.14"
-                        android:text="CONCEPT SHEET · ONE"
+                        android:letterSpacing="0.08"
+                        android:text="THE KEYKEEPER’S NOTEBOOK"
                         android:textSize="11sp" />
                 </LinearLayout>
 
@@ -108,9 +110,10 @@
                     android:id="@+id/phase_marker"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:contentDescription="SHAI theme emblem"
+                    android:importantForAccessibility="no"
+                    android:fontFamily="monospace"
                     android:gravity="center"
-                    android:text="◇"
+                    android:text="01"
                     android:textSize="24sp" />
             </LinearLayout>
 
@@ -125,7 +128,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:letterSpacing="0.14"
+                android:letterSpacing="0.08"
                 android:text="LIBRARY ACCESS"
                 android:textSize="11sp" />
 
@@ -134,34 +137,30 @@
                 android:id="@+id/hero_block"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_marginTop="12dp"
+                android:orientation="vertical">
 
                 <ImageView
                     android:id="@+id/hero_art"
-                    android:layout_width="104dp"
-                    android:layout_height="128dp"
-                    android:layout_marginEnd="16dp"
-                    android:contentDescription="Hand-drawn figure"
+                    android:layout_width="match_parent"
+                    android:layout_height="184dp"
+                    android:importantForAccessibility="no"
                     android:scaleType="fitCenter"
                     android:src="@drawable/hero_sketch" />
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/hero_headline"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="casual"
+                        android:fontFamily="serif"
                         android:includeFontPadding="false"
-                        android:maxLines="4"
                         android:text="Your key comes first."
-                        android:textSize="26sp"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -171,7 +170,7 @@
                         android:layout_marginTop="10dp"
                         android:lineSpacingExtra="3dp"
                         android:text="Paste a key from your panel. Nothing opens until it is checked."
-                        android:textSize="13sp" />
+                        android:textSize="14sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -186,7 +185,7 @@
                     android:id="@+id/license_heading"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:letterSpacing="0.14"
+                    android:letterSpacing="0.08"
                     android:text="YOUR LICENSE"
                     android:textSize="11sp" />
 
@@ -282,7 +281,7 @@
                         android:layout_height="54dp"
                         android:background="@drawable/seal_ring"
                         android:gravity="center"
-                        android:text="✦"
+                        android:text="✓"
                         android:textSize="26sp" />
 
                     <LinearLayout
@@ -464,7 +463,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:letterSpacing="0.14"
+                        android:letterSpacing="0.08"
                         android:text="INJECTION"
                         android:textSize="11sp" />
 
@@ -719,8 +718,8 @@
 
                 <ImageButton
                     android:id="@+id/drawer_close"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="@android:color/transparent"
                     android:contentDescription="Close library list"
                     android:padding="12dp"

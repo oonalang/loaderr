@@ -27,7 +27,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:letterSpacing="0.18"
-                android:text="CONCEPT SHEET · 01"
+                android:text="SHAI / 01"
                 android:textColor="@color/sketch_pencil"
                 android:textSize="11sp" />
 
@@ -43,7 +43,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:fontFamily="casual"
+            android:fontFamily="serif"
             android:text="SHAI LOADER"
             android:textColor="@color/sketch_ink"
             android:textSize="32sp"
@@ -53,7 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Keys, libraries, one clear decision."
+            android:text="The keykeeper’s notebook."
             android:textColor="@color/sketch_pencil"
             android:textSize="14sp" />
 
