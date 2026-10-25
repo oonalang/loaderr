@@ -55,7 +55,7 @@
             android:fontFamily="monospace"
             android:maxLines="1"
             android:textColor="@color/loader_text_muted"
-            android:textSize="10sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
     <TextView
@@ -71,6 +71,6 @@
         android:paddingBottom="4dp"
         android:text="ACTIVE"
         android:textColor="@color/loader_status_active"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:textStyle="bold" />
 </LinearLayout>

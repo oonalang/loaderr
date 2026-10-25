@@ -137,6 +137,59 @@ about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
 check('playbackEntrance' in about and 'R.id.about_logo' in about,
       'about sheet has a staged entrance')
 
+# Signed-in gating: the library selector, mode/delay controls and browse
+# action belong to the court and never appear on the unauthenticated sheet.
+gating = inside('    private fun setSignedInControlsVisible(',
+                '    /** One place owns enablement')
+check('R.id.library_card' in gating and 'R.id.operation_section' in gating and
+      'R.id.browse_button' in gating,
+      'signed-in controls are gated together')
+check('setSignedInControlsVisible(true)' in KOTLIN,
+      'signed-in controls revealed after redemption')
+clear_phase = inside('    private fun clearAuthenticatedPhase()', '    private fun animateToPhase')
+check('setSignedInControlsVisible(false)' in clear_phase,
+      'leaving the signed-in phase hides them again')
+for gated in ('library_card', 'operation_section', 'browse_button'):
+    node = by_id.get(gated)
+    check(node is not None, f'{gated} exists')
+    check(node.attrib.get(ns + 'visibility') == 'gone',
+          f'{gated} starts hidden before login')
+
+# Method and delay are real dropdowns with a drawn affordance.
+layout_text = BASE.read_text()
+check('spinnerMode="dropdown"' in layout_text, 'spinners open as dropdowns')
+spinner_cell = (APP / 'res/layout/spinner_item_simple.xml').read_text()
+check('drawableEnd="@drawable/ic_chevron_down"' in spinner_cell,
+      'dropdown cells draw a chevron affordance')
+check((APP / 'res/drawable/ic_chevron_down.xml').is_file(), 'chevron drawable exists')
+
+# Auto/manual: visible square boxes, exactly one ticked, preference is truth.
+check('<RadioGroup' not in layout_text, 'hidden 1dp radio stub is gone')
+check('@drawable/checkbox_court' in layout_text,
+      'mode control uses the court checkbox boxes')
+check('@+id/radio_auto' in layout_text and '@+id/radio_manual' in layout_text,
+      'AUTO and MANUAL boxes keep their ids')
+check('@+id/mode_label' in layout_text, 'mode row is labelled')
+prefs = (APP / 'kotlin/astral/LoaderPreferences.kt').read_text()
+check('fun isAutoMode()' in prefs, 'auto mode has a source of truth')
+check('loaderPreferences.isAutoMode()' in KOTLIN,
+      'injection reads the mode preference')
+check('radioManual.isChecked = false' in KOTLIN and 'radioAuto.isChecked = false' in KOTLIN,
+      'exactly one mode box is ticked at a time')
+check('setInjectionControlsEnabled' in KOTLIN,
+      'control enablement and disabled state have one owner')
+check('setInjectionControlsEnabled(true)' in inside(
+          '                animateToPhase(1f)', '                if (filteredLibraries.isEmpty())'),
+      'controls are re-enabled when the key is accepted')
+
+# Legibility floor: no text below the 11sp floor flagged by the deslop audit.
+under_floor = []
+for path in (APP / 'res/layout').glob('*.xml'):
+    for match in re.finditer(r'android:textSize="(\d+)sp"', path.read_text()):
+        if int(match.group(1)) < 11:
+            under_floor.append(f'{path.name}:{match.group(1)}sp')
+check(not under_floor, f'no text below 11sp ({under_floor})')
+
 # Main controls are comfortable to tap; XML declaration does not assert runtime size.
 text = BASE.read_text()
 for item in ['android:layout_height="56dp"', 'android:layout_height="52dp"',

@@ -34,8 +34,6 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -80,9 +78,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var methodSpinner: Spinner
     private lateinit var loaderPreferences: LoaderPreferences
     private lateinit var progressBar: ProgressBar
-    private lateinit var radioGroup: RadioGroup
-    private lateinit var radioAuto: RadioButton
-    private lateinit var radioManual: RadioButton
+    private lateinit var radioGroup: View
+    private lateinit var radioAuto: CheckBox
+    private lateinit var radioManual: CheckBox
     private lateinit var rootStatusView: TextView
     private lateinit var appBanner: ImageView
     private lateinit var mainScroll: ScrollView
@@ -237,9 +235,18 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
-        radioGroup.setOnCheckedChangeListener { _, checkedId ->
-            val mode = if (checkedId == R.id.radio_auto) "auto" else "manual"
-            loaderPreferences.saveMode(mode)
+        radioAuto.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                // Checkbox look, radio behaviour: exactly one mode is ticked.
+                radioManual.isChecked = false
+                loaderPreferences.saveMode("auto")
+            }
+        }
+        radioManual.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                radioAuto.isChecked = false
+                loaderPreferences.saveMode("manual")
+            }
         }
 
         findViewById<View>(R.id.library_card).setOnClickListener { setLibraryDrawerOpen(true) }
@@ -277,9 +284,7 @@ class MainActivity : AppCompatActivity() {
                 injectLibrary(LIBRARY_FILE_NAME)
                 showToast("Injecting, please wait...")
                 loginButton.isEnabled = false
-                radioGroup.isEnabled = false
-                delaySpinner.isEnabled = false
-                methodSpinner.isEnabled = false
+                setInjectionControlsEnabled(false)
             } else if (licenseVerified) {
                 if (isPreparingLibrary) {
                     showToast("Preparing your library…")
@@ -455,9 +460,7 @@ class MainActivity : AppCompatActivity() {
         licenseKeyInput.isEnabled = false
         licenseKeyInputLayout.error = null
         librarySpinner.isEnabled = false
-        delaySpinner.isEnabled = false
-        methodSpinner.isEnabled = false
-        radioGroup.isEnabled = false
+        setInjectionControlsEnabled(false)
         val licenseKey = licenseKeyInput.text?.toString()?.trim()
         if (licenseKey.isNullOrEmpty()) {
             resetLoginState("Enter the key from your panel.")
@@ -525,6 +528,8 @@ class MainActivity : AppCompatActivity() {
     private fun clearAuthenticatedPhase() {
         pendingReveal?.let { mainScroll.removeCallbacks(it) }
         pendingReveal = null
+        setSignedInControlsVisible(false)
+        setInjectionControlsEnabled(true)
         licenseVerified = false
         redemptionInFlight = false
         authenticatedLibrary = null
@@ -601,7 +606,8 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val titleIds = intArrayOf(
             R.id.brand_title, R.id.library_name, R.id.hero_headline,
-            R.id.success_title, R.id.drawer_title, R.id.remember_title
+            R.id.success_title, R.id.drawer_title, R.id.remember_title,
+            R.id.radio_auto, R.id.radio_manual
         )
         val secondaryIds = intArrayOf(
             R.id.brand_subtitle, R.id.chapter_label, R.id.library_game,
@@ -615,7 +621,7 @@ class MainActivity : AppCompatActivity() {
         intArrayOf(
             R.id.library_arrow, R.id.phase_marker, R.id.about_button, R.id.drawer_about,
             R.id.change_key_link, R.id.sheet_plate, R.id.operation_heading,
-            R.id.method_label, R.id.delay_label, R.id.key_fingerprint
+            R.id.method_label, R.id.delay_label, R.id.mode_label, R.id.key_fingerprint
         ).forEach { findViewById<TextView>(it).setTextColor(accent) }
         findViewById<TextView>(R.id.library_status).setTextColor(accent)
         findViewById<TextView>(R.id.success_emblem).setTextColor(
@@ -1305,6 +1311,9 @@ class MainActivity : AppCompatActivity() {
                     visibility = View.VISIBLE
                 }
                 animateToPhase(1f)
+                // The signed-in affordances and live controls arrive with the plaque.
+                setSignedInControlsVisible(true)
+                setInjectionControlsEnabled(true)
                 if (filteredLibraries.isEmpty()) {
                     findViewById<TextView>(R.id.success_detail).text =
                         "No active libraries are currently published for ${redemption.optString("game_label", game)}."
@@ -1356,9 +1365,7 @@ class MainActivity : AppCompatActivity() {
         loginButton.isEnabled = true
         licenseKeyInput.isEnabled = true
         librarySpinner.isEnabled = true
-        delaySpinner.isEnabled = true
-        methodSpinner.isEnabled = true
-        radioGroup.isEnabled = true
+        setInjectionControlsEnabled(true)
         isReadyToInject = false
         if (focusKey) {
             revealKeyEntry()
@@ -1404,6 +1411,53 @@ class MainActivity : AppCompatActivity() {
         mainScroll.postDelayed(action, delay)
     }
 
+    /** The library selector, mode/delay controls and browse action belong to the
+     *  signed-in court; the unauthenticated sheet shows only the key form. */
+    private fun setSignedInControlsVisible(visible: Boolean) {
+        val views = listOf(
+            findViewById<View>(R.id.library_card),
+            findViewById<View>(R.id.operation_section),
+            findViewById<View>(R.id.browse_button)
+        )
+        if (visible) {
+            val density = resources.displayMetrics.density
+            views.forEachIndexed { index, view ->
+                view.animate().cancel()
+                view.visibility = View.VISIBLE
+                if (!ValueAnimator.areAnimatorsEnabled()) {
+                    view.alpha = 1f
+                    view.translationY = 0f
+                    return@forEachIndexed
+                }
+                view.alpha = 0f
+                view.translationY = 12f * density
+                view.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setStartDelay(120L + index * ShaiMotion.ROW_STAGGER_MS)
+                    .setDuration(ShaiMotion.ROW_MS)
+                    .setInterpolator(ShaiMotion.easeOut)
+                    .start()
+            }
+        } else {
+            views.forEach { view ->
+                view.animate().cancel()
+                view.alpha = 1f
+                view.translationY = 0f
+                view.visibility = View.GONE
+            }
+        }
+    }
+
+    /** One place owns enablement and the visual state of the injection controls,
+     *  so a disabled spinner and mode row read as disabled instead of inert. */
+    private fun setInjectionControlsEnabled(enabled: Boolean) {
+        listOf(delaySpinner, methodSpinner, radioGroup).forEach { view ->
+            view.isEnabled = enabled
+            view.alpha = if (enabled) 1f else .45f
+        }
+    }
+
     private fun proceedWithDownload() {
         val currentLibrary = selectedLibrary.name
         isPreparingLibrary = true
@@ -1436,9 +1490,7 @@ class MainActivity : AppCompatActivity() {
                             findViewById<TextView>(R.id.success_detail).text = "$currentLibrary is ready. Tap Inject when you are ready."
                             showToast("Ready to inject")
                             loginButton.isEnabled = true
-                            radioGroup.isEnabled = true
-                            delaySpinner.isEnabled = true
-                            methodSpinner.isEnabled = true
+                            setInjectionControlsEnabled(true)
                             isReadyToInject = true
                             isPreparingLibrary = false
                             librarySpinner.isEnabled = true
@@ -1482,7 +1534,7 @@ class MainActivity : AppCompatActivity() {
             injectionMethod = injectionMethod,
             hasRootAccess = commandRunner.hasRootAccess()
         )
-        if (radioAuto.isChecked) {
+        if (loaderPreferences.isAutoMode()) {
             launchGame(selectedLibrary.gamePackage)
             lifecycleScope.launch(Dispatchers.Main) {
                 delay(1000)
@@ -1504,9 +1556,7 @@ class MainActivity : AppCompatActivity() {
             delay(5000)
             loginButton.text = "RE-INJECT"
             loginButton.isEnabled = true
-            radioGroup.isEnabled = true
-            delaySpinner.isEnabled = true
-            methodSpinner.isEnabled = true
+            setInjectionControlsEnabled(true)
         }
     }
     

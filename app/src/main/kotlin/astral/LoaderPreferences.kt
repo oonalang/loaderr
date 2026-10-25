@@ -9,6 +9,10 @@ class LoaderPreferences(context: Context) {
 
     fun getMode(): String = preferences.getString(KEY_MODE, MODE_AUTO) ?: MODE_AUTO
 
+    /** Auto is the source of truth at injection time; the visible mode boxes
+     *  and this preference are kept in sync when the user ticks one. */
+    fun isAutoMode(): Boolean = getMode() == MODE_AUTO
+
     fun saveMode(mode: String) {
         preferences.edit().putString(KEY_MODE, mode).apply()
     }

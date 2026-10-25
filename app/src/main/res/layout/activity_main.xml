@@ -41,7 +41,7 @@
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.18"
                     android:text="CONCEPT SHEET · 01"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
 
                 <View
                     android:id="@+id/sheet_rule"
@@ -58,7 +58,7 @@
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.14"
                     android:text="NOT YET VERIFIED"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -101,7 +101,7 @@
                         android:layout_marginTop="4dp"
                         android:letterSpacing="0.14"
                         android:text="CONCEPT SHEET · ONE"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <TextView
@@ -127,7 +127,7 @@
                 android:layout_marginTop="14dp"
                 android:letterSpacing="0.14"
                 android:text="LIBRARY ACCESS"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
 
             <!-- One illustration that becomes the crest. -->
             <LinearLayout
@@ -188,7 +188,7 @@
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.14"
                     android:text="YOUR LICENSE"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/input_layout"
@@ -322,7 +322,7 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
                     android:letterSpacing="0.08"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:visibility="gone" />
 
                 <TextView
@@ -349,7 +349,8 @@
                 android:focusable="true"
                 android:minHeight="136dp"
                 android:orientation="vertical"
-                android:padding="18dp">
+                android:padding="18dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -430,7 +431,7 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:text="Package not selected"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
 
                     <TextView
                         android:id="@+id/library_status"
@@ -439,7 +440,7 @@
                         android:paddingStart="7dp"
                         android:paddingEnd="7dp"
                         android:text="NOT SELECTED"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -449,7 +450,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -464,7 +466,7 @@
                         android:layout_weight="1"
                         android:letterSpacing="0.14"
                         android:text="INJECTION"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
 
                     <TextView
                         android:id="@+id/operation_note"
@@ -472,7 +474,7 @@
                         android:layout_height="wrap_content"
                         android:letterSpacing="0.10"
                         android:text="SET BEFORE PREPARE"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -494,7 +496,7 @@
                             android:layout_height="wrap_content"
                             android:letterSpacing="0.10"
                             android:text="METHOD"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
 
                         <Spinner
                             android:id="@+id/method_spinner"
@@ -523,7 +525,7 @@
                             android:layout_height="wrap_content"
                             android:letterSpacing="0.10"
                             android:text="LAUNCH DELAY"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
 
                         <Spinner
                             android:id="@+id/delay_spinner"
@@ -543,7 +545,59 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="Delay waits after the game opens, before the library loads."
-                    android:textSize="10sp" />
+                    android:textSize="12sp" />
+
+                <!-- Injection mode: square court boxes replace the old hidden radio stubs.
+                     Exactly one of AUTO / MANUAL is ticked at a time. -->
+                <TextView
+                    android:id="@+id/mode_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:letterSpacing="0.10"
+                    android:text="INJECT MODE"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:id="@+id/radioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <CheckBox
+                        android:id="@+id/radio_auto"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:button="@drawable/checkbox_court"
+                        android:contentDescription="Auto inject: open the game, then load the library"
+                        android:gravity="center_vertical"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="6dp"
+                        android:text="AUTO"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <Space
+                        android:layout_width="14dp"
+                        android:layout_height="1dp" />
+
+                    <CheckBox
+                        android:id="@+id/radio_manual"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:button="@drawable/checkbox_court"
+                        android:contentDescription="Manual inject: load the library yourself, without opening the game"
+                        android:gravity="center_vertical"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="6dp"
+                        android:text="MANUAL"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
             <androidx.appcompat.widget.AppCompatButton
@@ -576,7 +630,8 @@
                 android:stateListAnimator="@null"
                 android:text="OPEN LIBRARY LIST"
                 android:textAllCaps="false"
-                android:textSize="13sp" />
+                android:textSize="13sp"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -613,22 +668,6 @@
                 android:layout_height="1dp"
                 android:visibility="gone" />
 
-            <RadioGroup
-                android:id="@+id/radioGroup"
-                android:layout_width="1dp"
-                android:layout_height="1dp"
-                android:visibility="gone">
-
-                <RadioButton
-                    android:id="@+id/radio_auto"
-                    android:layout_width="1dp"
-                    android:layout_height="1dp" />
-
-                <RadioButton
-                    android:id="@+id/radio_manual"
-                    android:layout_width="1dp"
-                    android:layout_height="1dp" />
-            </RadioGroup>
 
             <TextView
                 android:id="@+id/root_status"
@@ -713,7 +752,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="Redeem a key to see libraries"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
 
             <ScrollView
                 android:layout_width="match_parent"

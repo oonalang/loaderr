@@ -29,7 +29,7 @@
                 android:letterSpacing="0.18"
                 android:text="CONCEPT SHEET · 01"
                 android:textColor="@color/sketch_pencil"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
 
             <View
                 android:layout_width="0dp"
@@ -74,7 +74,7 @@
             android:letterSpacing="0.14"
             android:text="OPENING SHAI"
             android:textColor="@color/sketch_pencil"
-            android:textSize="10sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
     <TextView
@@ -85,5 +85,5 @@
         android:letterSpacing="0.16"
         android:text="SHAI / LOADER  ·  SHEET 01"
         android:textColor="@color/sketch_pencil"
-        android:textSize="9sp" />
+        android:textSize="11sp" />
 </FrameLayout>

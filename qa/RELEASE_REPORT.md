@@ -52,6 +52,31 @@
   180ms out. The signed-in plaque replaces the license form and rises with
   the phase instead of racing it with its own fade.
 
+## De-slopped controls (frontend-design-deslop audit)
+
+Audited against `samber/cc-skills@frontend-design-deslop`'s slop checklist;
+the committed direction and audit table live in `DESIGN.md`.
+
+- **Signed-in gating.** `library_card`, `operation_section` (method, delay,
+  mode) and `browse_button` are `gone` before login and revealed with a short
+  stagger only after the key is accepted; leaving the signed-in phase hides
+  them again. The unauthenticated sheet is only the key form.
+- **Real dropdowns.** Method and delay were already spinners but had no drawn
+  affordance; their cells now carry a gold `ic_chevron_down` over the
+  phase-bordered surface, and they still open as `spinnerMode="dropdown"`.
+- **Auto / Manual control.** The 1dp hidden `RadioGroup` stub is gone. In its
+  place, inside the gated injection section, sit two labelled 48dp rows of
+  square court boxes (18dp box, 4dp gold border): exactly one is ticked —
+  checkbox look, radio behaviour. `LoaderPreferences.isAutoMode()` is now the
+  source of truth when injecting, so auto injection no longer depends on a
+  hidden widget's state.
+- **Fixed: controls stayed disabled after login.** `beginLicenseRedemption`
+  disabled the mode/delay controls but nothing re-enabled them on the success
+  path; they now re-enable (and dim to 0.45 alpha when disabled) through one
+  owner, `setInjectionControlsEnabled`.
+- **Type floor.** 22 labels below 11sp were raised to 11sp; sentence hints to
+  12sp. The floor is enforced by the QA contract.
+
 ## Restored controls and remembered key
 
 - `delay_spinner` and `method_spinner` are visible 50dp selectors with labels,
@@ -93,6 +118,13 @@
   the sheet language carried into the opening screen.
 - `app/src/main/res/layout/item_library_drawer.xml`, `status_pill.xml`,
   `maintenance_pill.xml`, `colors.xml`, `themes.xml` — court palette and rows.
+- `app/src/main/res/layout/spinner_item_simple.xml`,
+  `res/drawable/ic_chevron_down.xml` — drawn dropdown affordance.
+- `app/src/main/res/drawable/checkbox_court*.xml` — 18dp/4dp AUTO/MANUAL
+  boxes; the old 1dp `RadioGroup` stub was removed from the layout.
+- `app/src/main/kotlin/astral/LoaderPreferences.kt` — `isAutoMode()` is the
+  injection-time source of truth.
+- `DESIGN.md` — design system of record and the de-slop audit table.
 - `app/src/main/kotlin/astral/AboutDialog.kt` — serif/gold treatment when signed
   in, staged entrance and press feedback.
 - `app/src/main/kotlin/astral/SplashActivity.kt`, `res/anim/fade_in.xml`,
@@ -119,10 +151,13 @@ bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --no-parall
 | XML parse + ID uniqueness + resource resolution | **PASS** |
 | Kotlin compilation | **PASS** |
 | Motion contract (tokens, staged reveal, press/focus, IME) | **PASS** (source-level) |
+| Signed-in gating, dropdown affordance, mode boxes, 11sp floor | **PASS** (source-level) |
+| Slop checklist (`DESIGN.md`) | **PASS** after fixes; render-only items NOT RUN |
 | Device/emulator rendering and touch checks | **NOT RUN** (no device attached) |
 | Live panel redemption, download, injection | **NOT RUN** (requires a valid key and game package) |
 
-Known non-blocking lint warnings: 202 total, 0 errors. Mostly hardcoded design
+Known non-blocking lint warnings: 186 total, 0 errors (down from 202 after
+the radio stubs and sub-11sp labels were removed). Mostly hardcoded design
 strings, small tracked labels, `TooManyViews` on the single scrolling screen,
 unused legacy resources, and pre-existing security/permission warnings from
 the loader core. No new errors.

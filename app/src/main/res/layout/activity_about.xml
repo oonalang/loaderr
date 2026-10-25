@@ -139,7 +139,7 @@
                         android:layout_marginTop="5dp"
                         android:text="A clean, modern library selector for configured products."
                         android:textColor="@color/loader_text_secondary"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <ImageView
@@ -156,7 +156,7 @@
                 android:letterSpacing="0.28"
                 android:text="CREATOR CHANNEL"
                 android:textColor="@color/loader_text_muted"
-                android:textSize="8sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
@@ -191,6 +191,6 @@
         android:paddingBottom="4dp"
         android:text="Powered by: @Shaiaintshyy"
         android:textColor="@color/loader_text_muted"
-        android:textSize="9sp"
+        android:textSize="11sp"
         android:textStyle="bold" />
 </FrameLayout>
