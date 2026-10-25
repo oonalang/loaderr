@@ -22,6 +22,8 @@ internal object ShaiPalette {
     val ink = Color.rgb(33, 28, 36)
     val pencil = Color.rgb(111, 98, 112)
     val draft = Color.rgb(106, 74, 140)
+    val gridBlue = Color.rgb(126, 156, 196)
+    val highlight = Color.rgb(245, 212, 66)
 
     // Violet court
     val void = Color.rgb(10, 6, 16)
@@ -62,6 +64,22 @@ class LoaderBackdropView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas.drawColor(ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.void, phase))
+        // Faint blue graph ruling on the concept sheet; it lifts as the court takes over.
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 0.75f * density
+        paint.color = ShaiPalette.gridBlue
+        paint.alpha = (46 * (1f - phase)).toInt()
+        var gx = 24f * density
+        while (gx < width) {
+            canvas.drawLine(gx, 0f, gx, height, paint)
+            gx += 24f * density
+        }
+        var gy = 24f * density
+        while (gy < height) {
+            canvas.drawLine(0f, gy, width, gy, paint)
+            gy += 24f * density
+        }
+        paint.style = Paint.Style.FILL
         paint.color = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phase)
         paint.alpha = 24
         grain.forEach { (x, y) -> canvas.drawCircle(x * width, y * height, .45f * density, paint) }
@@ -141,6 +159,15 @@ internal class PhaseSurfaceDrawable(private val kind: Kind) : Drawable() {
             canvas.drawLine(left, bottom, right, bottom, paint)
         } else if (kind != Kind.DRAWER) {
             canvas.drawRoundRect(RectF(left, top, right, bottom), dp * radius, dp * radius, paint)
+            // Sketch double pass: a slightly offset re-ink, fading as the court takes over.
+            if (phase < .99f) {
+                paint.alpha = (95 * (1f - phase)).toInt()
+                canvas.drawRoundRect(
+                    RectF(left + 1.3f * dp, top - 0.8f * dp, right + 1.1f * dp, bottom - 1.5f * dp),
+                    dp * radius, dp * radius, paint
+                )
+                paint.color = a(ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phase), .65f)
+            }
         }
 
         if (kind == Kind.ROW && selected) {
@@ -187,7 +214,7 @@ internal class PhaseSurfaceDrawable(private val kind: Kind) : Drawable() {
 
     private fun fillColor(): Int {
         val sketch = when (kind) {
-            Kind.PRIMARY -> ShaiPalette.ink
+            Kind.PRIMARY -> ShaiPalette.highlight
             Kind.SECONDARY -> ShaiPalette.paperCard
             else -> ShaiPalette.paperCard
         }

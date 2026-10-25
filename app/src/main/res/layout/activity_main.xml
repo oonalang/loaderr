@@ -90,7 +90,6 @@
                         android:id="@+id/brand_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="serif"
                         android:includeFontPadding="false"
                         android:text="SHAI LOADER"
                         android:textSize="25sp"
@@ -123,7 +122,8 @@
                 android:text="Library access"
                 android:textSize="11sp" />
 
-            <!-- One illustration that becomes the crest. -->
+            <!-- One illustration that becomes the crest. Taped onto the sheet
+                 before auth; the tape lifts as the court takes over. -->
             <LinearLayout
                 android:id="@+id/hero_block"
                 android:layout_width="match_parent"
@@ -131,13 +131,41 @@
                 android:layout_marginTop="12dp"
                 android:orientation="vertical">
 
-                <ImageView
-                    android:id="@+id/hero_art"
+                <FrameLayout
+                    android:id="@+id/hero_tape_frame"
                     android:layout_width="match_parent"
-                    android:layout_height="184dp"
-                    android:importantForAccessibility="no"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/hero_sketch" />
+                    android:layout_height="184dp">
+
+                    <ImageView
+                        android:id="@+id/hero_art"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/hero_sketch" />
+
+                    <ImageView
+                        android:id="@+id/tape_start"
+                        android:layout_width="52dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="start|top"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="12dp"
+                        android:importantForAccessibility="no"
+                        android:rotation="-38"
+                        android:src="@drawable/tape_piece" />
+
+                    <ImageView
+                        android:id="@+id/tape_end"
+                        android:layout_width="52dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="end|top"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginTop="12dp"
+                        android:importantForAccessibility="no"
+                        android:rotation="38"
+                        android:src="@drawable/tape_piece" />
+                </FrameLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -148,8 +176,10 @@
                         android:id="@+id/hero_headline"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="serif"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/highlight_swipe"
                         android:includeFontPadding="false"
+                        android:paddingBottom="4dp"
                         android:text="Your key comes first."
                         android:textSize="28sp"
                         android:textStyle="bold" />
@@ -179,6 +209,35 @@
                     android:letterSpacing="0.02"
                     android:text="Your license"
                     android:textSize="11sp" />
+
+                <!-- Margin note: the arrow aims at the real key field below. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="end|bottom"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/key_note"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="10dp"
+                        android:fontFamily="@font/patrick_hand"
+                        android:text="your panel key goes here"
+                        android:textColor="@color/sketch_pencil"
+                        android:textSize="17sp" />
+
+                    <ImageView
+                        android:id="@+id/key_note_arrow"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_gravity="end"
+                        android:layout_marginEnd="52dp"
+                        android:importantForAccessibility="no"
+                        android:rotation="8"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/avd_sketch_arrow" />
+                </LinearLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/input_layout"

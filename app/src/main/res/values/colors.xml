@@ -6,6 +6,8 @@
 
     <!-- Concept sheet -->
     <color name="sketch_paper">#F7F2E7</color>
+    <color name="sketch_grid">#7E9CC4</color>
+    <color name="sketch_highlight">#F5D442</color>
     <color name="sketch_paper_card">#FDF9F0</color>
     <color name="sketch_ink">#211C24</color>
     <color name="sketch_pencil">#6F6270</color>

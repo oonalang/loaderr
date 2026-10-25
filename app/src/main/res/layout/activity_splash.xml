@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/sketch_paper"
+    android:background="@drawable/paper_grid"
     android:padding="24dp">
 
     <LinearLayout
@@ -30,20 +30,12 @@
                 android:text="SHAI / 01"
                 android:textColor="@color/sketch_pencil"
                 android:textSize="11sp" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:background="#4D6F6270" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:fontFamily="serif"
             android:text="SHAI LOADER"
             android:textColor="@color/sketch_ink"
             android:textSize="32sp"
@@ -57,12 +49,40 @@
             android:textColor="@color/sketch_pencil"
             android:textSize="14sp" />
 
+        <!-- Margin note: the arrow aims at the real opening line below. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="end|bottom"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:fontFamily="@font/patrick_hand"
+                android:text="opens right here"
+                android:textColor="@color/sketch_pencil"
+                android:textSize="17sp" />
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="end"
+                android:layout_marginEnd="44dp"
+                android:importantForAccessibility="no"
+                android:rotation="8"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_sketch_arrow" />
+        </LinearLayout>
+
         <ProgressBar
             android:id="@+id/progressBarSplash"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="4dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="2dp"
             android:indeterminate="true"
             android:indeterminateTint="@color/sketch_draft"
             android:progressBackgroundTint="#D7D0CB" />

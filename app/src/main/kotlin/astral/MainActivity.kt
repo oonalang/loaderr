@@ -340,11 +340,15 @@ class MainActivity : AppCompatActivity() {
     private fun playEntranceMotion() {
         val content = findViewById<View>(R.id.main_content)
         val rule = findViewById<OrnamentRuleView>(R.id.hero_rule)
+        val keyNote = findViewById<View>(R.id.key_note)
+        val keyArrow = findViewById<View>(R.id.key_note_arrow)
         entranceAnimator?.cancel()
         if (!ValueAnimator.areAnimatorsEnabled()) {
             content.alpha = 1f
             content.translationY = 0f
             rule.reveal = 1f
+            keyNote.alpha = 1f
+            keyArrow.alpha = 1f
             return
         }
         // One orchestrated sheet settle, not a fade-up on every section.
@@ -362,6 +366,22 @@ class MainActivity : AppCompatActivity() {
             addUpdateListener { rule.reveal = it.animatedValue as Float }
             start()
         }
+        // Margin note and arrow ink themselves once the rule is drawn.
+        keyNote.alpha = 0f
+        keyArrow.alpha = 0f
+        keyNote.animate().alpha(1f)
+            .setStartDelay(300L)
+            .setDuration(220L)
+            .setInterpolator(ShaiMotion.easeOut)
+            .start()
+        keyArrow.animate().alpha(1f)
+            .setStartDelay(420L)
+            .setDuration(200L)
+            .setInterpolator(ShaiMotion.easeOut)
+            .withEndAction {
+                (keyArrow.drawable as? android.graphics.drawable.Animatable)?.start()
+            }
+            .start()
     }
 
     private fun installPressFeedback(vararg views: View) {
@@ -601,6 +621,10 @@ class MainActivity : AppCompatActivity() {
         methodSurface.phase = phaseProgress
         (cv(R.id.hero_rule) as OrnamentRuleView).phase = phaseProgress
         (cv(R.id.drawer_rule) as OrnamentRuleView).phase = phaseProgress
+        // The washi tape holds the unsigned sketch on the sheet; it lifts as the court takes over.
+        val tapeAlpha = 1f - phaseProgress
+        cv(R.id.tape_start).alpha = tapeAlpha
+        cv(R.id.tape_end).alpha = tapeAlpha
 
         val ink = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
         val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
@@ -636,7 +660,7 @@ class MainActivity : AppCompatActivity() {
             ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.orchid, phaseProgress)
         )
         loginButton.setTextColor(
-            ShaiPalette.blend(Color.WHITE, Color.rgb(32, 20, 6), phaseProgress)
+            ShaiPalette.blend(ShaiPalette.ink, Color.rgb(32, 20, 6), phaseProgress)
         )
         licenseKeyInput.setTextColor(ink)
         licenseKeyInput.setHintTextColor(secondary)
@@ -668,7 +692,7 @@ class MainActivity : AppCompatActivity() {
         appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)
         val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
-            val display = Typeface.create("serif", Typeface.BOLD)
+            val display = Typeface.create("sans-serif", Typeface.BOLD)
             val brand = tv(R.id.brand_title)
             val success = tv(R.id.success_title)
             brand.typeface = display
@@ -724,13 +748,14 @@ class MainActivity : AppCompatActivity() {
                     heroArt.alpha = 1f
                     heroArt.scaleX = 1f
                     heroArt.scaleY = 1f
-                    heroArt.rotation = 0f
+                    // Paper tilt: the unsigned sketch is taped onto the sheet, not stamped.
+                    heroArt.rotation = -1.5f
                 }
             } else {
                 heroArt.alpha = 1f
                 heroArt.scaleX = 1f
                 heroArt.scaleY = 1f
-                heroArt.rotation = 0f
+                heroArt.rotation = if (displaySignedIn) 0f else -1.5f
             }
             findViewById<TextView>(R.id.library_status).text = when {
                 selectedLibrary.name.isBlank() && !licenseVerified -> "KEY REQUIRED"
