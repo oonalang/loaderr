@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_color_dark">#0B0B10</color>
+    <color name="textColor">#FFFFFF</color>
+    <color name="mtrl_textinput_default_box_stroke_color">#70558C</color>
+    <color name="loader_background">#0B0B10</color>
+    <color name="loader_surface">#15131D</color>
+    <color name="loader_surface_alt">#1B1724</color>
+    <color name="loader_surface_soft">#211B2B</color>
+    <color name="loader_border">#55436A</color>
+    <color name="loader_border_soft">#42334F</color>
+    <color name="loader_text_primary">#F3F0FA</color>
+    <color name="loader_text_secondary">#D2C9E0</color>
+    <color name="loader_text_muted">#B6AEC6</color>
+    <color name="loader_accent">#925CF4</color>
+    <color name="loader_scrim">#BA0B0B10</color>
+    <color name="loader_status_active">#31D17C</color>
+    <color name="loader_status_maintenance">#FFD37A</color>
+</resources>

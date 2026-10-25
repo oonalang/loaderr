@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:background="#FAF7F0" android:padding="28dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_gravity="center" android:orientation="vertical" android:padding="26dp"
+        android:background="@drawable/splash_sketch">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:fontFamily="casual" android:text="SHAI LOADER" android:textColor="#17141C"
+            android:textSize="32sp" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" android:text="License and library access"
+            android:textColor="#5F5862" android:textSize="15sp" />
+        <ProgressBar android:id="@+id/progressBarSplash" style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent" android:layout_height="4dp"
+            android:layout_marginTop="26dp" android:indeterminate="true"
+            android:progressBackgroundTint="#D7D0CB" android:indeterminateTint="#925CF4" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:text="OPENING SHAI"
+            android:textColor="#5F5862" android:letterSpacing="0.12" android:textSize="10sp" />
+    </LinearLayout>
+</FrameLayout>

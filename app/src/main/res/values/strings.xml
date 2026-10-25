@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SHAI LOADER</string>
+    <string name="library_required">Redeem a key, then choose a library.</string>
+    <string name="library_selected">Library selected. Nothing downloads until you confirm.</string>
+    <string name="library_empty">No libraries are published for your key.</string>
+</resources>
