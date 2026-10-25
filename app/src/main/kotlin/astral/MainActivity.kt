@@ -569,9 +569,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun tv(id: Int): TextView = cv(id) as TextView
 
-    /** Reused matrix/filter for the banner desaturation — no per-frame allocation. */
+    /** Reused matrix for the banner desaturation; the filter copies it at construction. */
     private val phaseColorMatrix = ColorMatrix()
-    private val bannerColorFilter = ColorMatrixColorFilter(phaseColorMatrix)
 
     private fun animateToPhase(target: Float) {
         phaseAnimator?.cancel()
@@ -666,8 +665,7 @@ class MainActivity : AppCompatActivity() {
             successSection.scaleY = scale
         }
         phaseColorMatrix.setSaturation(phaseProgress)
-        bannerColorFilter.setMatrix(phaseColorMatrix)
-        appBanner.colorFilter = bannerColorFilter
+        appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)
         val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
             val display = Typeface.create("serif", Typeface.BOLD)
