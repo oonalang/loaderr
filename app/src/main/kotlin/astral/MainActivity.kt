@@ -19,6 +19,7 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.net.Uri
 import android.util.Log
+import android.util.TypedValue
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -31,6 +32,7 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -90,6 +92,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var librarySearch: EditText
     private lateinit var libraryList: LinearLayout
     private lateinit var libraryCount: TextView
+    private lateinit var rememberKeyCheck: CheckBox
+    private lateinit var keyFingerprint: TextView
+    private lateinit var delayAdapter: SimpleSpinnerAdapter
+    private lateinit var methodAdapter: SimpleSpinnerAdapter
     
     private val commandRunner = CommandRunner()
     private val catalogClient = LibraryCatalogClient(SERVER_LIST_URL)
@@ -111,6 +117,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var successSurface: PhaseSurfaceDrawable
     private lateinit var drawerSurface: PhaseSurfaceDrawable
     private lateinit var drawerSearchSurface: PhaseSurfaceDrawable
+    private lateinit var delaySurface: PhaseSurfaceDrawable
+    private lateinit var methodSurface: PhaseSurfaceDrawable
     private var phaseProgress = 0f
     private var phaseAnimator: ValueAnimator? = null
     private var authenticatedLibrary: String? = null
@@ -120,8 +128,13 @@ class MainActivity : AppCompatActivity() {
     private var isPreparingLibrary = false
     private var lastDisplayedSignedIn: Boolean? = null
     private var lastHandStyle: Boolean? = null
-        
+    private var pendingRememberedKey: String? = null
+    private var autoLoginStarted = false
+    private var restoredFromState = false
+    private var redemptionInFlight = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        restoredFromState = savedInstanceState != null
         super.onCreate(null)
         setContentView(R.layout.activity_main)
 
@@ -153,6 +166,8 @@ class MainActivity : AppCompatActivity() {
         radioManual = findViewById(R.id.radio_manual)
         rootStatusView = findViewById(R.id.root_status)
         appBanner = findViewById(R.id.app_banner)
+        rememberKeyCheck = findViewById(R.id.remember_key)
+        keyFingerprint = findViewById(R.id.key_fingerprint)
         
         Glide.with(this)
             .load(R.drawable.shai_mark)
@@ -160,6 +175,7 @@ class MainActivity : AppCompatActivity() {
             .into(appBanner)
         
         loaderPreferences = LoaderPreferences(this)
+        setupRememberedKey()
         setupVisuals()
         setupLibraryDrawer()
 
@@ -221,6 +237,7 @@ class MainActivity : AppCompatActivity() {
                 clearAuthenticatedPhase()
                 licenseKeyInput.text?.clear()
                 licenseKeyInputLayout.error = null
+                forgetRememberedKey()
             }
         }
 
@@ -246,30 +263,7 @@ class MainActivity : AppCompatActivity() {
                     verifySelectedLibraryAndDownload()
                 }
             } else {
-                loginButton.isEnabled = false
-                loginButton.text = "VERIFYING KEY…"
-                findViewById<TextView>(R.id.hero_caption).text = "Verifying your key…"
-                licenseKeyInput.isEnabled = false
-                licenseKeyInputLayout.error = null
-                librarySpinner.isEnabled = false
-                delaySpinner.isEnabled = false
-                methodSpinner.isEnabled = false
-                radioGroup.isEnabled = false
-                val licenseKey = licenseKeyInput.text?.toString()?.trim()
-                if (licenseKey.isNullOrEmpty()) {
-                    resetLoginState("Enter the key from your panel.")
-                } else {
-                    val detectedVpn = SplashActivity.getDetectedVPN()
-                    if (detectedVpn != null) {
-                        SplashActivity.showDialog(
-                            this,
-                            "VPN DETECTED",
-                            "Detected VPN Interface:\n$detectedVpn\n\nPlease disable your VPN and try again."
-                        )
-                    } else {
-                        validateLicense(licenseKey)
-                    }
-                }
+                beginLicenseRedemption()
             }
         }
         
@@ -299,7 +293,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun playEntranceMotion() {
         if (!ValueAnimator.areAnimatorsEnabled()) return
-        val views = intArrayOf(R.id.hero_block, R.id.license_section, R.id.library_card)
+        val views = intArrayOf(R.id.hero_block, R.id.license_section, R.id.library_card, R.id.operation_section)
         views.forEachIndexed { index, id ->
             val view = findViewById<View>(id)
             view.alpha = 0f
@@ -308,6 +302,114 @@ class MainActivity : AppCompatActivity() {
             view.animate().alpha(1f).translationY(0f)
                 .setStartDelay(index * 55L).setDuration(280L)
                 .setInterpolator(DecelerateInterpolator()).start()
+        }
+    }
+
+    private fun setupRememberedKey() {
+        val remembered = loaderPreferences.getRememberedKey()
+        rememberKeyCheck.isChecked = !remembered.isNullOrBlank()
+        if (!remembered.isNullOrBlank()) {
+            licenseKeyInput.setText(remembered)
+            pendingRememberedKey = remembered
+        }
+        rememberKeyCheck.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                val key = licenseKeyInput.text?.toString()?.trim().orEmpty()
+                if (key.isNotBlank()) {
+                    loaderPreferences.saveRememberedKey(key)
+                    pendingRememberedKey = key
+                }
+            } else {
+                loaderPreferences.setRememberKeyEnabled(false)
+                pendingRememberedKey = null
+            }
+            updateRememberCaption()
+        }
+        licenseKeyInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (rememberKeyCheck.isChecked) {
+                    val key = s?.toString()?.trim().orEmpty()
+                    if (key.isNotBlank()) loaderPreferences.saveRememberedKey(key)
+                }
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+        updateRememberCaption()
+    }
+
+    private fun updateRememberCaption() {
+        findViewById<TextView>(R.id.remember_caption).text = if (rememberKeyCheck.isChecked) {
+            "Saved on this device. SHAI tries it when the app opens."
+        } else {
+            "Redeem automatically the next time SHAI opens."
+        }
+    }
+
+    /** Runs once per launch, after catalog/version checks. It never downloads a library. */
+    private fun maybeAutoLogin() {
+        if (autoLoginStarted || restoredFromState || licenseVerified) return
+        val key = pendingRememberedKey?.trim().orEmpty()
+        if (key.isBlank() || !loaderPreferences.isRememberKeyEnabled()) return
+        autoLoginStarted = true
+        licenseKeyInput.setText(key)
+        findViewById<TextView>(R.id.hero_caption).text = "Remembered key. Checking it with the panel…"
+        loginButton.postDelayed({
+            val current = licenseKeyInput.text?.toString()?.trim()
+            if (!isFinishing && !isDestroyed && !licenseVerified &&
+                rememberKeyCheck.isChecked && current == key
+            ) {
+                beginLicenseRedemption()
+            }
+        }, 260L)
+    }
+
+    private fun beginLicenseRedemption() {
+        if (licenseVerified || redemptionInFlight) return
+        redemptionInFlight = true
+        loginButton.isEnabled = false
+        loginButton.text = "VERIFYING KEY…"
+        findViewById<TextView>(R.id.hero_caption).text = "Verifying your key…"
+        licenseKeyInput.isEnabled = false
+        licenseKeyInputLayout.error = null
+        librarySpinner.isEnabled = false
+        delaySpinner.isEnabled = false
+        methodSpinner.isEnabled = false
+        radioGroup.isEnabled = false
+        val licenseKey = licenseKeyInput.text?.toString()?.trim()
+        if (licenseKey.isNullOrEmpty()) {
+            resetLoginState("Enter the key from your panel.")
+            return
+        }
+        val detectedVpn = SplashActivity.getDetectedVPN()
+        if (detectedVpn != null) {
+            SplashActivity.showDialog(
+                this,
+                "VPN DETECTED",
+                "Detected VPN Interface:\n$detectedVpn\n\nPlease disable your VPN and try again."
+            )
+        } else {
+            validateLicense(licenseKey)
+        }
+    }
+
+    private fun forgetRememberedKey() {
+        loaderPreferences.setRememberKeyEnabled(false)
+        loaderPreferences.clearRememberedKey()
+        pendingRememberedKey = null
+        if (rememberKeyCheck.isChecked) {
+            rememberKeyCheck.isChecked = false
+        } else {
+            updateRememberCaption()
+        }
+    }
+
+    private fun keyLabel(key: String): String {
+        val clean = key.trim()
+        return if (clean.length >= 12) {
+            "KEY  ${clean.take(4)} ···· ${clean.takeLast(4)}"
+        } else {
+            "KEY  ···· ${clean.takeLast(2)}"
         }
     }
 
@@ -330,6 +432,10 @@ class MainActivity : AppCompatActivity() {
         successSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SUCCESS)
         drawerSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.DRAWER)
         drawerSearchSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SEARCH)
+        delaySurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SELECT)
+        methodSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SELECT)
+        delaySpinner.background = delaySurface
+        methodSpinner.background = methodSurface
         findViewById<View>(R.id.library_card).background = libraryCardSurface
         loginButton.background = primarySurface
         findViewById<View>(R.id.browse_button).background = secondarySurface
@@ -343,6 +449,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun clearAuthenticatedPhase() {
         licenseVerified = false
+        redemptionInFlight = false
         authenticatedLibrary = null
         redeemedGame = null
         redeemedKey = null
@@ -354,6 +461,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.library_game).text = "Redeem your key to continue"
         findViewById<TextView>(R.id.library_version).visibility = View.GONE
         findViewById<TextView>(R.id.library_package).visibility = View.GONE
+        keyFingerprint.text = ""
+        keyFingerprint.visibility = View.GONE
         allLibraries.clear()
         filteredLibraries.clear()
         if (::librarySpinner.isInitialized) updateSpinnerWithFilteredData()
@@ -361,7 +470,8 @@ class MainActivity : AppCompatActivity() {
         isReadyToInject = false
         findViewById<View>(R.id.license_section).visibility = View.VISIBLE
         findViewById<View>(R.id.success_section).visibility = View.GONE
-        findViewById<TextView>(R.id.hero_caption).text = "Redeem a key, then choose a library."
+        findViewById<TextView>(R.id.hero_caption).text =
+            "Paste a key from your panel. Nothing opens until it is checked."
         appBanner.isEnabled = true
         licenseKeyInput.isEnabled = true
         librarySpinner.isEnabled = true
@@ -393,53 +503,105 @@ class MainActivity : AppCompatActivity() {
         successSurface.phase = phaseProgress
         drawerSurface.phase = phaseProgress
         drawerSearchSurface.phase = phaseProgress
-        val ink = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(245, 236, 255), phaseProgress)
+        delaySurface.phase = phaseProgress
+        methodSurface.phase = phaseProgress
+        findViewById<OrnamentRuleView>(R.id.hero_rule).phase = phaseProgress
+        findViewById<OrnamentRuleView>(R.id.success_rule).phase = phaseProgress
+        findViewById<OrnamentRuleView>(R.id.drawer_rule).phase = phaseProgress
+
+        val ink = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
         val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
-        val accent = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.lilac, phaseProgress)
+        val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
+        val line = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phaseProgress)
+        val heroHeadline = findViewById<TextView>(R.id.hero_headline)
         val isSignedIn = licenseVerified
-        val titleIds = intArrayOf(R.id.brand_title, R.id.library_name, R.id.hero_headline, R.id.success_title, R.id.drawer_title)
-        val secondaryIds = intArrayOf(R.id.brand_subtitle, R.id.chapter_label, R.id.library_game,
-            R.id.library_version, R.id.library_package, R.id.hero_caption, R.id.license_heading,
-            R.id.footer_text, R.id.library_count, R.id.success_detail)
+        val titleIds = intArrayOf(
+            R.id.brand_title, R.id.library_name, R.id.hero_headline,
+            R.id.success_title, R.id.drawer_title, R.id.remember_title
+        )
+        val secondaryIds = intArrayOf(
+            R.id.brand_subtitle, R.id.chapter_label, R.id.library_game,
+            R.id.library_version, R.id.library_package, R.id.hero_caption,
+            R.id.license_heading, R.id.footer_text, R.id.library_count,
+            R.id.success_detail, R.id.remember_caption, R.id.control_hint,
+            R.id.operation_note, R.id.sheet_note
+        )
         titleIds.forEach { findViewById<TextView>(it).setTextColor(ink) }
         secondaryIds.forEach { findViewById<TextView>(it).setTextColor(secondary) }
-        intArrayOf(R.id.library_arrow, R.id.phase_marker, R.id.about_button, R.id.drawer_about, R.id.change_key_link)
-            .forEach { findViewById<TextView>(it).setTextColor(accent) }
+        intArrayOf(
+            R.id.library_arrow, R.id.phase_marker, R.id.about_button, R.id.drawer_about,
+            R.id.change_key_link, R.id.sheet_plate, R.id.operation_heading,
+            R.id.method_label, R.id.delay_label, R.id.key_fingerprint
+        ).forEach { findViewById<TextView>(it).setTextColor(accent) }
         findViewById<TextView>(R.id.library_status).setTextColor(accent)
-        findViewById<TextView>(R.id.success_emblem).setTextColor(ShaiPalette.lilac)
-        findViewById<Button>(R.id.browse_button).setTextColor(ink)
-        loginButton.setTextColor(ShaiPalette.blend(Color.WHITE, Color.WHITE, phaseProgress))
+        findViewById<TextView>(R.id.success_emblem).setTextColor(
+            ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
+        )
+        findViewById<Button>(R.id.browse_button).setTextColor(
+            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.orchid, phaseProgress)
+        )
+        loginButton.setTextColor(
+            ShaiPalette.blend(Color.WHITE, Color.rgb(32, 20, 6), phaseProgress)
+        )
         licenseKeyInput.setTextColor(ink)
         licenseKeyInput.setHintTextColor(secondary)
-        licenseKeyInputLayout.boxBackgroundColor = ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.darkPanel, phaseProgress)
+        licenseKeyInputLayout.boxBackgroundColor =
+            ShaiPalette.blend(ShaiPalette.paperCard, Color.rgb(30, 16, 46), phaseProgress)
         licenseKeyInputLayout.boxStrokeColor = accent
         licenseKeyInputLayout.defaultHintTextColor = ColorStateList.valueOf(secondary)
         findViewById<EditText>(R.id.library_search).apply {
             setTextColor(ink)
             setHintTextColor(secondary)
         }
+        findViewById<View>(R.id.sheet_rule).backgroundTintList = ColorStateList.valueOf(line)
+        findViewById<View>(R.id.library_divider).backgroundTintList = ColorStateList.valueOf(line)
         val filter = ColorMatrix().apply { setSaturation(phaseProgress) }
         appBanner.colorFilter = ColorMatrixColorFilter(filter)
         val handMode = phaseProgress < .5f
         if (lastHandStyle != handMode) {
-            val font = Typeface.create(if (handMode) "casual" else "sans-serif", Typeface.BOLD)
-            findViewById<TextView>(R.id.brand_title).typeface = font
-            findViewById<TextView>(R.id.hero_headline).typeface = font
-            findViewById<TextView>(R.id.brand_title).letterSpacing = if (handMode) .01f else .12f
+            val display = Typeface.create(if (handMode) "casual" else "serif", Typeface.BOLD)
+            val brand = findViewById<TextView>(R.id.brand_title)
+            val success = findViewById<TextView>(R.id.success_title)
+            brand.typeface = display
+            heroHeadline.typeface = display
+            success.typeface = display
+            brand.letterSpacing = if (handMode) .01f else .08f
+            heroHeadline.letterSpacing = if (handMode) 0f else (-.01f)
+            heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (handMode) 26f else 31f)
+            success.letterSpacing = if (handMode) 0f else .06f
+            success.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (handMode) 17f else 18f)
+            findViewById<TextView>(R.id.phase_marker).apply {
+                text = if (handMode) "◇" else "✦"
+                textSize = if (handMode) 24f else 20f
+            }
+            if (::delayAdapter.isInitialized) delayAdapter.applyPhase(phaseProgress)
+            if (::methodAdapter.isInitialized) methodAdapter.applyPhase(phaseProgress)
             lastHandStyle = handMode
         }
         if (lastDisplayedSignedIn != isSignedIn) {
-            findViewById<TextView>(R.id.brand_subtitle).text = if (isSignedIn) "ACCESS CONFIRMED" else "KEYS & LIBRARIES"
-            findViewById<TextView>(R.id.chapter_label).text = if (isSignedIn) "LIBRARY ACCESS" else "LIBRARY ACCESS"
-            findViewById<TextView>(R.id.hero_headline).text = if (isSignedIn) "Your libraries." else "Your key comes first."
+            findViewById<TextView>(R.id.sheet_plate).text =
+                if (isSignedIn) "SHAI · ACCESS PLATE" else "CONCEPT SHEET · 01"
+            findViewById<TextView>(R.id.sheet_note).text =
+                if (isSignedIn) "LICENSE ACTIVE" else "NOT YET VERIFIED"
+            findViewById<TextView>(R.id.operation_heading).text =
+                if (isSignedIn) "INJECTION" else "OPERATIONS"
+            findViewById<TextView>(R.id.operation_note).text =
+                if (isSignedIn) "SET BEFORE PREPARE" else "APPLIES AFTER ACCESS"
+            findViewById<TextView>(R.id.brand_subtitle).text =
+                if (isSignedIn) "ACCESS CONFIRMED · SHAI" else "CONCEPT SHEET · ONE"
+            findViewById<TextView>(R.id.chapter_label).text =
+                if (isSignedIn) "YOUR COLLECTION" else "LIBRARY ACCESS"
+            heroHeadline.text =
+                if (isSignedIn) "Access granted." else "Your key comes first."
             findViewById<TextView>(R.id.hero_caption).text = if (isSignedIn) {
                 "Choose one library. Nothing downloads until you confirm."
             } else {
-                "Redeem a key, then choose a library."
+                "Paste a key from your panel. Nothing opens until it is checked."
             }
             val heroArt = findViewById<ImageView>(R.id.hero_art)
             heroArt.setImageResource(if (isSignedIn) R.drawable.hero_ethereal else R.drawable.hero_sketch)
-            heroArt.contentDescription = if (isSignedIn) "Violet SHAI access symbol" else "Hand-drawn figure"
+            heroArt.contentDescription =
+                if (isSignedIn) "Gilded SHAI crest" else "Hand-drawn concept figure"
             if (ValueAnimator.areAnimatorsEnabled()) {
                 heroArt.animate().cancel()
                 heroArt.alpha = 0.65f
@@ -474,7 +636,7 @@ class MainActivity : AppCompatActivity() {
         val surface = row.background as? PhaseSurfaceDrawable
             ?: PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.ROW).also { row.background = it }
         surface.phase = phaseProgress
-        val main = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(241, 230, 255), phaseProgress)
+        val main = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
         val sub = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
         intArrayOf(R.id.drawer_name, R.id.drawer_meta, R.id.drawer_package).forEachIndexed { index, id ->
             row.findViewById<TextView>(id)?.setTextColor(if (index == 0) main else sub)
@@ -483,12 +645,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDelaySpinner() {
         val delayOptions = arrayOf("NO DELAY", "1S DELAY", "2S DELAY", "3S DELAY", "4S DELAY", "5S DELAY")
-        delaySpinner.adapter = SimpleSpinnerAdapter(this, delayOptions)
+        delayAdapter = SimpleSpinnerAdapter(this, delayOptions)
+        delaySpinner.adapter = delayAdapter
+        delayAdapter.applyPhase(phaseProgress)
     }
-    
+
     private fun setupMethodSpinner() {
         val methodOptions = arrayOf("METHOD 1", "METHOD 2", "METHOD 3")
-        methodSpinner.adapter = SimpleSpinnerAdapter(this, methodOptions)
+        methodAdapter = SimpleSpinnerAdapter(this, methodOptions)
+        methodSpinner.adapter = methodAdapter
+        methodAdapter.applyPhase(phaseProgress)
     }
     
     private fun saveLicenseKeyForLibrary(libraryName: String, licenseKey: String) {
@@ -524,6 +690,7 @@ class MainActivity : AppCompatActivity() {
             refreshLibraryDrawer()
             loginButton.text = "REDEEM KEY"
             loginButton.isEnabled = true
+            maybeAutoLogin()
         }
     }
     
@@ -919,6 +1086,7 @@ class MainActivity : AppCompatActivity() {
             val validationResult = licenseValidator.validate(licenseKey, PANEL_URL, game)
             withContext(Dispatchers.Main) {
                 if (!licenseValidator.isSuccess(validationResult)) {
+                    redemptionInFlight = false
                     resetLoginState(validationResult)
                     return@withContext
                 }
@@ -931,6 +1099,7 @@ class MainActivity : AppCompatActivity() {
                     val item = items.optJSONObject(i) ?: continue
                     if (item.optString("TYPE") == game) allLibraries.add(item)
                 }
+                redemptionInFlight = false
                 redeemedGame = game
                 redeemedKey = licenseKey
                 licenseVerified = true
@@ -947,8 +1116,17 @@ class MainActivity : AppCompatActivity() {
                         alpha = 1f
                     }
                 }
-                findViewById<TextView>(R.id.hero_caption).text = "Choose one library. Nothing downloads until you confirm."
-                findViewById<TextView>(R.id.success_title).text = "License verified"
+                findViewById<TextView>(R.id.hero_caption).text =
+                    "Choose one library. Nothing downloads until you confirm."
+                findViewById<TextView>(R.id.success_title).text = "LICENSE VERIFIED"
+                if (rememberKeyCheck.isChecked) {
+                    loaderPreferences.saveRememberedKey(licenseKey)
+                    pendingRememberedKey = null
+                }
+                keyFingerprint.apply {
+                    text = keyLabel(licenseKey)
+                    visibility = View.VISIBLE
+                }
                 animateToPhase(1f)
                 if (filteredLibraries.isEmpty()) {
                     findViewById<TextView>(R.id.success_detail).text =
@@ -985,10 +1163,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetLoginState(message: String) {
+        val savedKeyRejected = autoLoginStarted && pendingRememberedKey != null
+        pendingRememberedKey = null
         isPreparingLibrary = false
         clearAuthenticatedPhase()
         licenseKeyInputLayout.error = message
-        findViewById<TextView>(R.id.hero_caption).text = "Check the key and try again."
+        findViewById<TextView>(R.id.hero_caption).text = if (savedKeyRejected) {
+            "The saved key was not accepted. Check it, or turn off Remember."
+        } else {
+            "Check the key and try again."
+        }
         loginButton.text = "REDEEM KEY"
         loginButton.isEnabled = true
         licenseKeyInput.isEnabled = true

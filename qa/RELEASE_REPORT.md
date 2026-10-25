@@ -1,65 +1,116 @@
-# SHAI Loader · Concept / Ethereal refinement
+# SHAI Loader · Concept sheet → Violet court
 
 ## Direction and acceptance
 
-- Subject: Android library-access loader.
-- Audience: phone users redeeming keys and choosing libraries.
-- Job: redeem, **choose a library explicitly**, then prepare only on explicit action.
-- Mode: upgrade, retaining existing Kotlin / Android XML / Gradle stack.
-- Direction: hand-drawn conceptual sketch before authentication, restrained ethereal violet after authentication.
-- Variance 6/10, motion 4/10, density 4/10.
+- Subject: Android library-access loader for panel-issued game keys.
+- Audience: phone users redeeming a key, then preparing and injecting one library.
+- Job: redeem → choose a library explicitly → prepare → inject.
+- Mode: upgrade, retaining the Kotlin / Android XML / Gradle stack and every view ID.
+- Before authentication: a **concept sheet**. Ivory paper, graphite contour
+  drawing, drafting margin, construction circle, annotation arrow and a violet
+  pencil. The sheet includes a ghosted frame of the signed-in layout, so the
+  first screen is literally a drawing of the second.
+- After authentication: **violet court maximalism**. The sketch is built out:
+  aubergine field, gilded double frame, girih-like guilloche rings, mirrored
+  corner scrolls, star dust, serif display type, plasma crest, engraved
+  license plaque, gold-foil primary action and an instrument panel.
+- Dials: variance 6/10 sketch, 8/10 court; motion 2/10 sketch, 5/10 court;
+  density 3/10 sketch, 8/10 court.
+- Signature: one line drawing becomes the gilded crest, and the sheet's ghosted
+  frame becomes the real frame.
+- Rules: one primary action; every ornament is structural (margin, rule, frame,
+  plaque, plate); the sketch is not a filled-in form, the court is not a recolour.
 
-### Design system
+### Tokens
 
 | Token | Value |
 |---|---|
-| paper | `#FAF7EF` |
-| paper ink | `#1E1920` |
-| ethereal background | `#0B0B10` |
-| ethereal surface | `#15131D` |
-| primary text | `#F3F0FA` |
-| muted text | `#B6AEC6` |
-| violet | `#925CF4` |
+| paper | `#F7F2E7` |
+| paper card | `#FDF9F0` |
+| ink | `#211C24` |
+| pencil | `#6F6270` |
+| draft violet | `#6A4A8C` |
+| court void | `#0A0610` |
+| court plum | `#241232` |
+| court amethyst | `#3A1F57` |
+| gold | `#E9C77E` |
+| deep gold | `#9D743A` |
+| orchid | `#E2C7FF` |
+| brand violet | `#925CF4` |
+| mint / active | `#58E2AA` |
 
-- Type: Android casual face on sketch headings, Android sans-serif on signed-in headings; sans-serif for UI data.
-- Layout, left-aligned content: `brand header → illustration + headline → license or success status → library card → action → secondary list → footer`.
-- Signature: one symbol changing from a rough hand-drawn figure to a violet sigil. No unrelated decorative tiles.
-- Rules: one main action; no auto-selection; readable library rows with state descriptions.
+- Type: `casual` hand lettering and sans labels on the sheet; `serif` display,
+  tracked sans metadata and monospace package data in the court.
+- Shape: 3dp sketch contours, 7dp panels and 9dp primary action in the court.
+- Motion: one 460ms phase interpolation, honouring the system animator scale.
+  No looping animation.
+
+## Restored controls and remembered key
+
+- `delay_spinner` and `method_spinner` are visible 50dp selectors with labels,
+  persisted through `LoaderPreferences`; they are no longer 1dp hidden stubs.
+  Delay remains "time after the game opens, before the library loads".
+- `remember_key` is an opt-in checkbox. While checked, the field's value is
+  stored in app-private `SharedPreferences`; unchecking, or "Use another key",
+  deletes it.
+- One-shot auto-login runs after the catalog/version check: it fills the saved
+  key and starts the **same** redemption flow. It never downloads, prepares or
+  injects a library, never opens the game, and does not repeat in a session.
+- The accepted key is shown only as a fingerprint (`KEY  ABCD ···· WXYZ`) in the
+  signed-in plaque.
+- Auto-login is skipped when the activity is recreated; the saved key is still
+  prefilled so the user can redeem deliberately.
+- License keys remain in app-private preferences, the same store the existing
+  per-library license map already used. They are not encrypted at rest and are
+  only sent to the configured panel endpoints.
 
 ## Changed files
 
-- `app/src/main/res/layout/activity_main.xml`: reorganized mobile visual hierarchy while keeping IDs and core controls.
-- `app/src/main/res/layout/item_library_drawer.xml`: increased library row type and tap areas.
-- `app/src/main/res/drawable/hero_sketch.xml`, `hero_ethereal.xml`: original vector art for the two states.
-- `app/src/main/kotlin/astral/MainActivity.kt`: explicit library choice, responsive visual states, restrained motion, inline license feedback, key-switch recovery, drawer focus and empty states.
-- `app/src/main/kotlin/astral/LoaderVisuals.kt`: selected-row outline respecting current theme.
-- `app/src/main/kotlin/astral/SplashActivity.kt` and `app/src/main/res/layout/activity_splash.xml`: removed fake percent progress and reduced splash delay.
-- `app/src/main/AndroidManifest.xml`: keyboard adjusts content height.
-- `app/build.gradle.kts`: version 1.2 (code 3).
+- `app/src/main/res/layout/activity_main.xml` — two-phase hierarchy; restored
+  selectors; remember control; fingerprint; ornament rules; plaque.
+- `app/src/main/kotlin/astral/LoaderVisuals.kt` — paper/court backdrop painting,
+  phase surfaces, gilded states, `OrnamentRuleView`.
+- `app/src/main/kotlin/astral/MainActivity.kt` — phase styling, remembered-key
+  flow, one-shot auto-login, control wiring, fingerprint.
+- `app/src/main/kotlin/astral/LoaderPreferences.kt` — opt-in key storage.
+- `app/src/main/kotlin/astral/SimpleSpinnerAdapter.kt` + spinner layouts —
+  phase-aware cells, readable dark dropdown.
+- `app/src/main/res/drawable/hero_sketch.xml`, `hero_ethereal.xml` — measured
+  concept figure and the maximal crest.
+- `app/src/main/res/drawable/seal_ring.xml` — double-ring plaque seal.
+- `app/src/main/res/drawable/checkbox_sheet*.xml` — drawn remember-key control.
+- `app/src/main/res/layout/activity_splash.xml`, `activity_splash` colors —
+  the sheet language carried into the opening screen.
+- `app/src/main/res/layout/item_library_drawer.xml`, `status_pill.xml`,
+  `maintenance_pill.xml`, `colors.xml`, `themes.xml` — court palette and rows.
+- `app/src/main/kotlin/astral/AboutDialog.kt` — serif/gold treatment when signed in.
+- `qa/verify_ui_contract.py` — checks for visible controls, remembered-key flow,
+  and distinct phase systems.
 
-## Tested
+## Verification
 
-- Python static UI contract assertions: `python3 qa/verify_ui_contract.py`.
-- All Android XML resources parsed with XML parser.
-- Gradle Android debug APK build **BLOCKED**: `gradle-8.11.1-bin.zip` could not be fetched, `UnknownHostException: services.gradle.org`.
-- Kotlin standalone direct probe finds unresolved Android imports because the Android SDK and Gradle dependencies are unavailable. It is **not** proof of compilation.
-- Android device visual/accessibility, login, network and runtime integration checks **NOT RUN**.
-
-## Manual acceptance checklist (run after building APK)
-
-1. Fresh launch starts as paper/sketch. No staged library is downloaded.
-2. Redeem a valid supported key; ethereal state appears, and the library drawer opens.
-3. Closing drawer without tapping a library leaves the selection empty; no download starts.
-4. Tapping a library sets its name and displays a preparation action; still no download starts.
-5. Test library search, empty results, very long names and accessibility focus.
-6. Test rotate/relaunch, keyboard, animation-disabled accessibility setting, and network timeout.
-7. Test incorrect key and zero matching libraries; use the "Use another key" recovery link.
-8. Confirm the existing licensed app integration independently with its owner.
-
-Build on an Android machine with the project’s Gradle version and a configured Android SDK:
+Environment: Temurin JDK 17.0.21, Android SDK Platform 35, Build-Tools 35.0.0,
+Gradle 8.11.1, AGP 8.9.1, Kotlin 2.0.21. Build command:
 
 ```sh
-./gradlew :app:assembleDebug
+bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --no-parallel \
+  -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8"
 ```
 
-The package contains **source code**, not an installed APK. It does not contain account credentials.
+| Check | Result |
+|---|---|
+| `:app:assembleDebug` | **PASS** |
+| `:app:testDebugUnitTest` | **PASS** (2 tests) |
+| `:app:lintDebug` | **PASS**, 0 errors, warnings only |
+| `python3 qa/verify_ui_contract.py` | **PASS**, all assertions |
+| XML parse + ID uniqueness + resource resolution | **PASS** |
+| Kotlin compilation | **PASS** |
+| Device/emulator rendering and touch checks | **NOT RUN** (no device attached) |
+| Live panel redemption, download, injection | **NOT RUN** (requires a valid key and game package) |
+
+Known non-blocking lint warnings: hardcoded design strings, small tracked
+labels, `TooManyViews` on the single scrolling screen, and pre-existing
+security/permission warnings from the loader core. No new errors.
+
+The debug APK is produced at `app/build/outputs/apk/debug/app-debug.apk`; build
+outputs are intentionally not committed.

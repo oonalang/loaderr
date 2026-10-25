@@ -74,8 +74,8 @@ class SplashActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_splash)
-        window.statusBarColor = android.graphics.Color.rgb(250, 247, 239)
-        window.navigationBarColor = android.graphics.Color.rgb(250, 247, 239)
+        window.statusBarColor = android.graphics.Color.rgb(247, 242, 231)
+        window.navigationBarColor = android.graphics.Color.rgb(247, 242, 231)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
             android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR

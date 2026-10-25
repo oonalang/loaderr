@@ -77,8 +77,9 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
 
     private fun applyPhaseStyle() {
         val base = if (signedIn) ShaiPalette.void else ShaiPalette.paper
-        val foreground = if (signedIn) Color.rgb(245, 236, 255) else ShaiPalette.ink
+        val foreground = if (signedIn) Color.rgb(246, 239, 255) else ShaiPalette.ink
         val secondary = if (signedIn) ShaiPalette.muted else ShaiPalette.pencil
+        val accent = if (signedIn) ShaiPalette.gold else ShaiPalette.ink
         findViewById<View>(R.id.about_scroll).setBackgroundColor(base)
         listOf(R.id.about_details_card, R.id.about_info_card).forEach { id ->
             findViewById<View>(id).background = PhaseSurfaceDrawable(
@@ -89,10 +90,13 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
                 is TextView -> {
                     val normalText = view.textSize / context.resources.displayMetrics.scaledDensity >= 13f
                     view.setTextColor(if (normalText) foreground else secondary)
-                    if (!signedIn && normalText) view.typeface = Typeface.create("casual", Typeface.BOLD)
+                    if (normalText) {
+                        view.typeface = Typeface.create(if (signedIn) "serif" else "casual", Typeface.BOLD)
+                        if (signedIn) view.letterSpacing = .04f
+                    }
                     view.setBackgroundColor(Color.TRANSPARENT)
                 }
-                is ImageView -> if (view.id != View.NO_ID) view.setColorFilter(if (signedIn) ShaiPalette.lilac else ShaiPalette.ink)
+                is ImageView -> if (view.id != View.NO_ID) view.setColorFilter(accent)
             }
             if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
         }
@@ -102,7 +106,7 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
             backgroundTintList = ColorStateList.valueOf(
                 if (signedIn) ShaiPalette.darkPanel else ShaiPalette.paperCard)
             setTextColor(foreground)
-            strokeColor = ColorStateList.valueOf(if (signedIn) ShaiPalette.violet else ShaiPalette.ink)
+            strokeColor = ColorStateList.valueOf(if (signedIn) ShaiPalette.gold else ShaiPalette.ink)
         }
     }
 

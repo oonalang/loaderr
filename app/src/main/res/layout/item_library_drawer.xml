@@ -3,16 +3,18 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    android:background="@drawable/drawer_item"
     android:gravity="center_vertical"
-    android:minHeight="88dp"
+    android:minHeight="92dp"
     android:orientation="horizontal"
-    android:padding="12dp">
+    android:paddingStart="12dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="12dp">
 
     <ImageView
         android:id="@+id/drawer_logo"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         android:background="@drawable/circle"
         android:contentDescription="Library logo"
         android:scaleType="centerCrop" />
@@ -20,7 +22,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="11dp"
+        android:layout_marginStart="12dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -38,18 +40,19 @@
             android:id="@+id/drawer_meta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="4dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/loader_text_secondary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/drawer_package"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="3dp"
             android:ellipsize="end"
+            android:fontFamily="monospace"
             android:maxLines="1"
             android:textColor="@color/loader_text_muted"
             android:textSize="10sp" />
@@ -61,14 +64,13 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="2dp"
-        android:paddingStart="5dp"
+        android:letterSpacing="0.08"
+        android:paddingStart="7dp"
         android:paddingTop="4dp"
-        android:paddingEnd="5dp"
+        android:paddingEnd="7dp"
         android:paddingBottom="4dp"
         android:text="ACTIVE"
         android:textColor="@color/loader_status_active"
         android:textSize="10sp"
         android:textStyle="bold" />
-
-
 </LinearLayout>

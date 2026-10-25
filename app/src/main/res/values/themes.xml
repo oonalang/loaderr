@@ -1,18 +1,24 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-  <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:navigationBarColor">@color/background_color_dark</item>
         <item name="android:windowBackground">@color/background_color_dark</item>
         <item name="android:textColor">@color/textColor</item>
         <item name="android:statusBarColor">@color/background_color_dark</item>
-    </style> 
-   <style name="CustomHintTextAppearance" parent="TextAppearance.AppCompat.Small">
+        <item name="android:colorAccent">@color/max_gold</item>
+        <item name="colorPrimary">@color/max_gold</item>
+        <item name="colorSecondary">@color/max_orchid</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="CustomHintTextAppearance" parent="TextAppearance.AppCompat.Small">
         <item name="android:textSize">10sp</item>
         <item name="android:textColor">@android:color/white</item>
     </style>
+
     <style name="DarkAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-        <item name="colorPrimary">@color/loader_accent</item>
-        <item name="android:background">@color/background_color_dark</item>
+        <item name="colorPrimary">@color/max_gold</item>
+        <item name="android:background">@color/max_panel</item>
         <item name="android:textColorPrimary">@color/textColor</item>
-        <item name="android:textColorSecondary">@color/textColor</item>
+        <item name="android:textColorSecondary">@color/max_orchid</item>
     </style>
 </resources>
