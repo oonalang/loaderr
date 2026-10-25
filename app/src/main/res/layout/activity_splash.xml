@@ -6,6 +6,7 @@
     android:padding="24dp">
 
     <LinearLayout
+        android:id="@+id/splash_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
@@ -77,6 +78,7 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/splash_footer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"

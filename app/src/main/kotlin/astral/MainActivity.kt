@@ -1,15 +1,14 @@
 package astral.loader
 
 import android.animation.ValueAnimator
-import android.animation.TimeInterpolator
 import android.content.res.ColorStateList
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Typeface
-import android.view.animation.AccelerateDecelerateInterpolator
-import android.view.animation.AnimationUtils
-import android.view.animation.AlphaAnimation
-import android.view.animation.Animation
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageButton
 import android.app.NotificationManager
 import android.content.Context
@@ -20,15 +19,13 @@ import android.graphics.Shader
 import android.net.Uri
 import android.util.Log
 import android.util.TypedValue
+import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -39,10 +36,12 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
@@ -86,7 +85,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var radioManual: RadioButton
     private lateinit var rootStatusView: TextView
     private lateinit var appBanner: ImageView
-    private lateinit var mainScroll: View
+    private lateinit var mainScroll: ScrollView
     private lateinit var libraryDrawer: View
     private lateinit var drawerScrim: View
     private lateinit var librarySearch: EditText
@@ -120,7 +119,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var delaySurface: PhaseSurfaceDrawable
     private lateinit var methodSurface: PhaseSurfaceDrawable
     private var phaseProgress = 0f
+    private var phaseTarget = 0f
     private var phaseAnimator: ValueAnimator? = null
+    private var entranceAnimator: ValueAnimator? = null
+    private var pendingReveal: Runnable? = null
     private var authenticatedLibrary: String? = null
     private var licenseVerified = false
     private var redeemedGame: String? = null
@@ -137,6 +139,20 @@ class MainActivity : AppCompatActivity() {
         restoredFromState = savedInstanceState != null
         super.onCreate(null)
         setContentView(R.layout.activity_main)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (isDrawerOpen) {
+                    setLibraryDrawerOpen(false)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    // Re-arm if a host or another callback kept us alive; the
+                    // next back press must still close an open drawer.
+                    isEnabled = true
+                }
+            }
+        })
 
         mainScroll = findViewById(R.id.main_scroll)
         libraryDrawer = findViewById(R.id.library_drawer)
@@ -238,8 +254,23 @@ class MainActivity : AppCompatActivity() {
                 licenseKeyInput.text?.clear()
                 licenseKeyInputLayout.error = null
                 forgetRememberedKey()
+                revealKeyEntry()
             }
         }
+
+        licenseKeyInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE && !licenseVerified) {
+                loginButton.performClick()
+                true
+            } else {
+                false
+            }
+        }
+        installPressFeedback(
+            findViewById(R.id.login_button),
+            findViewById(R.id.browse_button),
+            findViewById(R.id.library_card)
+        )
 
         loginButton.setOnClickListener {
             if (isReadyToInject) {
@@ -268,10 +299,20 @@ class MainActivity : AppCompatActivity() {
         }
         
         appBanner.setOnLongClickListener {
-            appBanner.alpha = 0.7f
-            Handler(Looper.getMainLooper()).postDelayed({
-                appBanner.alpha = 1.0f
-            }, 500)
+            // A brief acknowledgement, not an alpha jump that reads as a glitch.
+            if (ValueAnimator.areAnimatorsEnabled()) {
+                appBanner.animate().cancel()
+                appBanner.animate().alpha(.7f)
+                    .setDuration(90L)
+                    .setInterpolator(ShaiMotion.easeOut)
+                    .withEndAction {
+                        appBanner.animate().alpha(1f)
+                            .setDuration(260L)
+                            .setInterpolator(ShaiMotion.easeOut)
+                            .start()
+                    }
+                    .start()
+            }
             
             filterLibraries(!showTestLibraries)
             
@@ -292,16 +333,57 @@ class MainActivity : AppCompatActivity() {
     
 
     private fun playEntranceMotion() {
-        if (!ValueAnimator.areAnimatorsEnabled()) return
-        val views = intArrayOf(R.id.hero_block, R.id.license_section, R.id.library_card, R.id.operation_section)
-        views.forEachIndexed { index, id ->
-            val view = findViewById<View>(id)
-            view.alpha = 0f
-            view.translationY = resources.displayMetrics.density * 10f
-            view.animate().cancel()
-            view.animate().alpha(1f).translationY(0f)
-                .setStartDelay(index * 55L).setDuration(280L)
-                .setInterpolator(DecelerateInterpolator()).start()
+        val content = findViewById<View>(R.id.main_content)
+        val rule = findViewById<OrnamentRuleView>(R.id.hero_rule)
+        entranceAnimator?.cancel()
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            content.alpha = 1f
+            content.translationY = 0f
+            rule.reveal = 1f
+            return
+        }
+        // One orchestrated sheet settle, not a fade-up on every section.
+        content.alpha = 0f
+        content.translationY = 14f * resources.displayMetrics.density
+        rule.reveal = 0f
+        content.animate().alpha(1f).translationY(0f)
+            .setDuration(ShaiMotion.ENTRANCE_MS)
+            .setInterpolator(ShaiMotion.easeOut)
+            .start()
+        entranceAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            startDelay = 80L
+            duration = ShaiMotion.RULE_REVEAL_MS
+            interpolator = ShaiMotion.easeOut
+            addUpdateListener { rule.reveal = it.animatedValue as Float }
+            start()
+        }
+    }
+
+    private fun installPressFeedback(vararg views: View) {
+        views.forEach { view ->
+            view.setOnTouchListener { target, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        target.animate().cancel()
+                        if (ValueAnimator.areAnimatorsEnabled()) {
+                            target.animate()
+                                .scaleX(0.975f).scaleY(0.975f)
+                                .setDuration(ShaiMotion.PRESS_IN_MS)
+                                .setInterpolator(ShaiMotion.easeOut)
+                                .start()
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        target.animate().cancel()
+                        target.animate()
+                            .scaleX(1f).scaleY(1f)
+                            .setDuration(ShaiMotion.PRESS_OUT_MS)
+                            .setInterpolator(ShaiMotion.easeOut)
+                            .start()
+                    }
+                }
+                false
+            }
         }
     }
 
@@ -381,6 +463,8 @@ class MainActivity : AppCompatActivity() {
             resetLoginState("Enter the key from your panel.")
             return
         }
+        // Once there is something to check, get the keyboard out of the way.
+        hideKeyboard()
         val detectedVpn = SplashActivity.getDetectedVPN()
         if (detectedVpn != null) {
             SplashActivity.showDialog(
@@ -413,15 +497,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Deprecated("Use system back dispatcher")
-    override fun onBackPressed() {
-        if (isDrawerOpen) {
-            setLibraryDrawerOpen(false)
-        } else {
-            super.onBackPressed()
-        }
-    }
-
     // Keep a single layout and change its material treatment only when the server
     // accepts the entered license. A saved text value does not restore this state.
     private fun setupVisuals() {
@@ -448,6 +523,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearAuthenticatedPhase() {
+        pendingReveal?.let { mainScroll.removeCallbacks(it) }
+        pendingReveal = null
         licenseVerified = false
         redemptionInFlight = false
         authenticatedLibrary = null
@@ -482,13 +559,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun animateToPhase(target: Float) {
         phaseAnimator?.cancel()
+        phaseTarget = target
         if (!ValueAnimator.areAnimatorsEnabled()) {
             updateTheme(target)
             return
         }
         phaseAnimator = ValueAnimator.ofFloat(phaseProgress, target).apply {
-            duration = 460L
-            interpolator = AccelerateDecelerateInterpolator()
+            // Deliberate entry, quicker exit: the sheet returns faster than the court assembles.
+            duration = if (target < phaseProgress) ShaiMotion.PHASE_OUT_MS else ShaiMotion.PHASE_IN_MS
+            interpolator = ShaiMotion.easeInOut
             addUpdateListener { updateTheme(it.animatedValue as Float) }
             start()
         }
@@ -505,6 +584,10 @@ class MainActivity : AppCompatActivity() {
         drawerSearchSurface.phase = phaseProgress
         delaySurface.phase = phaseProgress
         methodSurface.phase = phaseProgress
+        val sheenProgress = if (phaseTarget > 0f) {
+            ((phaseProgress - .58f) / .42f).coerceIn(0f, 1f)
+        } else 1f
+        primarySurface.sheen = if (sheenProgress < 1f) sheenProgress else -1f
         findViewById<OrnamentRuleView>(R.id.hero_rule).phase = phaseProgress
         findViewById<OrnamentRuleView>(R.id.success_rule).phase = phaseProgress
         findViewById<OrnamentRuleView>(R.id.drawer_rule).phase = phaseProgress
@@ -514,7 +597,8 @@ class MainActivity : AppCompatActivity() {
         val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
         val line = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phaseProgress)
         val heroHeadline = findViewById<TextView>(R.id.hero_headline)
-        val isSignedIn = licenseVerified
+        val displaySignedIn = phaseProgress >= .55f
+        val density = resources.displayMetrics.density
         val titleIds = intArrayOf(
             R.id.brand_title, R.id.library_name, R.id.hero_headline,
             R.id.success_title, R.id.drawer_title, R.id.remember_title
@@ -555,9 +639,22 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.sheet_rule).backgroundTintList = ColorStateList.valueOf(line)
         findViewById<View>(R.id.library_divider).backgroundTintList = ColorStateList.valueOf(line)
+        progressBar.progressTintList = ColorStateList.valueOf(accent)
+        progressBar.progressBackgroundTintList = ColorStateList.valueOf(
+            ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.plum, phaseProgress)
+        )
+        val successSection = findViewById<View>(R.id.success_section)
+        if (successSection.visibility == View.VISIBLE) {
+            val reveal = ((phaseProgress - .30f) / .70f).coerceIn(0f, 1f)
+            successSection.alpha = reveal
+            successSection.translationY = (1f - reveal) * 16f * density
+            val scale = .975f + .025f * reveal
+            successSection.scaleX = scale
+            successSection.scaleY = scale
+        }
         val filter = ColorMatrix().apply { setSaturation(phaseProgress) }
         appBanner.colorFilter = ColorMatrixColorFilter(filter)
-        val handMode = phaseProgress < .5f
+        val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
             val display = Typeface.create(if (handMode) "casual" else "serif", Typeface.BOLD)
             val brand = findViewById<TextView>(R.id.brand_title)
@@ -578,44 +675,64 @@ class MainActivity : AppCompatActivity() {
             if (::methodAdapter.isInitialized) methodAdapter.applyPhase(phaseProgress)
             lastHandStyle = handMode
         }
-        if (lastDisplayedSignedIn != isSignedIn) {
+        if (lastDisplayedSignedIn != displaySignedIn) {
             findViewById<TextView>(R.id.sheet_plate).text =
-                if (isSignedIn) "SHAI · ACCESS PLATE" else "CONCEPT SHEET · 01"
+                if (displaySignedIn) "SHAI · ACCESS PLATE" else "CONCEPT SHEET · 01"
             findViewById<TextView>(R.id.sheet_note).text =
-                if (isSignedIn) "LICENSE ACTIVE" else "NOT YET VERIFIED"
+                if (displaySignedIn) "LICENSE ACTIVE" else "NOT YET VERIFIED"
             findViewById<TextView>(R.id.operation_heading).text =
-                if (isSignedIn) "INJECTION" else "OPERATIONS"
+                if (displaySignedIn) "INJECTION" else "OPERATIONS"
             findViewById<TextView>(R.id.operation_note).text =
-                if (isSignedIn) "SET BEFORE PREPARE" else "APPLIES AFTER ACCESS"
+                if (displaySignedIn) "SET BEFORE PREPARE" else "APPLIES AFTER ACCESS"
             findViewById<TextView>(R.id.brand_subtitle).text =
-                if (isSignedIn) "ACCESS CONFIRMED · SHAI" else "CONCEPT SHEET · ONE"
+                if (displaySignedIn) "ACCESS CONFIRMED · SHAI" else "CONCEPT SHEET · ONE"
             findViewById<TextView>(R.id.chapter_label).text =
-                if (isSignedIn) "YOUR COLLECTION" else "LIBRARY ACCESS"
+                if (displaySignedIn) "YOUR COLLECTION" else "LIBRARY ACCESS"
             heroHeadline.text =
-                if (isSignedIn) "Access granted." else "Your key comes first."
-            findViewById<TextView>(R.id.hero_caption).text = if (isSignedIn) {
+                if (displaySignedIn) "Access granted." else "Your key comes first."
+            findViewById<TextView>(R.id.hero_caption).text = if (displaySignedIn) {
                 "Choose one library. Nothing downloads until you confirm."
             } else {
                 "Paste a key from your panel. Nothing opens until it is checked."
             }
             val heroArt = findViewById<ImageView>(R.id.hero_art)
-            heroArt.setImageResource(if (isSignedIn) R.drawable.hero_ethereal else R.drawable.hero_sketch)
+            heroArt.setImageResource(if (displaySignedIn) R.drawable.hero_ethereal else R.drawable.hero_sketch)
             heroArt.contentDescription =
-                if (isSignedIn) "Gilded SHAI crest" else "Hand-drawn concept figure"
+                if (displaySignedIn) "Gilded SHAI crest" else "Hand-drawn concept figure"
             if (ValueAnimator.areAnimatorsEnabled()) {
                 heroArt.animate().cancel()
-                heroArt.alpha = 0.65f
-                heroArt.animate().alpha(1f).setDuration(240L).start()
+                if (displaySignedIn) {
+                    // Stamp the crest, rather than only fading one image into another.
+                    heroArt.alpha = 0.6f
+                    heroArt.scaleX = 0.90f
+                    heroArt.scaleY = 0.90f
+                    heroArt.rotation = -3f
+                    heroArt.animate()
+                        .alpha(1f).scaleX(1f).scaleY(1f).rotation(0f)
+                        .setDuration(ShaiMotion.CREST_MS)
+                        .setInterpolator(ShaiMotion.easeOut)
+                        .start()
+                } else {
+                    heroArt.alpha = 1f
+                    heroArt.scaleX = 1f
+                    heroArt.scaleY = 1f
+                    heroArt.rotation = 0f
+                }
+            } else {
+                heroArt.alpha = 1f
+                heroArt.scaleX = 1f
+                heroArt.scaleY = 1f
+                heroArt.rotation = 0f
             }
             findViewById<TextView>(R.id.library_status).text = when {
-                selectedLibrary.name.isBlank() && !isSignedIn -> "KEY REQUIRED"
-                selectedLibrary.name.isBlank() && isSignedIn -> "CHOOSE LIBRARY"
+                selectedLibrary.name.isBlank() && !licenseVerified -> "KEY REQUIRED"
+                selectedLibrary.name.isBlank() && licenseVerified -> "CHOOSE LIBRARY"
                 isReadyToInject -> "READY"
                 isPreparingLibrary -> "PREPARING"
-                isSignedIn -> "SELECTED"
+                licenseVerified -> "SELECTED"
                 else -> "AVAILABLE"
             }
-            lastDisplayedSignedIn = isSignedIn
+            lastDisplayedSignedIn = displaySignedIn
         }
         findViewById<ImageButton>(R.id.library_menu_button).setColorFilter(accent)
         findViewById<ImageButton>(R.id.drawer_close).setColorFilter(accent)
@@ -623,7 +740,7 @@ class MainActivity : AppCompatActivity() {
         window.statusBarColor = systemBar
         window.navigationBarColor = systemBar
         @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = if (phaseProgress < .5f) {
+        window.decorView.systemUiVisibility = if (!displaySignedIn) {
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         } else { 0 }
         // Rows are created asynchronously when the catalog arrives.
@@ -719,6 +836,15 @@ class MainActivity : AppCompatActivity() {
             setLibraryDrawerOpen(false)
         }
 
+        librarySearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                hideKeyboard()
+                true
+            } else {
+                false
+            }
+        }
+
         librarySearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) {
@@ -738,6 +864,9 @@ class MainActivity : AppCompatActivity() {
     private fun setLibraryDrawerOpen(open: Boolean) {
         if (isDrawerOpen == open) return
         isDrawerOpen = open
+        // Any explicit open or close supersedes the post-auth auto-reveal.
+        pendingReveal?.let { mainScroll.removeCallbacks(it) }
+        pendingReveal = null
         libraryDrawer.animate().cancel()
         drawerScrim.animate().cancel()
         if (!ValueAnimator.areAnimatorsEnabled()) {
@@ -752,29 +881,74 @@ class MainActivity : AppCompatActivity() {
         if (open) {
             drawerScrim.visibility = View.VISIBLE
             drawerScrim.alpha = 0f
-            drawerScrim.animate().alpha(1f).setDuration(180L).start()
+            drawerScrim.animate()
+                .alpha(1f)
+                .setDuration(ShaiMotion.SCRIM_OPEN_MS)
+                .setInterpolator(ShaiMotion.easeOut)
+                .start()
 
+            if (libraryDrawer.width > 0) {
+                libraryDrawer.translationX = -libraryDrawer.width.toFloat()
+            }
             libraryDrawer.visibility = View.VISIBLE
             libraryDrawer.animate()
                 .translationX(0f)
-                .setDuration(240L)
-                .setInterpolator(DecelerateInterpolator())
+                .setDuration(ShaiMotion.DRAWER_OPEN_MS)
+                .setInterpolator(ShaiMotion.easeDrawer)
                 .start()
             setMainContentBlur(true)
-        } else {
+            animateDrawerRows()
+        } else if (libraryDrawer.width > 0) {
             libraryDrawer.animate()
                 .translationX(-libraryDrawer.width.toFloat())
-                .setDuration(190L)
-                .setInterpolator(DecelerateInterpolator())
+                .setDuration(ShaiMotion.DRAWER_CLOSE_MS)
+                .setInterpolator(ShaiMotion.easeDrawer)
                 .withEndAction { libraryDrawer.visibility = View.GONE }
                 .start()
 
             drawerScrim.animate()
                 .alpha(0f)
-                .setDuration(180L)
+                .setDuration(ShaiMotion.SCRIM_CLOSE_MS)
+                .setInterpolator(ShaiMotion.easeOut)
                 .withEndAction { drawerScrim.visibility = View.GONE }
                 .start()
             setMainContentBlur(false)
+        } else {
+            libraryDrawer.visibility = View.GONE
+            drawerScrim.animate()
+                .alpha(0f)
+                .setDuration(ShaiMotion.SCRIM_CLOSE_MS)
+                .setInterpolator(ShaiMotion.easeOut)
+                .withEndAction { drawerScrim.visibility = View.GONE }
+                .start()
+            setMainContentBlur(false)
+        }
+    }
+
+    /** Rows follow the panel in with a short, capped stagger. */
+    private fun animateDrawerRows() {
+        if (!::libraryList.isInitialized) return
+        val density = resources.displayMetrics.density
+        // Cap the cascade: only the first screenful participates, so a long
+        // catalogue cannot turn an open into dozens of concurrent animations.
+        for (index in 0 until minOf(libraryList.childCount, 12)) {
+            val row = libraryList.getChildAt(index)
+            row.animate().cancel()
+            if (!ValueAnimator.areAnimatorsEnabled()) {
+                row.alpha = if (row.isEnabled) 1f else .6f
+                row.translationX = 0f
+                continue
+            }
+            val restingAlpha = if (row.isEnabled) 1f else .6f
+            row.alpha = 0f
+            row.translationX = 14f * density
+            row.animate()
+                .alpha(restingAlpha)
+                .translationX(0f)
+                .setStartDelay(90L + minOf(index, 7) * ShaiMotion.ROW_STAGGER_MS)
+                .setDuration(ShaiMotion.ROW_MS)
+                .setInterpolator(ShaiMotion.easeOut)
+                .start()
         }
     }
 
@@ -900,7 +1074,10 @@ class MainActivity : AppCompatActivity() {
                 animate().cancel()
                 scaleX = 0.985f
                 scaleY = 0.985f
-                animate().scaleX(1f).scaleY(1f).setDuration(190L).start()
+                animate().scaleX(1f).scaleY(1f)
+                    .setDuration(ShaiMotion.CARD_CONFIRM_MS)
+                    .setInterpolator(ShaiMotion.easeOut)
+                    .start()
             }
         }
     }
@@ -1109,12 +1286,12 @@ class MainActivity : AppCompatActivity() {
                 findViewById<View>(R.id.license_section).visibility = View.GONE
                 findViewById<View>(R.id.success_section).apply {
                     visibility = View.VISIBLE
-                    alpha = 0f
-                    if (ValueAnimator.areAnimatorsEnabled()) {
-                        animate().alpha(1f).setDuration(220L).start()
-                    } else {
-                        alpha = 1f
-                    }
+                    // The plaque is revealed by the phase timeline in updateTheme,
+                    // so it rises with the court instead of racing it with a fade.
+                    if (!ValueAnimator.areAnimatorsEnabled()) alpha = 1f
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    loginButton.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 }
                 findViewById<TextView>(R.id.hero_caption).text =
                     "Choose one library. Nothing downloads until you confirm."
@@ -1135,6 +1312,7 @@ class MainActivity : AppCompatActivity() {
                     loginButton.isEnabled = false
                     refreshLibraryDrawer()
                     showToast("No available libraries for this key")
+                    schedulePostAuthReveal(openDrawer = false)
                 } else {
                     selectedLibrary = SelectedLibrary()
                     findViewById<TextView>(R.id.library_name).text = "Choose your library"
@@ -1147,8 +1325,9 @@ class MainActivity : AppCompatActivity() {
                     loginButton.isEnabled = true
                     appBanner.isEnabled = true
                     refreshLibraryDrawer()
-                    // Selection is explicit. Opening the drawer is not a selection.
-                    setLibraryDrawerOpen(true)
+                    // Selection is explicit. The drawer opens only after the
+                    // signed-in plaque has had time to land.
+                    schedulePostAuthReveal(openDrawer = true)
                 }
             }
         }
@@ -1162,7 +1341,7 @@ class MainActivity : AppCompatActivity() {
         loaderPreferences.licenses.saveSelectedLibrary(libraryName)
     }
 
-    private fun resetLoginState(message: String) {
+    private fun resetLoginState(message: String, focusKey: Boolean = true) {
         val savedKeyRejected = autoLoginStarted && pendingRememberedKey != null
         pendingRememberedKey = null
         isPreparingLibrary = false
@@ -1181,6 +1360,48 @@ class MainActivity : AppCompatActivity() {
         methodSpinner.isEnabled = true
         radioGroup.isEnabled = true
         isReadyToInject = false
+        if (focusKey) {
+            revealKeyEntry()
+        }
+    }
+
+    /** Return an error to the field that caused it, without stealing focus for
+     *  download or preparation failures that the key cannot fix. */
+    private fun revealKeyEntry() {
+        hideKeyboard()
+        val target = findViewById<View>(R.id.license_section)
+        mainScroll.post {
+            if (licenseVerified) return@post
+            licenseKeyInput.requestFocus()
+            mainScroll.smoothScrollTo(0, target.top)
+        }
+    }
+
+    private fun hideKeyboard() {
+        val manager = getSystemService(InputMethodManager::class.java) ?: return
+        manager.hideSoftInputFromWindow(licenseKeyInput.windowToken, 0)
+    }
+
+    /** Hold the drawer until the success plaque and crest are legible. The
+     *  reveal is cancelled when the user leaves the signed-in phase. */
+    private fun schedulePostAuthReveal(openDrawer: Boolean) {
+        pendingReveal?.let { mainScroll.removeCallbacks(it) }
+        val delay = if (ValueAnimator.areAnimatorsEnabled()) {
+            ShaiMotion.DRAWER_REVEAL_DELAY_MS
+        } else {
+            ShaiMotion.REDUCED_DRAWER_DELAY_MS
+        }
+        val action = Runnable {
+            pendingReveal = null
+            if (!licenseVerified || isFinishing) return@Runnable
+            if (openDrawer) {
+                setLibraryDrawerOpen(true)
+            } else {
+                mainScroll.smoothScrollTo(0, findViewById<View>(R.id.success_section).top)
+            }
+        }
+        pendingReveal = action
+        mainScroll.postDelayed(action, delay)
     }
 
     private fun proceedWithDownload() {
@@ -1188,11 +1409,11 @@ class MainActivity : AppCompatActivity() {
         isPreparingLibrary = true
         librarySpinner.isEnabled = false
         if (selectedLibrary.type != redeemedGame) {
-            resetLoginState("This library is not assigned to your key")
+            resetLoginState("This library is not assigned to your key", focusKey = false)
             return
         }
         if (selectedLibrary.downloadUrl.isBlank()) {
-            resetLoginState("Library download URL unavailable")
+            resetLoginState("Library download URL unavailable", focusKey = false)
             return
         }
 
@@ -1204,7 +1425,7 @@ class MainActivity : AppCompatActivity() {
                     showToast("Download successful")
                     assetExtractor.extractAll()
                     if (!isLibraryReady()) {
-                        resetLoginState("FAILED TO LOAD RUNTIME LIBRARY")
+                        resetLoginState("FAILED TO LOAD RUNTIME LIBRARY", focusKey = false)
                         isReadyToInject = false
                         isPreparingLibrary = false
                     } else {
@@ -1224,7 +1445,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } else {
-                    resetLoginState("FAILED TO DOWNLOAD, \nRETRY AGAIN.")
+                    resetLoginState("FAILED TO DOWNLOAD, \nRETRY AGAIN.", focusKey = false)
                     isReadyToInject = false
                 }
             }
@@ -1251,7 +1472,7 @@ class MainActivity : AppCompatActivity() {
             file.setExecutable(true, false)
         }
         if (!isLibraryReady()) {
-            resetLoginState("FAILED TO LOAD RUNTIME LIBRARY")
+            resetLoginState("FAILED TO LOAD RUNTIME LIBRARY", focusKey = false)
             return
         }
         val injectionCommand = InjectionCommandBuilder.build(
@@ -1381,6 +1602,8 @@ class MainActivity : AppCompatActivity() {
     
     override fun onStop() {
         super.onStop()
+        pendingReveal?.let { mainScroll.removeCallbacks(it) }
+        pendingReveal = null
         if (isFinishing) {
             cleanUp()
         }
@@ -1388,6 +1611,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         phaseAnimator?.cancel()
+        entranceAnimator?.cancel()
+        pendingReveal?.let { mainScroll.removeCallbacks(it) }
+        pendingReveal = null
         super.onDestroy()
         cleanUp()
     }

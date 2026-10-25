@@ -343,6 +343,8 @@ internal class PhaseSurfaceDrawable(private val kind: Kind) : Drawable() {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val curve = Path()
+    private val sheenClip = Path()
+    private val sheenBounds = RectF()
     private var globalAlpha = 255
 
     var phase: Float = 0f
@@ -352,6 +354,13 @@ internal class PhaseSurfaceDrawable(private val kind: Kind) : Drawable() {
         }
 
     var selected: Boolean = false
+        set(value) {
+            field = value
+            invalidateSelf()
+        }
+
+    /** -1 hides the sweep; 0..1 moves a warm highlight across the gold action. */
+    var sheen: Float = -1f
         set(value) {
             field = value
             invalidateSelf()
@@ -417,6 +426,30 @@ internal class PhaseSurfaceDrawable(private val kind: Kind) : Drawable() {
             paint.shader = null
         }
 
+        // The gilded action catches light as the court is assembled.
+        if (kind == Kind.PRIMARY && phase > .5f && sheen in 0f..1f) {
+            sheenBounds.set(left, top, right, bottom)
+            sheenClip.reset()
+            sheenClip.addRoundRect(sheenBounds, dp * radius, dp * radius, Path.Direction.CW)
+            val bandCenter = left + (right - left) * sheen
+            val band = 34f * dp
+            canvas.save()
+            canvas.clipPath(sheenClip)
+            paint.style = Paint.Style.FILL
+            paint.shader = LinearGradient(
+                bandCenter - band, top, bandCenter + band, bottom,
+                intArrayOf(
+                    Color.TRANSPARENT,
+                    Color.argb((108 * phase).toInt(), 255, 250, 235),
+                    Color.TRANSPARENT
+                ),
+                floatArrayOf(0f, .5f, 1f), Shader.TileMode.CLAMP
+            )
+            canvas.drawRect(left, top, right, bottom, paint)
+            canvas.restore()
+            paint.shader = null
+        }
+
         // Hand-drawn ink contour fades as the court is built.
         if (phase < 1f) drawInk(canvas, left, top, right, bottom, dp, 1f - phase)
 
@@ -478,22 +511,31 @@ internal class PhaseSurfaceDrawable(private val kind: Kind) : Drawable() {
             )
         }
 
-        if ((kind == Kind.SELECT || kind == Kind.SEARCH) &&
-            state.any { it == android.R.attr.state_focused }
-        ) {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 1.6f * dp
-            paint.color = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.gold, phase)
-            canvas.drawRoundRect(
-                RectF(left + 1.5f * dp, top + 1.5f * dp, right - 1.5f * dp, bottom - 1.5f * dp),
-                dp * radius, dp * radius, paint
-            )
+        val focused = state.any { it == android.R.attr.state_focused }
+        val pressed = state.any { it == android.R.attr.state_pressed }
+
+        if (pressed) {
+            paint.style = Paint.Style.FILL
+            paint.color = if (kind == Kind.PRIMARY) {
+                a(ShaiPalette.void, .16f)
+            } else {
+                a(ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.gold, phase), .10f)
+            }
+            canvas.drawRoundRect(RectF(left, top, right, bottom), dp * radius, dp * radius, paint)
         }
 
-        if (kind == Kind.PRIMARY && state.any { it == android.R.attr.state_pressed }) {
-            paint.style = Paint.Style.FILL
-            paint.color = a(ShaiPalette.void, .16f)
-            canvas.drawRoundRect(RectF(left, top, right, bottom), dp * radius, dp * radius, paint)
+        if (focused && kind != Kind.DRAWER) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 1.6f * dp
+            paint.color = if (kind == Kind.PRIMARY) {
+                ShaiPalette.blend(ShaiPalette.ink, Color.rgb(74, 44, 20), phase)
+            } else {
+                ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.gold, phase)
+            }
+            canvas.drawRoundRect(
+                RectF(left + 1.6f * dp, top + 1.6f * dp, right - 1.6f * dp, bottom - 1.6f * dp),
+                dp * radius, dp * radius, paint
+            )
         }
 
         paint.shader = null
@@ -633,6 +675,13 @@ class OrnamentRuleView @JvmOverloads constructor(
             invalidate()
         }
 
+    /** 0 draws the rule from its centre; 1 is the complete rule. */
+    var reveal: Float = 1f
+        set(value) {
+            field = value.coerceIn(0f, 1f)
+            invalidate()
+        }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val w = width.toFloat()
@@ -642,6 +691,7 @@ class OrnamentRuleView @JvmOverloads constructor(
         val y = h * .5f
         val cx = w * .5f
         val gap = (h * .9f) + 12f * dp
+        val amount = reveal
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = (0.8f + 0.5f * phase) * dp
@@ -660,13 +710,21 @@ class OrnamentRuleView @JvmOverloads constructor(
             path.moveTo(cx + gap, y)
             path.lineTo(w - dp, y)
         }
+        canvas.save()
+        canvas.clipRect(
+            cx - (cx - dp) * amount,
+            0f,
+            cx + (w - dp - cx) * amount,
+            h
+        )
         canvas.drawPath(path, paint)
+        canvas.restore()
 
         paint.style = Paint.Style.FILL
         paint.alpha = 255
         val mark = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.gold, phase)
         paint.color = mark
-        val r = (2.2f + 2.6f * phase) * dp
+        val r = (2.2f + 2.6f * phase) * dp * amount
         path.reset()
         path.moveTo(cx, y - r)
         path.lineTo(cx + r, y)
@@ -678,13 +736,17 @@ class OrnamentRuleView @JvmOverloads constructor(
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 0.9f * dp
         paint.color = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phase)
-        paint.alpha = (230 * (0.5f + 0.5f * phase)).toInt()
-        canvas.drawCircle(cx - gap, y, (1.1f + phase * 1.1f) * dp, paint)
-        canvas.drawCircle(cx + gap, y, (1.1f + phase * 1.1f) * dp, paint)
+        paint.alpha = (230 * (0.5f + 0.5f * phase) * amount).toInt()
+        if (amount > .75f) {
+            canvas.drawCircle(cx - gap, y, (1.1f + phase * 1.1f) * dp, paint)
+            canvas.drawCircle(cx + gap, y, (1.1f + phase * 1.1f) * dp, paint)
+        }
 
         // End ticks give the rule a measured, drafted quality.
-        canvas.drawLine(dp, y - 3f * dp, dp, y + 3f * dp, paint)
-        canvas.drawLine(w - dp, y - 3f * dp, w - dp, y + 3f * dp, paint)
+        if (amount > .94f) {
+            canvas.drawLine(dp, y - 3f * dp, dp, y + 3f * dp, paint)
+            canvas.drawLine(w - dp, y - 3f * dp, w - dp, y + 3f * dp, paint)
+        }
         paint.alpha = 255
     }
 }

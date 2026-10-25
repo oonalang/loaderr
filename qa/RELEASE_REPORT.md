@@ -42,8 +42,15 @@
 - Type: `casual` hand lettering and sans labels on the sheet; `serif` display,
   tracked sans metadata and monospace package data in the court.
 - Shape: 3dp sketch contours, 7dp panels and 9dp primary action in the court.
-- Motion: one 460ms phase interpolation, honouring the system animator scale.
-  No looping animation.
+- Motion: one 520ms assembled phase transition with a 420ms return, all
+  curves and durations in `ShaiMotion`; every animation honours the system
+  animator scale. No looping animation.
+- Interaction: 100ms press-in / 160ms press-out feedback, a 320ms sheet
+  entrance, a 300ms drawer with a capped row stagger, and a 760ms reveal
+  before the drawer opens.
+- Handoff: splash enters for 240ms, activity transitions are 220ms in /
+  180ms out. The signed-in plaque replaces the license form and rises with
+  the phase instead of racing it with its own fade.
 
 ## Restored controls and remembered key
 
@@ -71,7 +78,10 @@
 - `app/src/main/kotlin/astral/LoaderVisuals.kt` — paper/court backdrop painting,
   phase surfaces, gilded states, `OrnamentRuleView`.
 - `app/src/main/kotlin/astral/MainActivity.kt` — phase styling, remembered-key
-  flow, one-shot auto-login, control wiring, fingerprint.
+  flow, one-shot auto-login, control wiring, fingerprint, press feedback,
+  drawer/row choreography, success reveal, keyboard and focus recovery.
+- `app/src/main/kotlin/astral/ShaiMotion.kt` — shared curves, durations and
+  reduced-motion timing.
 - `app/src/main/kotlin/astral/LoaderPreferences.kt` — opt-in key storage.
 - `app/src/main/kotlin/astral/SimpleSpinnerAdapter.kt` + spinner layouts —
   phase-aware cells, readable dark dropdown.
@@ -83,9 +93,12 @@
   the sheet language carried into the opening screen.
 - `app/src/main/res/layout/item_library_drawer.xml`, `status_pill.xml`,
   `maintenance_pill.xml`, `colors.xml`, `themes.xml` — court palette and rows.
-- `app/src/main/kotlin/astral/AboutDialog.kt` — serif/gold treatment when signed in.
+- `app/src/main/kotlin/astral/AboutDialog.kt` — serif/gold treatment when signed
+  in, staged entrance and press feedback.
+- `app/src/main/kotlin/astral/SplashActivity.kt`, `res/anim/fade_in.xml`,
+  `res/anim/fade_out.xml` — short eased handoff and splash sheet settle.
 - `qa/verify_ui_contract.py` — checks for visible controls, remembered-key flow,
-  and distinct phase systems.
+  distinct phase systems, and motion tokens/reduced-motion fallbacks.
 
 ## Verification
 
@@ -105,12 +118,14 @@ bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --no-parall
 | `python3 qa/verify_ui_contract.py` | **PASS**, all assertions |
 | XML parse + ID uniqueness + resource resolution | **PASS** |
 | Kotlin compilation | **PASS** |
+| Motion contract (tokens, staged reveal, press/focus, IME) | **PASS** (source-level) |
 | Device/emulator rendering and touch checks | **NOT RUN** (no device attached) |
 | Live panel redemption, download, injection | **NOT RUN** (requires a valid key and game package) |
 
-Known non-blocking lint warnings: hardcoded design strings, small tracked
-labels, `TooManyViews` on the single scrolling screen, and pre-existing
-security/permission warnings from the loader core. No new errors.
+Known non-blocking lint warnings: 202 total, 0 errors. Mostly hardcoded design
+strings, small tracked labels, `TooManyViews` on the single scrolling screen,
+unused legacy resources, and pre-existing security/permission warnings from
+the loader core. No new errors.
 
 The debug APK is produced at `app/build/outputs/apk/debug/app-debug.apk`; build
 outputs are intentionally not committed.

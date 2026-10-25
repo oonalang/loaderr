@@ -97,6 +97,46 @@ check('hero_ethereal' in KOTLIN and 'hero_sketch' in KOTLIN, 'crest swaps with a
 crest = (APP / 'res/drawable/hero_ethereal.xml').read_text()
 check('#E9C77E' in crest and '#925CF4' in crest, 'crest uses the maximal gold/violet palette')
 
+# Motion is a named system with short feedback and one deliberate phase change.
+motion_path = APP / 'kotlin/astral/ShaiMotion.kt'
+check(motion_path.is_file(), 'motion tokens live in one file')
+motion = motion_path.read_text()
+check('PathInterpolator' in motion, 'motion uses explicit easing curves')
+check('PRESS_IN_MS = 100L' in motion and 'PHASE_IN_MS = 520L' in motion,
+      'press and phase durations are intentional tokens')
+check('DRAWER_OPEN_MS' in motion and 'ROW_STAGGER_MS' in motion,
+      'drawer and row staging are tokenised')
+check('AccelerateDecelerateInterpolator' not in KOTLIN and
+      'DecelerateInterpolator' not in KOTLIN,
+      'no legacy ad-hoc interpolators remain in the main screen')
+check('installPressFeedback(' in KOTLIN and 'scaleX(0.975f)' in KOTLIN,
+      'primary controls have press feedback')
+check('animateDrawerRows()' in KOTLIN and 'ROW_STAGGER_MS' in KOTLIN,
+      'drawer rows are staged behind the panel')
+success_reveal = inside('        val successSection = findViewById<View>(R.id.success_section)',
+                        '        val filter = ColorMatrix()')
+check('successSection.alpha = reveal' in success_reveal and
+      'translationY' in success_reveal,
+      'signed-in plaque is revealed by the phase timeline')
+check('schedulePostAuthReveal(openDrawer = true)' in KOTLIN and
+      'DRAWER_REVEAL_DELAY_MS' in KOTLIN,
+      'drawer waits for the crest and plaque reveal')
+check('HapticFeedbackConstants.CONFIRM' in KOTLIN,
+      'verified state gives a confirmation haptic')
+check('revealKeyEntry()' in KOTLIN and 'requestFocus()' in KOTLIN,
+      'failed keys return focus to the field')
+check('imeOptions="actionDone"' in BASE.read_text() and
+      'imeOptions="actionSearch"' in BASE.read_text(),
+      'both text fields offer a meaningful keyboard action')
+fades = (APP / 'res/anim/fade_in.xml').read_text() + (APP / 'res/anim/fade_out.xml').read_text()
+check('duration="450"' not in fades and 'decelerate_interpolator' in fades,
+      'activity handoff is short and eased')
+splash_motion = 'splash_card' in SPLASH and 'ShaiMotion.easeOut' in SPLASH
+check(splash_motion, 'splash sheet eases in rather than appearing finished')
+about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
+check('playbackEntrance' in about and 'R.id.about_logo' in about,
+      'about sheet has a staged entrance')
+
 # Main controls are comfortable to tap; XML declaration does not assert runtime size.
 text = BASE.read_text()
 for item in ['android:layout_height="56dp"', 'android:layout_height="52dp"',

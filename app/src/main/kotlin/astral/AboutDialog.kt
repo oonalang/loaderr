@@ -1,5 +1,6 @@
 package astral.loader
 
+import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
 import android.content.res.ColorStateList
@@ -27,10 +28,68 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_about)
 
-        findViewById<View>(R.id.about_back).setOnClickListener { dismiss() }
-        findViewById<View>(R.id.about_telegram).setOnClickListener { openTelegram() }
+        val back = findViewById<View>(R.id.about_back)
+        back.setOnClickListener { dismiss() }
+        installPress(back)
+        val telegram = findViewById<View>(R.id.about_telegram)
+        telegram.setOnClickListener { openTelegram() }
+        installPress(telegram)
         bindDetails()
         applyPhaseStyle()
+        playbackEntrance()
+    }
+
+    /** Same short press language as the main screen, adapted to a dialog. */
+    private fun installPress(view: View) {
+        view.setOnTouchListener { target, event ->
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    target.animate().cancel()
+                    if (ValueAnimator.areAnimatorsEnabled()) {
+                        target.animate().scaleX(.97f).scaleY(.97f)
+                            .setDuration(ShaiMotion.PRESS_IN_MS)
+                            .setInterpolator(ShaiMotion.easeOut)
+                            .start()
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    target.animate().cancel()
+                    target.animate().scaleX(1f).scaleY(1f)
+                        .setDuration(ShaiMotion.PRESS_OUT_MS)
+                        .setInterpolator(ShaiMotion.easeOut)
+                        .start()
+                }
+            }
+            false
+        }
+    }
+
+    private fun playbackEntrance() {
+        findViewById<View>(R.id.about_scroll).scrollTo(0, 0)
+        if (!ValueAnimator.areAnimatorsEnabled()) return
+        val density = context.resources.displayMetrics.density
+        val ids = intArrayOf(
+            R.id.about_back,
+            R.id.about_logo,
+            R.id.about_pill,
+            R.id.about_details_card,
+            R.id.about_info_card,
+            R.id.about_telegram
+        )
+        ids.forEachIndexed { index, id ->
+            val view = findViewById<View>(id)
+            view.animate().cancel()
+            view.alpha = 0f
+            view.translationY = 10f * density
+            view.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setStartDelay(40L + index * 45L)
+                .setDuration(280L)
+                .setInterpolator(ShaiMotion.easeOut)
+                .start()
+        }
     }
 
     override fun onStart() {

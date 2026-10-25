@@ -1,5 +1,6 @@
 package astral.loader
 
+import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -82,6 +83,29 @@ class SplashActivity : AppCompatActivity() {
 
         progressBar = findViewById(R.id.progressBarSplash)
         progressBar.isIndeterminate = true
+
+        // The sheet is already composited; ease it in so the handoff does not
+        // flash a fully formed frame before MainActivity takes over.
+        if (ValueAnimator.areAnimatorsEnabled()) {
+            val density = resources.displayMetrics.density
+            findViewById<android.view.View>(R.id.splash_card).apply {
+                alpha = 0f
+                translationY = 12f * density
+                animate().alpha(1f).translationY(0f)
+                    .setStartDelay(30L)
+                    .setDuration(240L)
+                    .setInterpolator(ShaiMotion.easeOut)
+                    .start()
+            }
+            findViewById<android.view.View>(R.id.splash_footer).apply {
+                alpha = 0f
+                animate().alpha(1f)
+                    .setStartDelay(140L)
+                    .setDuration(160L)
+                    .setInterpolator(ShaiMotion.easeOut)
+                    .start()
+            }
+        }
 
         permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
