@@ -131,8 +131,8 @@ check('installPressFeedback(' in KOTLIN and 'scaleX(0.975f)' in KOTLIN,
       'primary controls have press feedback')
 check('animateDrawerRows()' in KOTLIN and 'ROW_STAGGER_MS' in KOTLIN,
       'drawer rows are staged behind the panel')
-success_reveal = inside('        val successSection = findViewById<View>(R.id.success_section)',
-                        '        val filter = ColorMatrix()')
+success_reveal = inside('        val successSection = cv(R.id.success_section)',
+                        '        phaseColorMatrix.setSaturation(phaseProgress)')
 check('successSection.alpha = reveal' in success_reveal and
       'translationY' in success_reveal,
       'signed-in plaque is revealed by the phase timeline')

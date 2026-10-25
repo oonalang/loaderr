@@ -25,9 +25,9 @@ internal object ShaiPalette {
 
     // Violet court
     val void = Color.rgb(10, 6, 16)
-    val darkPanel = Color.rgb(22, 12, 34)
-    val plum = Color.rgb(36, 18, 50)
-    val amethyst = Color.rgb(58, 31, 87)
+    val darkPanel = Color.rgb(21, 17, 29)
+    val plum = Color.rgb(34, 28, 44)
+    val amethyst = Color.rgb(47, 40, 57)
     val gold = Color.rgb(233, 199, 126)
     val goldDeep = Color.rgb(157, 116, 58)
     val orchid = Color.rgb(226, 199, 255)

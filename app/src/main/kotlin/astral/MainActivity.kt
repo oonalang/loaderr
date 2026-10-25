@@ -562,6 +562,17 @@ class MainActivity : AppCompatActivity() {
         animateToPhase(0f)
     }
 
+    /** Per-frame view cache: updateTheme runs on every phase-animation frame. */
+    private val viewCache = HashMap<Int, View>()
+
+    private fun cv(id: Int): View = viewCache.getOrPut(id) { findViewById(id) }
+
+    private fun tv(id: Int): TextView = cv(id) as TextView
+
+    /** Reused matrix/filter for the banner desaturation — no per-frame allocation. */
+    private val phaseColorMatrix = ColorMatrix()
+    private val bannerColorFilter = ColorMatrixColorFilter(phaseColorMatrix)
+
     private fun animateToPhase(target: Float) {
         phaseAnimator?.cancel()
         phaseTarget = target
@@ -589,15 +600,14 @@ class MainActivity : AppCompatActivity() {
         drawerSearchSurface.phase = phaseProgress
         delaySurface.phase = phaseProgress
         methodSurface.phase = phaseProgress
-        findViewById<OrnamentRuleView>(R.id.hero_rule).phase = phaseProgress
-        findViewById<OrnamentRuleView>(R.id.success_rule).phase = phaseProgress
-        findViewById<OrnamentRuleView>(R.id.drawer_rule).phase = phaseProgress
+        (cv(R.id.hero_rule) as OrnamentRuleView).phase = phaseProgress
+        (cv(R.id.drawer_rule) as OrnamentRuleView).phase = phaseProgress
 
         val ink = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
         val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
         val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
         val line = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phaseProgress)
-        val heroHeadline = findViewById<TextView>(R.id.hero_headline)
+        val heroHeadline = tv(R.id.hero_headline)
         val displaySignedIn = phaseProgress >= .55f
         val density = resources.displayMetrics.density
         val titleIds = intArrayOf(
@@ -612,18 +622,18 @@ class MainActivity : AppCompatActivity() {
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
             R.id.operation_note, R.id.sheet_note
         )
-        titleIds.forEach { findViewById<TextView>(it).setTextColor(ink) }
-        secondaryIds.forEach { findViewById<TextView>(it).setTextColor(secondary) }
+        titleIds.forEach { tv(it).setTextColor(ink) }
+        secondaryIds.forEach { tv(it).setTextColor(secondary) }
         intArrayOf(
-            R.id.library_arrow, R.id.phase_marker, R.id.about_button, R.id.drawer_about,
+            R.id.library_arrow, R.id.about_button, R.id.drawer_about,
             R.id.change_key_link, R.id.sheet_plate, R.id.operation_heading,
             R.id.method_label, R.id.delay_label, R.id.mode_label, R.id.key_fingerprint
-        ).forEach { findViewById<TextView>(it).setTextColor(accent) }
-        findViewById<TextView>(R.id.library_status).setTextColor(accent)
-        findViewById<TextView>(R.id.success_emblem).setTextColor(
+        ).forEach { tv(it).setTextColor(accent) }
+        tv(R.id.library_status).setTextColor(accent)
+        tv(R.id.success_emblem).setTextColor(
             ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
         )
-        findViewById<Button>(R.id.browse_button).setTextColor(
+        tv(R.id.browse_button).setTextColor(
             ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.orchid, phaseProgress)
         )
         loginButton.setTextColor(
@@ -632,7 +642,7 @@ class MainActivity : AppCompatActivity() {
         licenseKeyInput.setTextColor(ink)
         licenseKeyInput.setHintTextColor(secondary)
         licenseKeyInputLayout.boxBackgroundColor =
-            ShaiPalette.blend(ShaiPalette.paperCard, Color.rgb(30, 16, 46), phaseProgress)
+            ShaiPalette.blend(ShaiPalette.paperCard, Color.rgb(28, 24, 38), phaseProgress)
         licenseKeyInputLayout.boxStrokeColor = accent
         licenseKeyInputLayout.defaultHintTextColor = ColorStateList.valueOf(secondary)
         findViewById<EditText>(R.id.library_search).apply {
@@ -641,11 +651,12 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.sheet_rule).backgroundTintList = ColorStateList.valueOf(line)
         findViewById<View>(R.id.library_divider).backgroundTintList = ColorStateList.valueOf(line)
+        findViewById<View>(R.id.success_rule).backgroundTintList = ColorStateList.valueOf(line)
         progressBar.progressTintList = ColorStateList.valueOf(accent)
         progressBar.progressBackgroundTintList = ColorStateList.valueOf(
             ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.plum, phaseProgress)
         )
-        val successSection = findViewById<View>(R.id.success_section)
+        val successSection = cv(R.id.success_section)
         if (successSection.visibility == View.VISIBLE) {
             val reveal = ((phaseProgress - .30f) / .70f).coerceIn(0f, 1f)
             successSection.alpha = reveal
@@ -654,13 +665,14 @@ class MainActivity : AppCompatActivity() {
             successSection.scaleX = scale
             successSection.scaleY = scale
         }
-        val filter = ColorMatrix().apply { setSaturation(phaseProgress) }
-        appBanner.colorFilter = ColorMatrixColorFilter(filter)
+        phaseColorMatrix.setSaturation(phaseProgress)
+        bannerColorFilter.setMatrix(phaseColorMatrix)
+        appBanner.colorFilter = bannerColorFilter
         val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
             val display = Typeface.create("serif", Typeface.BOLD)
-            val brand = findViewById<TextView>(R.id.brand_title)
-            val success = findViewById<TextView>(R.id.success_title)
+            val brand = tv(R.id.brand_title)
+            val success = tv(R.id.success_title)
             brand.typeface = display
             heroHeadline.typeface = display
             success.typeface = display
@@ -669,27 +681,23 @@ class MainActivity : AppCompatActivity() {
             heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             success.letterSpacing = 0f
             success.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            findViewById<TextView>(R.id.phase_marker).apply {
-                text = if (handMode) "01" else "02"
-                textSize = 14f
-            }
             if (::delayAdapter.isInitialized) delayAdapter.applyPhase(phaseProgress)
             if (::methodAdapter.isInitialized) methodAdapter.applyPhase(phaseProgress)
             lastHandStyle = handMode
         }
         if (lastDisplayedSignedIn != displaySignedIn) {
-            findViewById<TextView>(R.id.sheet_plate).text =
+            tv(R.id.sheet_plate).text =
                 if (displaySignedIn) "SHAI / 02" else "SHAI / 01"
-            findViewById<TextView>(R.id.sheet_note).text =
-                if (displaySignedIn) "LICENSE ACTIVE" else "NOT YET VERIFIED"
-            findViewById<TextView>(R.id.operation_heading).text =
-                if (displaySignedIn) "INJECTION" else "OPERATIONS"
-            findViewById<TextView>(R.id.operation_note).text =
-                if (displaySignedIn) "SET BEFORE PREPARE" else "APPLIES AFTER ACCESS"
-            findViewById<TextView>(R.id.brand_subtitle).text =
-                "THE KEYKEEPER’S NOTEBOOK"
-            findViewById<TextView>(R.id.chapter_label).text =
-                if (displaySignedIn) "YOUR COLLECTION" else "LIBRARY ACCESS"
+            tv(R.id.sheet_note).text =
+                if (displaySignedIn) "READY" else "Not yet verified"
+            tv(R.id.operation_heading).text =
+                if (displaySignedIn) "Injection" else "Operations"
+            tv(R.id.operation_note).text =
+                if (displaySignedIn) "Set before prepare" else "Applies after access"
+            tv(R.id.brand_subtitle).text =
+                "The keykeeper’s notebook"
+            tv(R.id.chapter_label).text =
+                if (displaySignedIn) "Your collection" else "Library access"
             heroHeadline.text =
                 if (displaySignedIn) "Access granted." else "Your key comes first."
             findViewById<TextView>(R.id.hero_caption).text = if (displaySignedIn) {
@@ -1297,7 +1305,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 findViewById<TextView>(R.id.hero_caption).text =
                     "Choose one library. Nothing downloads until you confirm."
-                findViewById<TextView>(R.id.success_title).text = "LICENSE VERIFIED"
+                findViewById<TextView>(R.id.success_title).text = "Key verified."
                 if (rememberKeyCheck.isChecked) {
                     loaderPreferences.saveRememberedKey(licenseKey)
                     pendingRememberedKey = null
@@ -1325,7 +1333,7 @@ class MainActivity : AppCompatActivity() {
                     findViewById<TextView>(R.id.library_version).visibility = View.GONE
                     findViewById<TextView>(R.id.library_package).visibility = View.GONE
                     findViewById<TextView>(R.id.library_status).text = "CHOOSE LIBRARY"
-                    findViewById<TextView>(R.id.success_detail).text = "Access granted. Choose one library to continue."
+                    findViewById<TextView>(R.id.success_detail).text = "Choose one library to continue."
                     loginButton.text = "CHOOSE LIBRARY"
                     loginButton.isEnabled = true
                     appBanner.isEnabled = true

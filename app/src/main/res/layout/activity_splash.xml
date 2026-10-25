@@ -71,8 +71,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:letterSpacing="0.14"
-            android:text="OPENING SHAI"
+            android:letterSpacing="0.10"
+            android:text="Opening SHAI"
             android:textColor="@color/sketch_pencil"
             android:textSize="11sp" />
     </LinearLayout>

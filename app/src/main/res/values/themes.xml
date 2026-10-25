@@ -10,9 +10,10 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <style name="CustomHintTextAppearance" parent="TextAppearance.AppCompat.Small">
-        <item name="android:textSize">10sp</item>
-        <item name="android:textColor">@android:color/white</item>
+    <!-- Light window surface so the paper splash never flashes the dark theme. -->
+    <style name="SplashTheme" parent="AppTheme">
+        <item name="android:windowBackground">@color/sketch_paper</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="DarkAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">

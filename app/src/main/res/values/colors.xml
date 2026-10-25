@@ -14,18 +14,18 @@
     <!-- Violet court -->
     <color name="max_deep">#0A0610</color>
     <color name="max_void">#120B1C</color>
-    <color name="max_panel">#160B22</color>
-    <color name="max_plum">#241232</color>
-    <color name="max_amethyst">#3A1F57</color>
+    <color name="max_panel">#15111D</color>
+    <color name="max_plum">#221C2C</color>
+    <color name="max_amethyst">#2F2839</color>
     <color name="max_gold">#E9C77E</color>
     <color name="max_gold_deep">#9D743A</color>
     <color name="max_orchid">#E2C7FF</color>
     <color name="max_rose">#FF7AB8</color>
 
     <color name="loader_background">#0A0610</color>
-    <color name="loader_surface">#160B22</color>
-    <color name="loader_surface_alt">#1C0F2B</color>
-    <color name="loader_surface_soft">#241232</color>
+    <color name="loader_surface">#15111D</color>
+    <color name="loader_surface_alt">#1A1524</color>
+    <color name="loader_surface_soft">#221C2C</color>
     <color name="loader_border">#5E4021</color>
     <color name="loader_border_soft">#3F2B16</color>
     <color name="loader_text_primary">#F6EFFF</color>

@@ -58,8 +58,8 @@
                     android:layout_weight="1"
                     android:gravity="end"
                     android:layout_height="wrap_content"
-                    android:letterSpacing="0.08"
-                    android:text="NOT YET VERIFIED"
+                    android:letterSpacing="0.02"
+                    android:text="Not yet verified"
                     android:textSize="11sp" />
             </LinearLayout>
 
@@ -101,20 +101,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:letterSpacing="0.08"
-                        android:text="THE KEYKEEPER’S NOTEBOOK"
+                        android:letterSpacing="0.02"
+                        android:text="The keykeeper’s notebook"
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/phase_marker"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:importantForAccessibility="no"
-                    android:fontFamily="monospace"
-                    android:gravity="center"
-                    android:text="01"
-                    android:textSize="24sp" />
             </LinearLayout>
 
             <astral.loader.OrnamentRuleView
@@ -128,8 +119,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:letterSpacing="0.08"
-                android:text="LIBRARY ACCESS"
+                android:letterSpacing="0.02"
+                android:text="Library access"
                 android:textSize="11sp" />
 
             <!-- One illustration that becomes the crest. -->
@@ -185,8 +176,8 @@
                     android:id="@+id/license_heading"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:letterSpacing="0.08"
-                    android:text="YOUR LICENSE"
+                    android:letterSpacing="0.02"
+                    android:text="Your license"
                     android:textSize="11sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -295,7 +286,7 @@
                             android:id="@+id/success_title"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="LICENSE VERIFIED"
+                            android:text="Key verified."
                             android:textSize="17sp"
                             android:textStyle="bold" />
 
@@ -309,11 +300,12 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <astral.loader.OrnamentRuleView
+                <View
                     android:id="@+id/success_rule"
                     android:layout_width="match_parent"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="4dp" />
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@color/loader_border_soft" />
 
                 <TextView
                     android:id="@+id/key_fingerprint"
@@ -463,16 +455,16 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:letterSpacing="0.08"
-                        android:text="INJECTION"
+                        android:letterSpacing="0.02"
+                        android:text="Injection"
                         android:textSize="11sp" />
 
                     <TextView
                         android:id="@+id/operation_note"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:letterSpacing="0.10"
-                        android:text="SET BEFORE PREPARE"
+                        android:letterSpacing="0.02"
+                        android:text="Set before prepare"
                         android:textSize="11sp" />
                 </LinearLayout>
 
@@ -493,8 +485,8 @@
                             android:id="@+id/method_label"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:letterSpacing="0.10"
-                            android:text="METHOD"
+                            android:letterSpacing="0.02"
+                            android:text="Method"
                             android:textSize="11sp" />
 
                         <Spinner
@@ -522,8 +514,8 @@
                             android:id="@+id/delay_label"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:letterSpacing="0.10"
-                            android:text="LAUNCH DELAY"
+                            android:letterSpacing="0.02"
+                            android:text="Launch delay"
                             android:textSize="11sp" />
 
                         <Spinner
@@ -553,8 +545,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
-                    android:letterSpacing="0.10"
-                    android:text="INJECT MODE"
+                    android:letterSpacing="0.02"
+                    android:text="Inject mode"
                     android:textSize="11sp" />
 
                 <LinearLayout
