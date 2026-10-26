@@ -342,7 +342,7 @@ class MainActivity : AppCompatActivity() {
         val content = findViewById<View>(R.id.main_content)
         val rule = findViewById<OrnamentRuleView>(R.id.hero_rule)
         val keyNote = findViewById<View>(R.id.key_note)
-        val keyArrow = findViewById<View>(R.id.key_note_arrow)
+        val keyArrow = findViewById<ImageView>(R.id.key_note_arrow)
         entranceAnimator?.cancel()
         if (!ValueAnimator.areAnimatorsEnabled()) {
             content.alpha = 1f
