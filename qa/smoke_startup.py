@@ -15,23 +15,62 @@ import time
 PACKAGE = "astral.loader"
 REPORTS = Path("build/startup")
 
+# The CI emulator's adb link drops intermittently (adb exits 255/1 with
+# "device offline") right after the launch assertions pass. Retry those
+# transient drops instead of failing a run that actually succeeded.
+ADB_ATTEMPTS = 4
 
-def adb(*args, binary=False):
-    return subprocess.run(
-        ["adb", *args], check=True, capture_output=True,
-        text=not binary, timeout=30,
-    ).stdout
+
+def _warn(message):
+    print(f"warning: {message}", file=sys.stderr, flush=True)
+
+
+def adb(*args, binary=False, attempts=ADB_ATTEMPTS):
+    delay = 1.0
+    for attempt in range(1, attempts + 1):
+        try:
+            return subprocess.run(
+                ["adb", *args], check=True, capture_output=True,
+                text=not binary, timeout=30,
+            ).stdout
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            if attempt == attempts:
+                raise
+            code = getattr(exc, "returncode", "timeout")
+            _warn(f"adb {' '.join(args)} failed ({code}); "
+                  f"retry {attempt}/{attempts - 1}")
+            time.sleep(delay)
+            delay *= 2
+
+
+def _capture_or_warn(label, suffix, args, binary=False):
+    """One diagnostics artifact; never fails the run."""
+    try:
+        payload = adb(*args, binary=binary)
+        path = REPORTS / f"{label}{suffix}"
+        if binary:
+            path.write_bytes(payload)
+        else:
+            path.write_text(payload)
+    except Exception as exc:
+        # Broad on purpose: nothing in diagnostics may mask a launch result.
+        _warn(f"could not capture {label}{suffix}: {exc}")
 
 
 def capture(label):
-    (REPORTS / f"{label}-logcat.txt").write_text(adb("logcat", "-d"))
-    (REPORTS / f"{label}-activities.txt").write_text(
-        adb("shell", "dumpsys", "activity", "activities")
+    # Diagnostics only: the launch assertions already ran in launch(). A dropped
+    # adb link here must not turn a passing startup check into a failed job.
+    _capture_or_warn(label, "-logcat.txt", ("logcat", "-d"))
+    _capture_or_warn(
+        label, "-activities.txt",
+        ("shell", "dumpsys", "activity", "activities"),
     )
-    (REPORTS / f"{label}.png").write_bytes(
-        adb("exec-out", "screencap", "-p", binary=True)
-    )
-    crashes = adb("logcat", "-b", "crash", "-d")
+    _capture_or_warn(label, ".png", ("exec-out", "screencap", "-p"), binary=True)
+    try:
+        crashes = adb("logcat", "-b", "crash", "-d")
+    except Exception as exc:
+        _warn(f"could not read the crash buffer for {label}: {exc}")
+        return
     if f"Process: {PACKAGE}" in crashes or f">>> {PACKAGE} <<<" in crashes:
         print(crashes, flush=True)
 
@@ -80,8 +119,13 @@ def main():
         launch("animated", "1")
         launch("reduced-motion", "0")
     finally:
+        # Hygiene on a disposable emulator: a failed restore must not mask the
+        # launch result or fail the job after every assertion passed.
         for setting in ("window_animation_scale", "transition_animation_scale", "animator_duration_scale"):
-            adb("shell", "settings", "put", "global", setting, "1")
+            try:
+                adb("shell", "settings", "put", "global", setting, "1")
+            except Exception as exc:
+                _warn(f"could not restore {setting}: {exc}")
 
 
 if __name__ == "__main__":
