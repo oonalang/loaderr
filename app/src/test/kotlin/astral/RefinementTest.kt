@@ -159,7 +159,10 @@ class RefinementTest {
         assertEquals("Powered by @Shaiaintshyy", credit.text.toString())
         assertTrue("the credit is part of the page, not a footer bar",
             credit.background == null)
-        dialog.dismiss()
+        val labels = TextViewCollector(dialog.findViewById(R.id.about_details_card))
+        assertTrue("version row is gone, not blank", labels.none { it.contains("version", ignoreCase = true) })
+        // Two real rows, each a muted label and its ink value: nothing else.
+        assertEquals("two real rows remain", 4, labels.size)
     }
 
     @Test
@@ -190,8 +193,9 @@ class RefinementTest {
         assertTrue("About keeps a 48dp target", about.height >= 48 * metrics.density - 1)
         val status = activity.findViewById<TextView>(R.id.library_status)
         assertEquals("redundant choose-state chip stays hidden", View.GONE, status.visibility)
-        val header = activity.findViewById<TextView>(R.id.sheet_note)
-        assertEquals("verified state is not repeated in the header", View.GONE, header.visibility)
+        val headerTexts = TextViewCollector(activity.findViewById(R.id.main_content))
+        assertTrue("the Key required header note is gone, not just hidden",
+            headerTexts.none { it.contains("key required", ignoreCase = true) })
 
         val audit = StringBuilder()
         dump(root, audit, 0)
@@ -217,6 +221,22 @@ class RefinementTest {
         val apply = RotatingHeadlineView::class.java.getDeclaredMethod("applyMessage")
         apply.isAccessible = true
         apply.invoke(this)
+    }
+
+    /** Collects every visible TextView text under a view, in order. */
+    private fun TextViewCollector(root: View?): List<String> {
+        if (root == null) return emptyList()
+        val out = ArrayList<String>()
+        fun walk(view: View) {
+            if (view is TextView && view.visibility == View.VISIBLE) {
+                out += view.text.toString()
+            }
+            if (view is ViewGroup) {
+                for (i in 0 until view.childCount) walk(view.getChildAt(i))
+            }
+        }
+        walk(root)
+        return out
     }
 
     private fun dump(view: View, out: StringBuilder, depth: Int) {

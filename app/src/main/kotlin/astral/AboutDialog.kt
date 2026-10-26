@@ -25,7 +25,11 @@ import androidx.core.view.WindowInsetsCompat
  * after redemption it is the same clay page; opened from the sheet it is still
  * a notebook page. Both states share one layout and one set of surfaces.
  */
-class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dialog(context) {
+internal class AboutDialog(
+    context: Context,
+    private val signedIn: Boolean = false,
+    private val sounds: ShaiSounds? = null
+) : Dialog(context) {
 
     private val phase: Float get() = if (signedIn) 1f else 0f
 
@@ -37,10 +41,16 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
         applyInsets()
 
         val back = findViewById<View>(R.id.about_back)
-        back.setOnClickListener { dismiss() }
+        back.setOnClickListener {
+            sounds?.play(ShaiSounds.Cue.TAP)
+            dismiss()
+        }
         installPress(back)
         val telegram = findViewById<View>(R.id.about_telegram)
-        telegram.setOnClickListener { openTelegram() }
+        telegram.setOnClickListener {
+            sounds?.play(ShaiSounds.Cue.TAP)
+            openTelegram()
+        }
         installPress(telegram)
 
         bindDetails()
@@ -134,10 +144,12 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
 
     private fun bindDetails() {
         val iconTint = if (signedIn) ShaiPalette.clayMuted else ShaiPalette.pencil
+        // The version row is intentionally not listed: a loader whose catalog
+        // can force an update dialog never shows a number readers could mistake
+        // for the currently supported one.
         val details = listOf(
             Detail(R.id.detail_developer, R.drawable.ic_user, "Application", "SHAI LOADER"),
-            Detail(R.id.detail_username, R.drawable.ic_about, "Username", "@Shaiaintshyy"),
-            Detail(R.id.detail_version, R.drawable.ic_package, "App version", appVersion())
+            Detail(R.id.detail_username, R.drawable.ic_about, "Username", "@Shaiaintshyy")
         )
 
         details.forEach { detail ->
@@ -149,12 +161,6 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
             row.findViewById<TextView>(R.id.about_detail_label).text = detail.label
             row.findViewById<TextView>(R.id.about_detail_value).text = detail.value
         }
-    }
-
-    private fun appVersion(): String = try {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-    } catch (_: Exception) {
-        "Unknown"
     }
 
     private fun applyPhaseStyle() {
@@ -188,7 +194,7 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
             setTextColor(ink)
             letterSpacing = if (clay) -0.008f else -0.015f
         }
-        val detailRows = intArrayOf(R.id.detail_developer, R.id.detail_username, R.id.detail_version)
+        val detailRows = intArrayOf(R.id.detail_developer, R.id.detail_username)
         detailRows.forEach { id ->
             val row = findViewById<View>(id)
             row.findViewById<TextView>(R.id.about_detail_label).apply {

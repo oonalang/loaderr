@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The SHAI mark: a rounded dark plate with the S monogram, not a square.
+     The plate's own corners match the radius of the tile that clips it, so no
+     unclipped edge survives at any size it is drawn at. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
  android:width="96dp" android:height="96dp"
  android:viewportWidth="96" android:viewportHeight="96">
- <path android:fillColor="#100A1B" android:pathData="M0,0 L96,0 L96,96 L0,96 Z" />
- <path android:fillColor="@android:color/transparent" android:strokeColor="#B788FF"
+ <path android:fillColor="#100A1B"
+  android:pathData="M0,24 C0,7 7,0 24,0 L72,0 C89,0 96,7 96,24 L96,72 C96,89 89,96 72,96 L24,96 C7,96 0,89 0,72 Z" />
+ <path android:strokeColor="#B788FF"
  android:strokeWidth="7" android:strokeLineCap="round"
  android:pathData="M72,25 C61,14 38,14 27,27 C10,49 78,38 69,63 C62,85 33,82 21,69" />
- <path android:fillColor="@android:color/transparent" android:strokeColor="#6731C1"
+ <path android:strokeColor="#6731C1"
  android:strokeWidth="2" android:strokeLineCap="round"
  android:pathData="M77,19 L83,13 M17,79 L12,84" />
 </vector>

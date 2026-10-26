@@ -101,6 +101,7 @@ class MainActivity : AppCompatActivity() {
     
     private val commandRunner = CommandRunner()
     private val catalogClient = LibraryCatalogClient(SERVER_LIST_URL)
+    private val sounds by lazy { ShaiSounds(this) }
     private val licenseValidator by lazy { PanelLicenseValidator(contentResolver) }
     private val assetExtractor by lazy { AssetExtractor(assets, cacheDir) }
     private var isReadyToInject: Boolean = false
@@ -130,6 +131,7 @@ class MainActivity : AppCompatActivity() {
     private var phaseAnimator: ValueAnimator? = null
     private var authenticatedLibrary: String? = null
     private var licenseVerified = false
+    private lateinit var soundToggle: CheckBox
     private var redeemedGame: String? = null
     private var redeemedKey: String? = null
     private var isPreparingLibrary = false
@@ -192,6 +194,10 @@ class MainActivity : AppCompatActivity() {
         appBanner = findViewById(R.id.app_banner)
         rememberKeyCheck = findViewById(R.id.remember_key)
         keyFingerprint = findViewById(R.id.key_fingerprint)
+        soundToggle = findViewById(R.id.sound_toggle)
+        // Same discipline as the remember toggle: the material theme wants to
+        // wash the drawn box into a solid plum blob; the drawn states stay.
+        soundToggle.buttonTintList = null
         
         Glide.with(this)
             .load(R.drawable.shai_mark)
@@ -250,17 +256,24 @@ class MainActivity : AppCompatActivity() {
                 // Checkbox look, radio behaviour: exactly one mode is ticked.
                 radioManual.isChecked = false
                 loaderPreferences.saveMode("auto")
+                sounds.play(ShaiSounds.Cue.TAP)
             }
         }
         radioManual.setOnCheckedChangeListener { _, checked ->
             if (checked) {
                 radioAuto.isChecked = false
                 loaderPreferences.saveMode("manual")
+                sounds.play(ShaiSounds.Cue.TAP)
             }
         }
 
-        findViewById<View>(R.id.library_card).setOnClickListener { setLibraryDrawerOpen(true) }
-        findViewById<View>(R.id.about_button).setOnClickListener { AboutDialog(this, licenseVerified).show() }
+        findViewById<View>(R.id.library_card).setOnClickListener {
+            sounds.play(ShaiSounds.Cue.TAP)
+            setLibraryDrawerOpen(true)
+        }
+        findViewById<View>(R.id.about_button).setOnClickListener {
+            AboutDialog(this, licenseVerified, sounds).show()
+        }
         findViewById<View>(R.id.change_key_link).setOnClickListener {
             if (isPreparingLibrary) {
                 showToast("Finish the current preparation first")
@@ -284,8 +297,21 @@ class MainActivity : AppCompatActivity() {
         }
         installPressFeedback(
             findViewById(R.id.login_button),
-            findViewById(R.id.library_card)
+            findViewById(R.id.library_card),
+            findViewById(R.id.about_button),
+            findViewById(R.id.change_key_link),
+            findViewById(R.id.drawer_close),
+            findViewById(R.id.drawer_about),
+            findViewById(R.id.hero_headline)
         )
+
+        soundToggle.isChecked = sounds.isEnabled()
+        soundToggle.setOnCheckedChangeListener { _, checked ->
+            sounds.setEnabled(checked)
+            if (checked) sounds.play(ShaiSounds.Cue.TAP)
+            updateSoundCaption()
+        }
+        updateSoundCaption()
 
         loginButton.setOnClickListener {
             if (isReadyToInject) {
@@ -417,13 +443,18 @@ class MainActivity : AppCompatActivity() {
             view.setOnTouchListener { target, event ->
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
-                        target.animate().cancel()
-                        if (ValueAnimator.areAnimatorsEnabled()) {
-                            target.animate()
-                                .scaleX(0.975f).scaleY(0.975f)
-                                .setDuration(ShaiMotion.PRESS_IN_MS)
-                                .setInterpolator(ShaiMotion.easeOut)
-                                .start()
+                        // A tactile tap belongs to controls a press can actuate;
+                        // an inert or disabled control stays quiet and still.
+                        if (target.isClickable && target.isEnabled) {
+                            sounds.play(ShaiSounds.Cue.TAP)
+                            target.animate().cancel()
+                            if (ValueAnimator.areAnimatorsEnabled()) {
+                                target.animate()
+                                    .scaleX(0.975f).scaleY(0.975f)
+                                    .setDuration(ShaiMotion.PRESS_IN_MS)
+                                    .setInterpolator(ShaiMotion.easeOut)
+                                    .start()
+                            }
                         }
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -450,6 +481,7 @@ class MainActivity : AppCompatActivity() {
             pendingRememberedKey = remembered
         }
         rememberKeyCheck.setOnCheckedChangeListener { _, isChecked ->
+            sounds.play(ShaiSounds.Cue.TAP)
             if (isChecked) {
                 val key = licenseKeyInput.text?.toString()?.trim().orEmpty()
                 if (key.isNotBlank()) {
@@ -473,6 +505,15 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) = Unit
         })
         updateRememberCaption()
+    }
+
+    /** The sound row's supporting line never promises what muting does not do. */
+    private fun updateSoundCaption() {
+        findViewById<TextView>(R.id.sound_caption).text = if (soundToggle.isChecked) {
+            "Quiet taps and short cues for buttons and results."
+        } else {
+            "Sound is off. The app works exactly the same."
+        }
     }
 
     private fun updateRememberCaption() {
@@ -674,14 +715,14 @@ class MainActivity : AppCompatActivity() {
         val titleIds = intArrayOf(
             R.id.brand_title, R.id.library_name,
             R.id.success_title, R.id.drawer_title, R.id.remember_title,
-            R.id.radio_auto, R.id.radio_manual
+            R.id.radio_auto, R.id.radio_manual, R.id.sound_title
         )
         val secondaryIds = intArrayOf(
             R.id.library_game,
             R.id.library_version, R.id.hero_caption,
             R.id.license_heading, R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
-            R.id.operation_note, R.id.sheet_note
+            R.id.operation_note, R.id.sound_caption
         )
         titleIds.forEach { tv(it).setTextColor(ink) }
         secondaryIds.forEach { tv(it).setTextColor(secondary) }
@@ -732,6 +773,7 @@ class MainActivity : AppCompatActivity() {
             rememberKeyCheck.setButtonDrawable(box)
             radioAuto.setButtonDrawable(box)
             radioManual.setButtonDrawable(box)
+            soundToggle.setButtonDrawable(box)
             tv(R.id.success_emblem).setBackgroundResource(
                 if (clay) R.drawable.seal_clay else R.drawable.seal_ring
             )
@@ -745,9 +787,7 @@ class MainActivity : AppCompatActivity() {
             lastHandStyle = handMode
         }
         if (lastDisplayedSignedIn != displaySignedIn) {
-            // The state chip is an authentication cue on the sheet. Once the
-            // plaque carries the fact, a second "Key verified" would be noise.
-            tv(R.id.sheet_note).visibility = if (displaySignedIn) View.GONE else View.VISIBLE
+            // The plaque carries the fact, a second "Key verified" would be noise.
             findViewById<TextView>(R.id.hero_caption).text = if (displaySignedIn) {
                 "Your key is verified. Choose a library to continue."
             } else {
@@ -879,13 +919,13 @@ class MainActivity : AppCompatActivity() {
         intArrayOf(
             R.id.remember_title, R.id.license_heading, R.id.radio_auto,
             R.id.radio_manual, R.id.library_status, R.id.success_title,
-            R.id.method_label, R.id.delay_label, R.id.mode_label
+            R.id.method_label, R.id.delay_label, R.id.mode_label, R.id.sound_title
         ).forEach { tv(it).typeface = label }
         intArrayOf(
             R.id.hero_caption, R.id.library_game, R.id.library_version,
             R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
-            R.id.operation_note, R.id.sheet_note, R.id.change_key_link,
+            R.id.operation_note, R.id.sound_caption, R.id.change_key_link,
             R.id.about_button, R.id.drawer_about
         ).forEach { tv(it).typeface = body }
         loginButton.typeface = label
@@ -1203,6 +1243,7 @@ class MainActivity : AppCompatActivity() {
 
             row.setOnClickListener {
                 if (available) {
+                    sounds.play(ShaiSounds.Cue.TAP)
                     selectLibraryFromDrawer(library)
                 } else {
                     showToast("$name is under maintenance")
@@ -1437,6 +1478,8 @@ class MainActivity : AppCompatActivity() {
                 redeemedGame = game
                 redeemedKey = licenseKey
                 licenseVerified = true
+                // The one success cue: only an actually verified key sounds it,
+                // once, and it is quieter than any toast.
                 // Populate only matching library entries. The spinner and drawer
                 // now reflect the authenticated game's group.
                 filterLibraries(false)
@@ -1447,6 +1490,7 @@ class MainActivity : AppCompatActivity() {
                     // so it rises with the court instead of racing it with a fade.
                     if (!ValueAnimator.areAnimatorsEnabled()) alpha = 1f
                 }
+                sounds.play(ShaiSounds.Cue.SUCCESS)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     loginButton.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 }
@@ -1522,6 +1566,8 @@ class MainActivity : AppCompatActivity() {
     private fun resetLoginState(message: String, focusKey: Boolean = true) {
         val savedKeyRejected = autoLoginStarted && pendingRememberedKey != null
         pendingRememberedKey = null
+        // A real validation or preparation failure gets its own low cue, once.
+        sounds.play(ShaiSounds.Cue.ERROR)
         isPreparingLibrary = false
         clearAuthenticatedPhase()
         licenseKeyInputLayout.error = message
@@ -1630,13 +1676,15 @@ class MainActivity : AppCompatActivity() {
                         isReadyToInject = false
                         isPreparingLibrary = false
                         refreshLibraryCardStatus()
-                    } else {
-                        lifecycleScope.launch(Dispatchers.Main) {
+                    } else {                            lifecycleScope.launch(Dispatchers.Main) {
                             delay(2500)
                             if (currentLibrary != selectedLibrary.name || !licenseVerified) return@launch
                             loginButton.text = "Inject"
                             setSuccessDetail("$currentLibrary is ready. Tap Inject when you are ready.")
                             showToast("Ready to inject")
+                            // The preparation is genuinely finished here; a soft
+                            // ready cue confirms it rather than a second toast.
+                            sounds.play(ShaiSounds.Cue.READY)
                             loginButton.isEnabled = true
                             setInjectionControlsEnabled(true)
                             isReadyToInject = true
@@ -1809,6 +1857,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         phaseAnimator?.cancel()
         if (::headlineView.isInitialized) headlineView.release()
+        if (::soundToggle.isInitialized) sounds.stop()
         super.onDestroy()
         cleanUp()
     }

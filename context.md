@@ -43,13 +43,14 @@ compatibility with the loader core). Native components named above are
 
 | Path | Role |
 |---|---|
-| `app/src/main/kotlin/astral/MainActivity.kt` (~1,720 lines) | Main screen + phase system (`updateTheme`, `animateToPhase`), redemption flow, drawer, entrance motion, window insets |
+| `app/src/main/kotlin/astral/MainActivity.kt` (~1,720 lines) | Main screen + phase system (`updateTheme`, `animateToPhase`), redemption flow, drawer, entrance motion, window insets, sound wiring |
 | `app/src/main/kotlin/astral/SplashActivity.kt` | Opening sheet (320ms), VPN detection, notification permission |
 | `app/src/main/kotlin/astral/LoaderVisuals.kt` | `ShaiPalette` tokens, `LoaderBackdropView` (24dp canvas ruling, phase-aware), `PhaseSurfaceDrawable` (all enclosed surfaces), `OrnamentRuleView` (self-drawing rule) |
 | `app/src/main/kotlin/astral/ShaiIllustrationView.kt` | The keykeeper, drawn on Canvas; per-stroke `PathMeasure` reveal; phase re-inking |
 | `app/src/main/kotlin/astral/SketchSurfaces.kt` | `SketchFieldDrawable` (drawn key field) and `HighlightSweepDrawable` (headline marker) |
 | `app/src/main/kotlin/astral/ShaiMotion.kt` | Named motion tokens (PRESS/ENTRANCE/RULE_REVEAL/PHASE_IN 520ms/PHASE_OUT 420ms/CREST) + PathInterpolators |
 | `app/src/main/kotlin/astral/LoaderPreferences.kt` | Remembered key, per-library keys, auto-mode preference |
+| `app/src/main/kotlin/astral/ShaiSounds.kt` | bundled UI cue kit (SoundPool), preference-backed mute, silent-mode respect |
 | `app/src/main/res/layout/activity_main.xml` (~830 lines) | **One layout for both auth states**; gating is code-driven |
 | `app/src/main/res/layout/activity_splash.xml` | Splash sheet |
 | `app/src/main/res/font/space_grotesk*` | Functional voice: Space Grotesk 400/500/700 (OFL) behind `@font/space_grotesk` |
@@ -74,8 +75,10 @@ The main screen cross-fades between two states on **one shared layout**:
 - `backdrop.phase`, all `PhaseSurfaceDrawable.phase` fields,
   `fieldSurface.phase`, `headlineSweep.phase`, `heroIllustration.phase`
 - Text colors through id lists (`titleIds`, `secondaryIds`, accent ids)
-- `sheet_note` (real state: "Key required" ↔ "Key verified"), the same
-  illustration geometry sculpted rather than re-inked, the Remember/mode boxes
+- the header status note is retired (the 2026-10-26 brief removed the
+  "Key required" badge; state lives in the caption and the plaque only), the
+  illustration geometry sculpted rather than re-inked — now holding a padlock
+  that is closed on the sheet and swings open in clay — the Remember/mode boxes
   (ink on paper ↔ clay beads), the verified emblem (ring ↔ mint bead), the
   drafting rule (drawn ↔ `GONE`), and the hero's paper tilt (-1.5° unsigned)
 - Type voices through one call, `applyTypefaces(clay)` (Space Grotesk ↔

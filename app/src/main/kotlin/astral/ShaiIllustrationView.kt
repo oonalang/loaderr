@@ -20,14 +20,18 @@ import android.view.View
  * contour revealed through [PathMeasure]; as the clay phase arrives the same
  * coordinates become a moulded form: the silhouette fills with matte pink clay,
  * the face is a cream inset, the construction hatching and the ground line are
- * drawn out, and the key inflates into a mint clay object. Nothing swaps: the
- * drawing is the model.
+ * drawn out, and the padlock in her grip inflates into a mint object whose
+ * shackle swings open. Nothing swaps: the drawing is the model.
+ *
+ * The padlock is the brief's second promise. On the unauthenticated sheet it is
+ * shut — nothing opens until the key is checked — and in the finished piece the
+ * same lock, same place in her hand, hangs with its shackle lifted clear.
  */
 class ShaiIllustrationView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    private enum class Ink { FRAME, FEATURE, DETAIL, HATCH, GROUND, KEY }
+    private enum class Ink { FRAME, FEATURE, DETAIL, HATCH, GROUND, LOCK }
 
     private class Stroke(val path: Path, val ink: Ink, val start: Float, val end: Float)
 
@@ -119,13 +123,17 @@ class ShaiIllustrationView @JvmOverloads constructor(
             lineTo(127f, 76f)
             cubicTo(135f, 65f, 139f, 53f, 142f, 43f)
         }
-        // Features, inked only after the head has settled.
-        stroke(Ink.FEATURE, .46f, .55f) { moveTo(149f, 72f); quadTo(157f, 68f, 164f, 72f) }
-        stroke(Ink.FEATURE, .49f, .57f) { moveTo(151f, 78f); quadTo(157f, 81f, 162f, 77f) }
+        // Features, inked only after the head has settled. The expression is
+        // worried while the panel must still approve the pasted key: the brow is
+        // lifted, the eye is flat rather than curved up, and the mouth is a
+        // small downturned arc under one crease.
+        stroke(Ink.FEATURE, .46f, .55f) { moveTo(149f, 71f); quadTo(157f, 65f, 164f, 70f) }
+        stroke(Ink.FEATURE, .49f, .57f) { moveTo(151f, 78f); quadTo(157f, 75.5f, 162f, 78f) }
         stroke(Ink.DETAIL, .50f, .56f) { moveTo(174f, 73f); lineTo(179f, 75f) }
-        stroke(Ink.FEATURE, .52f, .59f) { moveTo(170f, 97f); quadTo(164f, 100f, 159f, 97f) }
+        stroke(Ink.FEATURE, .52f, .59f) { moveTo(172f, 98f); quadTo(164f, 93f, 157f, 98f) }
         stroke(Ink.DETAIL, .53f, .60f) { moveTo(153f, 105f); lineTo(162f, 108f) }
         stroke(Ink.DETAIL, .50f, .58f) { moveTo(118f, 79f); quadTo(125f, 76f, 122f, 86f) }
+        stroke(Ink.DETAIL, .54f, .62f) { moveTo(157f, 66f); lineTo(158f, 61f) }
         // Folded collar.
         stroke(Ink.FRAME, .42f, .60f) {
             moveTo(119f, 105f); lineTo(143f, 126f); lineTo(166f, 115f); lineTo(183f, 126f)
@@ -146,17 +154,33 @@ class ShaiIllustrationView @JvmOverloads constructor(
             moveTo(195f, 107f); lineTo(206f, 114f)
             moveTo(201f, 118f); lineTo(213f, 126f)
         }
-        // The key is laid beside her on the page: the only object the drawing
-        // asks you to look at, and the one thing the highlighter touches.
-        stroke(Ink.KEY, .60f, .78f) { addOval(230.5f, 102.5f, 249.5f, 121.5f, Path.Direction.CW) }
-        stroke(Ink.KEY, .74f, .90f) {
-            moveTo(240f, 121f)
-            lineTo(240f, 152f)
-            lineTo(250f, 152f)
-            lineTo(250f, 145f)
-            lineTo(245f, 145f)
-            lineTo(245f, 138f)
-            lineTo(240f, 138f)
+        // Her grip on the padlock: a short arm from the cloak, then two finger
+        // lines folded over the body's near edge. Small on purpose — a full
+        // forearm reads as a mask at this study size.
+        stroke(Ink.DETAIL, .58f, .72f) {
+            moveTo(207f, 119f); quadTo(222f, 122f, 239f, 126f)
+        }
+        stroke(Ink.DETAIL, .64f, .80f) {
+            moveTo(238f, 125f); quadTo(246f, 121f, 253f, 125f)
+            moveTo(237f, 133f); quadTo(246f, 129f, 254f, 133f)
+            moveTo(239f, 141f); quadTo(246f, 138f, 252f, 141f)
+        }
+        // The padlock she holds: the only object the drawing asks you to look
+        // at, and the one thing the highlighter touches. The shackle is shut:
+        // on this page nothing is open until the key is checked.
+        stroke(Ink.LOCK, .68f, .84f) {
+            moveTo(250f, 124f)
+            lineTo(250f, 110f)
+            arcTo(RectF(250f, 96f, 262f, 110f), 180f, 180f)
+            lineTo(262f, 124f)
+        }
+        stroke(Ink.LOCK, .74f, .90f) {
+            addRoundRect(RectF(240f, 120f, 272f, 158f), 8f, 8f, Path.Direction.CW)
+        }
+        stroke(Ink.LOCK, .82f, .94f) {
+            addCircle(256f, 134f, 3.2f, Path.Direction.CW)
+            moveTo(256f, 137f)
+            lineTo(256f, 143f)
         }
 
         // The same geometry, closed, so the paper drawing can become a form.
@@ -243,16 +267,16 @@ class ShaiIllustrationView @JvmOverloads constructor(
         val form = (((clay - .34f) / .66f).coerceIn(0f, 1f))
         if (form > 0.01f) drawClayForm(canvas, form, smooth(progress))
 
-        // One highlighter mark, laid under the key after its outline is inked.
+        // One highlighter mark, laid under the lock after its outline is inked.
         val wash = local(progress, .86f, 1f)
         if (wash > 0f && clay < .99f) {
             fillPaint.style = Paint.Style.FILL
             fillPaint.color = ShaiPalette.highlight
             val paperOnly = (1f - clay * 1.6f).coerceIn(0f, 1f)
             fillPaint.alpha = (150f * smooth(wash) * paperOnly).toInt().coerceIn(0, 255)
-            canvas.drawCircle(240f, 112f, 17f, fillPaint)
-            washRect.set(234f, 120f, 256f, 158f)
-            canvas.drawRoundRect(washRect, 5f, 5f, fillPaint)
+            canvas.drawCircle(256f, 104f, 18f, fillPaint)
+            washRect.set(240f, 122f, 272f, 158f)
+            canvas.drawRoundRect(washRect, 8f, 8f, fillPaint)
         }
         fillPaint.alpha = 255
         linePaint.style = Paint.Style.STROKE
@@ -284,7 +308,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.restore()
     }
 
-    /** The paper drawing, sculpted: filled silhouette, cream face, clay key. */
+    /** The paper drawing, sculpted: filled silhouette, cream face, clay padlock. */
     private fun drawClayForm(canvas: Canvas, clay: Float, inked: Float) {
         // The figure sits on the page: a soft contact shadow replaces the ground line.
         val contact = clay * .11f * inked
@@ -310,6 +334,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         fillPaint.alpha = (255 * clay * inked).toInt().coerceIn(0, 255)
         canvas.drawPath(cloak, fillPaint)
         fillPaint.shader = null
+        fillPaint.alpha = 255
 
         // Rim light, clipped to the form so only its inner edge catches the light.
         canvas.save()
@@ -358,31 +383,118 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(clayGroove, linePaint)
         canvas.restore()
 
-        // The key is its own object in clay: a bow, a straight stem, one tooth,
-        // so it still reads as a key at 20dp rather than a mint lump.
+        // The padlock is its own object in clay, in the hand the paper drew: a
+        // mint body, a carved keyhole, and a shackle that has swung open once
+        // the key is checked.
         clayGroove.reset()
-        clayGroove.addCircle(242f, 110f, 11f, Path.Direction.CW)
-        clayGroove.moveTo(242f, 121f)
-        clayGroove.lineTo(242f, 151f)
-        clayGroove.moveTo(242f, 143f)
-        clayGroove.lineTo(253f, 143f)
+        clayGroove.addRoundRect(RectF(240f, 120f, 272f, 158f), 8f, 8f, Path.Direction.CW)
         canvas.save()
-        canvas.translate(1.8f, 2.2f)
-        linePaint.strokeWidth = 6.4f
+        canvas.translate(2.2f, 2.6f)
+        linePaint.strokeWidth = 7f
         linePaint.color = ShaiPalette.clayInk
         linePaint.alpha = (26 * strength).toInt().coerceIn(0, 255)
         canvas.drawPath(clayGroove, linePaint)
         canvas.restore()
+        fillPaint.style = Paint.Style.FILL
+        fillPaint.color = ShaiPalette.clayMintDeep
+        fillPaint.alpha = (255 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, fillPaint)
+        fillPaint.color = ShaiPalette.clayMint
+        fillPaint.alpha = (255 * strength).toInt().coerceIn(0, 255)
+        canvas.save()
+        canvas.translate(0f, -2.4f)
+        canvas.drawPath(clayGroove, fillPaint)
+        canvas.restore()
+        fillPaint.alpha = 255
+        // One lit edge on the upper-left face of the body.
+        clayGroove.reset()
+        clayGroove.moveTo(243f, 150f)
+        clayGroove.quadTo(242f, 128f, 244f, 125f)
+        linePaint.style = Paint.Style.STROKE
+        linePaint.strokeWidth = 2.6f
+        linePaint.color = Color.WHITE
+        linePaint.alpha = (110 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, linePaint)
+
+        // A pink mitt from the cloak still holds the body's near edge, so the
+        // finished lock stays in the hand the paper drew. Small and shallow —
+        // only the near edge is covered, and only a light counts.
+        linePaint.style = Paint.Style.STROKE
+        linePaint.strokeCap = Paint.Cap.ROUND
         linePaint.strokeWidth = 6.4f
+        linePaint.color = ShaiPalette.clayPink
+        linePaint.alpha = (255 * strength).toInt().coerceIn(0, 255)
+        clayGroove.reset()
+        clayGroove.moveTo(213f, 130f)
+        clayGroove.quadTo(227f, 126f, 240f, 131f)
+        clayGroove.moveTo(240f, 128f)
+        clayGroove.quadTo(247f, 124f, 253f, 128f)
+        clayGroove.moveTo(239f, 136f)
+        clayGroove.quadTo(247f, 132f, 254f, 136f)
+        clayGroove.moveTo(240f, 144f)
+        clayGroove.quadTo(247f, 141f, 253f, 144f)
+        canvas.save()
+        canvas.translate(1.4f, 1.8f)
+        linePaint.strokeWidth = 3f
+        linePaint.color = ShaiPalette.clayInk
+        linePaint.alpha = (22 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, linePaint)
+        canvas.restore()
+        linePaint.strokeWidth = 6.4f
+        linePaint.alpha = (255 * strength).toInt().coerceIn(0, 255)
+        linePaint.color = ShaiPalette.clayPink
+        canvas.drawPath(clayGroove, linePaint)
+        canvas.save()
+        canvas.translate(-1.1f, -1.3f)
+        linePaint.strokeWidth = 2.2f
+        linePaint.color = Color.WHITE
+        linePaint.alpha = (110 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, linePaint)
+        canvas.restore()
+
+        // The keyhole stays carved in the body, not floating with the shackle.
+        clayGroove.reset()
+        clayGroove.addCircle(256f, 134f, 3.4f, Path.Direction.CW)
+        clayGroove.moveTo(256f, 138f)
+        clayGroove.lineTo(256f, 145f)
+        linePaint.strokeWidth = 3.4f
+        linePaint.color = ShaiPalette.clayMintDeep
+        linePaint.alpha = (230 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, linePaint)
+        canvas.save()
+        canvas.translate(0.9f, 1.1f)
+        linePaint.color = Color.WHITE
+        linePaint.alpha = (60 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, linePaint)
+        canvas.restore()
+
+        // The shackle, rotated open about its seated leg. At strength 0 the
+        // rotation is zero: the same closed lock the paper drew.
+        canvas.save()
+        canvas.rotate(-40f * strength, 250f, 126f)
+        clayGroove.reset()
+        clayGroove.moveTo(250f, 124f)
+        clayGroove.lineTo(250f, 110f)
+        clayGroove.arcTo(RectF(250f, 96f, 262f, 110f), 180f, 180f)
+        clayGroove.lineTo(262f, 124f)
+        canvas.save()
+        canvas.translate(1.6f, 2f)
+        linePaint.strokeWidth = 6.6f
+        linePaint.color = ShaiPalette.clayInk
+        linePaint.alpha = (26 * strength).toInt().coerceIn(0, 255)
+        canvas.drawPath(clayGroove, linePaint)
+        canvas.restore()
+        linePaint.strokeWidth = 6.6f
         linePaint.color = ShaiPalette.clayMint
         linePaint.alpha = (255 * strength).toInt().coerceIn(0, 255)
         canvas.drawPath(clayGroove, linePaint)
         canvas.save()
-        canvas.translate(-1.3f, -1.5f)
+        canvas.translate(-1.2f, -1.4f)
         linePaint.strokeWidth = 2.4f
         linePaint.color = Color.WHITE
         linePaint.alpha = (120 * strength).toInt().coerceIn(0, 255)
         canvas.drawPath(clayGroove, linePaint)
+        canvas.restore()
         canvas.restore()
     }
 
@@ -421,7 +533,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
                 ShaiPalette.pencil, 1f,
                 (190 * (1f - clay * 1.9f).coerceAtLeast(0f)).toInt()
             )
-            Ink.KEY -> InkStyle(
+            Ink.LOCK -> InkStyle(
                 ShaiPalette.ink, 2.4f,
                 (255 * (1f - clay * 2.8f).coerceAtLeast(0f)).toInt()
             )

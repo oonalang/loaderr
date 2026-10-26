@@ -287,7 +287,7 @@ check((APP / 'res/font/space_grotesk.xml').is_file() and (APP / 'res/font/caveat
 check('@font/caveat' in BASE.read_text(), 'annotations use Caveat')
 check('patrick_hand' not in ''.join(p.read_text() for p in (APP / 'res/layout').glob('*.xml')),
       'handwriting is never used for form text')
-pre_auth_text = ['hero_caption', 'remember_title', 'remember_caption', 'sheet_note',
+pre_auth_text = ['hero_caption', 'remember_title', 'remember_caption',
                  'footer_text', 'license_heading']
 for view in pre_auth_text:
     node = by_id[view]
@@ -435,6 +435,35 @@ check('applyPill' in KOTLIN and 'clay_pill' in KOTLIN,
       'chips are restyled once per material, not per frame')
 about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
 about_layout = (APP / 'res/layout/activity_about.xml').read_text()
+
+# 2026-10-26 brief: the "Key required" badge is gone; the near-black version
+# row is gone from About; the padlock identity and the UI sound kit exist.
+layout_text_again = BASE.read_text()
+check('sheet_note' not in layout_text_again and 'sheet_note' not in KOTLIN,
+      'the Key required header note is fully removed')
+check('detail_version' not in about and 'detail_version' not in about_layout and
+      'App version' not in about,
+      'App version is removed from About, icon, label, value and row')
+sounds = (APP / 'kotlin/astral/ShaiSounds.kt').read_text()
+check('class ShaiSounds' in sounds and 'SoundPool' in sounds and
+      'R.raw.ui_tap' in sounds and 'R.raw.ui_success' in sounds and
+      'R.raw.ui_error' in sounds and 'R.raw.ui_ready' in sounds,
+      'the UI sound kit plays four bundled cues through SoundPool')
+check('RINGER_MODE_NORMAL' in sounds and 'KEY_UI_SOUNDS' in sounds,
+      'the sound kit respects silent mode and a persisted toggle')
+check(all(term not in sounds for term in ("setLooping", "LoopPoint")),
+      'no cue loops or runs as ambience')
+check('sound_toggle' in layout_text_again and 'sound_toggle' in KOTLIN and
+      'ui_sounds_enabled' in sounds,
+      'the persistent UI sounds toggle is wired to its preference')
+for raw in ('ui_tap.wav', 'ui_success.wav', 'ui_error.wav', 'ui_ready.wav'):
+    check((APP / 'res/raw' / raw).is_file(), f'{raw} ships with the app')
+check('Ink.LOCK' in visuals_illustration and 'arcTo' in visuals_illustration and
+      'rotate(-40f * strength' in visuals_illustration,
+      'the padlock is authored geometry whose shackle opens in clay')
+check('addCircle(256f, 134f' in visuals_illustration,
+      'the lock\'s keyhole stays carved in the mint body')
+
 check('ShaiPalette.clayBg' in about and 'ShaiType.display' in about,
       'the about sheet belongs to the clay system')
 check('about_art' in about_layout and 'about_details_card' in about_layout,

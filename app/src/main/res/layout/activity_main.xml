@@ -47,15 +47,6 @@
                     android:textColor="@color/sketch_ink"
                     android:textSize="27sp"
                     android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/sheet_note"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:letterSpacing="0.01"
-                    android:text="Key required"
-                    android:textColor="@color/sketch_pencil"
-                    android:textSize="16sp" />
             </LinearLayout>
 
             <!-- One illustration, inked straight onto the page, that becomes
@@ -608,6 +599,54 @@
                 android:layout_marginTop="6dp"
                 android:max="100"
                 android:visibility="gone" />
+
+            <!-- Persistent UI-sound preference. One row, both materials, no
+                 hidden screen: the app is fully understandable muted, so the
+                 toggle only changes the quiet cues. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/sound_toggle"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:button="@drawable/checkbox_sheet"
+                    android:buttonTint="@null"
+                    android:contentDescription="UI sounds"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="4dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/sound_title"
+                        android:labelFor="@id/sound_toggle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="UI sounds"
+                        android:textColor="@color/sketch_ink"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/sound_caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Quiet taps and short cues for buttons and results."
+                        android:textColor="@color/sketch_pencil"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- One quiet footer: the creator handle and one navigation control.
                  No second library action competes with the card above. -->

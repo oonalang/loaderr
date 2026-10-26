@@ -111,12 +111,23 @@ only object the highlighter touches.
 - the silhouette fills with matte pink clay (`clayPink` → `clayPinkDeep`
   diagonal gradient) with a clipped white rim light;
 - the face is re-authored for the medium — a front-facing plane inside the hood
-  at 55% raised-pink, because a filled *profile* reads as a mask at 184dp;
+  at 55% raised-pink, because a filled *profile* reads as a mask at 184dp — and
+  it is smiling where the paper face was worried;
 - features are carved grooves (`clayPinkDeep` + a white lower lip), not ink;
 - hatching, the ground line and both contour passes are drawn *out*, and a soft
   contact shadow takes the ground line's place;
-- the key inflates into a mint object: bow, straight stem, one tooth, plus its
-  own highlight and drop.
+- a pink mitt keeps holding the padlock's near edge, so the object never leaves
+  the hand the paper drew;
+- the padlock inflates into a mint object, and its shackle swings open, rotated
+  about its seated leg from the exact closed geometry the paper inked.
+
+The padlock, not the lady, is the story of the brief: on the sheet the lock is
+shut because nothing opens until a key is checked; once the key is verified the
+same lock — same position, same hand — hangs open. The paper's lignework for
+`Ink.LOCK` is the closed state; `drawClayForm` rotates it `-40° × strength`. The
+paper face is worried (lifted brow crease, flat closed eye, downturned mouth);
+the clay face is smiling; the cross-fade is carried by the same stagger that
+retires the contours.
 
 Hatching and contour leave before the form arrives (`clay × 3.1` for the
 silhouette, `× 2.6` for detail, form starting at `phase .34`). Without that
@@ -205,9 +216,11 @@ The illustration view takes the same `phase` value as every surface:
 
 - contours fade as the filled form arrives, in the same place on the page;
 - the pink clay of the crest is the highlighter's yellow *made solid*, and the
-  mint key is the one object the marker ever touched;
+  mint padlock is the one object the marker ever touched;
 - the paper's 24dp ruling lifts as the clay's lavender arrives, so the blueprint
   is visibly underneath the finished object rather than beside it;
+- the closed lock becomes the open one through a rotation, not a swap, and the
+  worried face becomes the smiling one through the same cross-fade;
 - the same wordmark, the same reading order, the same single action.
 
 ## Verification

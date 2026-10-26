@@ -80,10 +80,6 @@
                 <include
                     android:id="@+id/detail_username"
                     layout="@layout/item_about_detail" />
-
-                <include
-                    android:id="@+id/detail_version"
-                    layout="@layout/item_about_detail" />
             </LinearLayout>
 
             <!-- One action, one destination. The information row above the button
