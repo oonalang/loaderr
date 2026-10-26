@@ -71,12 +71,12 @@ class LoaderBackdropView @JvmOverloads constructor(
         paint.alpha = (46 * (1f - phase)).toInt()
         var gx = 24f * density
         while (gx < width) {
-            canvas.drawLine(gx, 0f, gx, height, paint)
+            canvas.drawLine(gx, 0f, gx, height.toFloat(), paint)
             gx += 24f * density
         }
         var gy = 24f * density
         while (gy < height) {
-            canvas.drawLine(0f, gy, width, gy, paint)
+            canvas.drawLine(0f, gy, width.toFloat(), gy, paint)
             gy += 24f * density
         }
         paint.style = Paint.Style.FILL

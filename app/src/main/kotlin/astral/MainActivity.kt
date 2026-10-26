@@ -16,6 +16,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.graphics.drawable.Animatable
 import android.net.Uri
 import android.util.Log
 import android.util.TypedValue
@@ -379,7 +380,7 @@ class MainActivity : AppCompatActivity() {
             .setDuration(200L)
             .setInterpolator(ShaiMotion.easeOut)
             .withEndAction {
-                (keyArrow.drawable as? android.graphics.drawable.Animatable)?.start()
+                (keyArrow.drawable as? Animatable)?.start()
             }
             .start()
     }
