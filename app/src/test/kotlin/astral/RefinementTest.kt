@@ -154,15 +154,14 @@ class RefinementTest {
         assertEquals("About uses the same finished keykeeper", 1f, art.phase, 0.001f)
         val back = dialog.findViewById<View>(R.id.about_back)
         assertTrue("back control keeps a 48dp target", back.height >= 48 * metrics.density - 1)
-        val credit = dialog.findViewById<TextView>(R.id.about_credit)
-        assertEquals(View.VISIBLE, credit.visibility)
-        assertEquals("Powered by @Shaiaintshyy", credit.text.toString())
-        assertTrue("the credit is part of the page, not a footer bar",
-            credit.background == null)
+        // The owner row carries the creator identity the credit line used to hold.
+        val owner = dialog.findViewById<TextView>(R.id.about_detail_value)
+        assertEquals(View.VISIBLE, owner.visibility)
+        assertEquals("@Shaiaintshyy", owner.text.toString())
         val labels = TextViewCollector(dialog.findViewById(R.id.about_details_card))
         assertTrue("version row is gone, not blank", labels.none { it.contains("version", ignoreCase = true) })
-        // Two real rows, each a muted label and its ink value: nothing else.
-        assertEquals("two real rows remain", 4, labels.size)
+        // One real row with a muted label and its ink value: nothing else.
+        assertEquals("one real row remains", 2, labels.size)
     }
 
     @Test

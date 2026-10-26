@@ -28,6 +28,8 @@ internal class SketchFieldDrawable(
     private val path = Path()
     private val fillRect = RectF()
     private var globalAlpha = 255
+    var errorProgress = 0f
+        set(value) { field = value.coerceIn(0f, 1f); invalidateSelf() }
 
     var phase: Float = 0f
         set(value) {
@@ -87,7 +89,7 @@ internal class SketchFieldDrawable(
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = (if (focused) 2.1f else 1.5f) * dp
         paint.color = withAlpha(
-            if (focused) ShaiPalette.ink else ShaiPalette.pencil,
+            ShaiPalette.blend(if (focused) ShaiPalette.ink else ShaiPalette.pencil, Color.rgb(161,32,66), errorProgress),
             (alpha * paperOnly).toInt()
         )
         buildOutline(left, top, right, bottom, dp, focused)

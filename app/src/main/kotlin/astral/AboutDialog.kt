@@ -31,7 +31,7 @@ internal class AboutDialog(
     private val sounds: ShaiSounds? = null
 ) : Dialog(context) {
 
-    private val phase: Float get() = if (signedIn) 1f else 0f
+    private val phase: Float get() = if (signedIn && LoaderPreferences(context).getTheme() != "notebook") 1f else 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -64,37 +64,14 @@ internal class AboutDialog(
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            view.setPadding(0, bars.top, 0, bars.bottom)
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
         ViewCompat.requestApplyInsets(scroll)
     }
 
     /** Same short press language as the main screen, adapted to a dialog. */
-    private fun installPress(view: View) {
-        view.setOnTouchListener { target, event ->
-            when (event.actionMasked) {
-                android.view.MotionEvent.ACTION_DOWN -> {
-                    target.animate().cancel()
-                    if (ValueAnimator.areAnimatorsEnabled()) {
-                        target.animate().scaleX(.97f).scaleY(.97f)
-                            .setDuration(ShaiMotion.PRESS_IN_MS)
-                            .setInterpolator(ShaiMotion.easeOut)
-                            .start()
-                    }
-                }
-                android.view.MotionEvent.ACTION_UP,
-                android.view.MotionEvent.ACTION_CANCEL -> {
-                    target.animate().cancel()
-                    target.animate().scaleX(1f).scaleY(1f)
-                        .setDuration(ShaiMotion.PRESS_OUT_MS)
-                        .setInterpolator(ShaiMotion.easeOut)
-                        .start()
-                }
-            }
-            false
-        }
-    }
+    private fun installPress(view: View) = InteractionMotion.press(view)
 
     private fun playbackEntrance() {
         findViewById<View>(R.id.about_scroll).scrollTo(0, 0)
@@ -105,12 +82,12 @@ internal class AboutDialog(
             R.id.about_title,
             R.id.about_art,
             R.id.about_details_card,
-            R.id.about_telegram,
-            R.id.about_credit
+            R.id.about_telegram
         )
         ids.forEachIndexed { index, id ->
             val view = findViewById<View>(id)
             view.animate().cancel()
+            InteractionMotion.rest(view, 1f)
             view.alpha = 0f
             view.translationY = 10f * density
             view.animate()
@@ -129,12 +106,12 @@ internal class AboutDialog(
             dialogWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             dialogWindow.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-            val background = if (signedIn) ShaiPalette.clayBg else ShaiPalette.paper
+            val background = if (phase > .5f) ShaiPalette.clayBg else ShaiPalette.paper
             dialogWindow.statusBarColor = background
             dialogWindow.navigationBarColor = background
             @Suppress("DEPRECATION")
             dialogWindow.decorView.systemUiVisibility =
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                if (phase > .5f && ShaiPalette.night > .5f) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
             dialogWindow.setLayout(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT
@@ -143,13 +120,12 @@ internal class AboutDialog(
     }
 
     private fun bindDetails() {
-        val iconTint = if (signedIn) ShaiPalette.clayMuted else ShaiPalette.pencil
+        val iconTint = if (phase > .5f) ShaiPalette.clayMuted else ShaiPalette.pencil
         // The version row is intentionally not listed: a loader whose catalog
         // can force an update dialog never shows a number readers could mistake
         // for the currently supported one.
         val details = listOf(
-            Detail(R.id.detail_developer, R.drawable.ic_user, "Application", "SHAI LOADER"),
-            Detail(R.id.detail_username, R.drawable.ic_about, "Username", "@Shaiaintshyy")
+            Detail(R.id.detail_username, R.drawable.ic_about, "Owner", "@Shaiaintshyy")
         )
 
         details.forEach { detail ->
@@ -164,7 +140,7 @@ internal class AboutDialog(
     }
 
     private fun applyPhaseStyle() {
-        val clay = signedIn
+        val clay = phase > .5f
         val ink = if (clay) ShaiPalette.clayInk else ShaiPalette.ink
         val muted = if (clay) ShaiPalette.clayMuted else ShaiPalette.pencil
         val background = if (clay) ShaiPalette.clayBg else ShaiPalette.paper
@@ -177,6 +153,15 @@ internal class AboutDialog(
 
         findViewById<ShaiIllustrationView>(R.id.about_art).apply {
             this.phase = this@AboutDialog.phase
+            portrait = true
+            isClickable = true; isFocusable = true
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            contentDescription = "SHAI, tap to giggle. Buy now sign opens the SHAI store."
+            setOnClickListener { react(ShaiIllustrationView.Reaction.GIGGLE); sounds?.play(ShaiSounds.Cue.GIGGLE) }
+            onSignClick = {
+                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shaistore.vercel.app"))) }
+                    .onFailure { Toast.makeText(context, "Unable to open the store", Toast.LENGTH_SHORT).show() }
+            }
             completeReveal()
             rotation = if (clay) 0f else -1.5f
         }
@@ -194,7 +179,7 @@ internal class AboutDialog(
             setTextColor(ink)
             letterSpacing = if (clay) -0.008f else -0.015f
         }
-        val detailRows = intArrayOf(R.id.detail_developer, R.id.detail_username)
+        val detailRows = intArrayOf(R.id.detail_username)
         detailRows.forEach { id ->
             val row = findViewById<View>(id)
             row.findViewById<TextView>(R.id.about_detail_label).apply {
@@ -214,10 +199,7 @@ internal class AboutDialog(
             typeface = body
             setTextColor(muted)
         }
-        findViewById<TextView>(R.id.about_credit).apply {
-            typeface = body
-            setTextColor(muted)
-        }
+
     }
 
     private fun surface(id: Int, kind: PhaseSurfaceDrawable.Kind, phase: Float) {
@@ -234,6 +216,22 @@ internal class AboutDialog(
             .onFailure {
                 Toast.makeText(context, "Unable to open Telegram", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private var closing = false
+    override fun dismiss() {
+        if (closing) return
+        closing = true
+        val page = findViewById<View>(R.id.about_content)
+        page.animate().cancel()
+        if (!ValueAnimator.areAnimatorsEnabled()) { super.dismiss(); return }
+        page.animate().alpha(0f).translationY(6f * context.resources.displayMetrics.density)
+            .setStartDelay(0).setDuration(ShaiMotion.PRESS_OUT_MS).withEndAction { super.dismiss() }.start()
+    }
+    override fun onStop() {
+        findViewById<ShaiIllustrationView>(R.id.about_art).settleReaction()
+        InteractionMotion.cancelTree(findViewById(R.id.about_content))
+        super.onStop()
     }
 
     private data class Detail(

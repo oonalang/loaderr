@@ -34,18 +34,21 @@ internal object ShaiPalette {
     /** Paper emphasis is ink weight, not a sixth hue; clay turns it pink. */
     val draft = ink
 
+    // Midnight changes only the clay material; authentication remains separate.
+    var night: Float = 0f
+    private fun tone(day: Int, dark: Int): Int = blend(day, dark, night)
     // Clay. Same identity, finished material.
-    val clayBg = Color.rgb(244, 238, 255)
-    val clayInk = Color.rgb(43, 35, 64)
-    val clayMuted = Color.rgb(95, 83, 111)
-    val clayRaised = Color.rgb(250, 247, 255)
-    val claySunken = Color.rgb(233, 225, 247)
-    val clayPink = Color.rgb(255, 184, 217)
-    val clayPinkDeep = Color.rgb(238, 152, 197)
-    val clayMint = Color.rgb(168, 230, 207)
-    val clayMintDeep = Color.rgb(136, 211, 184)
-    val clayPeri = Color.rgb(181, 199, 255)
-    val clayPeriDeep = Color.rgb(155, 176, 245)
+    val clayBg get() = tone(Color.rgb(244, 238, 255), Color.rgb(28, 25, 41))
+    val clayInk get() = tone(Color.rgb(43, 35, 64), Color.rgb(244, 236, 255))
+    val clayMuted get() = tone(Color.rgb(95, 83, 111), Color.rgb(195, 184, 213))
+    val clayRaised get() = tone(Color.rgb(250, 247, 255), Color.rgb(48, 42, 65))
+    val claySunken get() = tone(Color.rgb(233, 225, 247), Color.rgb(35, 30, 49))
+    val clayPink get() = tone(Color.rgb(255, 184, 217), Color.rgb(107, 55, 84))
+    val clayPinkDeep get() = tone(Color.rgb(238, 152, 197), Color.rgb(83, 42, 68))
+    val clayMint get() = tone(Color.rgb(168, 230, 207), Color.rgb(42, 88, 76))
+    val clayMintDeep get() = tone(Color.rgb(136, 211, 184), Color.rgb(30, 67, 57))
+    val clayPeri get() = tone(Color.rgb(181, 199, 255), Color.rgb(67, 80, 126))
+    val clayPeriDeep get() = tone(Color.rgb(155, 176, 245), Color.rgb(45, 56, 96))
 
     fun blend(@ColorInt from: Int, @ColorInt to: Int, fraction: Float): Int {
         val t = fraction.coerceIn(0f, 1f)
@@ -132,6 +135,7 @@ internal class PhaseSurfaceDrawable(
     private var bevelHeight = -1f
     private var bevelRadius = -1f
     private var bevelSunken: Boolean? = null
+    private var bevelNight = -1f
 
     var phase: Float = 0f
         set(value) {
@@ -262,7 +266,7 @@ internal class PhaseSurfaceDrawable(
         for (i in SHADOW_RINGS downTo 1) {
             val t = i.toFloat() / SHADOW_RINGS
             val grow = reach * t
-            paint.color = a(ShaiPalette.clayInk, strength * (1f - t) * (1f - t) * .95f)
+            paint.color = a(Color.rgb(43, 35, 64), strength * (1f - t) * (1f - t) * .95f)
             shadowRect.set(
                 rect.left - grow, rect.top - grow + lift,
                 rect.right + grow, rect.bottom + grow + lift
@@ -279,7 +283,7 @@ internal class PhaseSurfaceDrawable(
         canvas: Canvas, rect: RectF, radius: Float, dp: Float, clay: Float, sunken: Boolean
     ) {
         if (bevel == null || bevelWidth != rect.width() || bevelHeight != rect.height() ||
-            bevelRadius != radius || bevelSunken != sunken
+            bevelRadius != radius || bevelSunken != sunken || bevelNight != ShaiPalette.night
         ) {
             val light = if (sunken) ShaiPalette.clayInk else Color.WHITE
             val shade = if (sunken) Color.WHITE else ShaiPalette.clayInk
@@ -298,6 +302,7 @@ internal class PhaseSurfaceDrawable(
             bevelHeight = rect.height()
             bevelRadius = radius
             bevelSunken = sunken
+            bevelNight = ShaiPalette.night
         }
         bevelPaint.shader = bevel
         bevelPaint.strokeWidth = (if (sunken) 3f else 4f) * dp

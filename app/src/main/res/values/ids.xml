@@ -3,4 +3,7 @@
     <!-- Marks which material a status chip was last styled for, so the phase
          blend does not rebuild its background on every frame. -->
     <item name="clay_pill" type="id" />
+    <!-- Resting values ([alpha, tx, ty]) recorded when a view's animation starts,
+         so an interrupted animation settles to its destination. -->
+    <item name="anim_rest" type="id" />
 </resources>

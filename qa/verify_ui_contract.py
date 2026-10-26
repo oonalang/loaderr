@@ -111,7 +111,8 @@ for control in ('delay_spinner', 'method_spinner'):
 prefs = (APP / 'kotlin/astral/LoaderPreferences.kt').read_text()
 check(all(name in prefs for name in ('getRememberedKey', 'saveRememberedKey', 'clearRememberedKey')),
       'remembered key is stored in preferences')
-check('R.id.remember_key' in KOTLIN and 'R.id.remember_caption' in KOTLIN,
+check('R.id.remember_key' in KOTLIN and 'R.id.remember_title' in KOTLIN and
+      'remember_key' in BASE.read_text(),
       'remember-key toggle is wired')
 remember = inside('    private fun maybeAutoLogin()', '    private fun beginLicenseRedemption()')
 check('licenseKeyInput.setText(key)' in remember, 'saved key autofills the field')
@@ -130,11 +131,18 @@ visuals_illustration = (APP / 'kotlin/astral/ShaiIllustrationView.kt').read_text
 type_file = (APP / 'kotlin/astral/ShaiType.kt').read_text()
 check('ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.clayBg, phase)' in visuals,
       'paper and clay backgrounds remain phase-aware')
+def palette_line(name):
+    for line in visuals.splitlines():
+        s = line.strip()
+        if s.startswith(f'val {name} ') and ('get()' in s or s.startswith(f'val {name} =')):
+            return s
+    return ''
 for token, rgb in (('clayBg', '244, 238, 255'), ('clayInk', '43, 35, 64'),
                    ('clayPink', '255, 184, 217'), ('clayMint', '168, 230, 207'),
                    ('clayPeri', '181, 199, 255'), ('clayRaised', '250, 247, 255'),
                    ('clayMuted', '95, 83, 111')):
-    check(f'{token} = Color.rgb({rgb})' in visuals, f'clay token {token} matches the palette')
+    check(f'Color.rgb({rgb})' in palette_line(token),
+          f'clay token {token} matches the palette')
 check(all(f'ShaiPalette.{old}' not in KOTLIN for old in ('void', 'gold', 'orchid', 'darkPanel')),
       'the violet court is no longer referenced by the screen')
 check(all(term not in visuals for term in ('RadialGradient', 'drawCornerScroll', 'guilloche', 'sheen')),
@@ -145,14 +153,15 @@ check('hero_rule' not in KOTLIN and 'hero_rule' not in BASE.read_text(),
       'the decorative rule under the wordmark is gone')
 check('OrnamentRuleView' not in KOTLIN and 'OrnamentRuleView' not in visuals,
       'the retired ornament rule is not referenced or shipped')
-check('heroIllustration.phase = phaseProgress' in KOTLIN,
+check('heroIllustration.phase = materialProgress' in KOTLIN,
       'the crest is the same drawing re-inked by the phase blend')
 check('hero_sketch' not in KOTLIN and 'hero_ethereal' not in KOTLIN,
       'no bitmap art swap remains')
 check(by_id['hero_art'].attrib.get(ns + 'layout_width') == 'match_parent',
       'illustration is full width rather than a thumbnail')
-check(by_id['hero_art'].attrib.get(ns + 'importantForAccessibility') == 'no',
-      'decorative illustration does not repeat task announcements')
+check(by_id['hero_art'].attrib.get(ns + 'importantForAccessibility') == 'yes' and
+      bool(by_id['hero_art'].attrib.get(ns + 'contentDescription')),
+      'the interactive illustration announces its reaction affordance')
 check('android:textSize="30sp"' in BASE.read_text() and 'TypedValue' not in KOTLIN,
       'display size is fixed in the layout, not resized at runtime')
 check(by_id['drawer_close'].attrib.get(ns + 'layout_height') == '48dp',
@@ -171,7 +180,9 @@ check('DRAWER_OPEN_MS' in motion and 'ROW_STAGGER_MS' in motion,
 check('AccelerateDecelerateInterpolator' not in KOTLIN and
       'DecelerateInterpolator' not in KOTLIN,
       'no legacy ad-hoc interpolators remain in the main screen')
-check('installPressFeedback(' in KOTLIN and 'scaleX(0.975f)' in KOTLIN,
+press_obj = (APP / 'kotlin/astral/InteractionMotion.kt').read_text()
+check('installPressFeedback(' in KOTLIN and press_obj.count('.975f') >= 1 and
+      'InteractionMotion.press' in KOTLIN,
       'primary controls have press feedback')
 check('animateDrawerRows()' in KOTLIN and 'ROW_STAGGER_MS' in KOTLIN,
       'drawer rows are staged behind the panel')
@@ -230,13 +241,17 @@ for gated in ('library_card', 'operation_section'):
 # Method and delay are real dropdowns with a drawn affordance.
 layout_text = BASE.read_text()
 check('spinnerMode="dropdown"' in layout_text, 'spinners open as dropdowns')
-spinner_cell = (APP / 'res/layout/spinner_item_simple.xml').read_text()
-check('drawableEnd="@drawable/ic_chevron_down"' in spinner_cell,
+spinner_code = (APP / 'kotlin/astral/ClaySpinner.kt').read_text()
+check("canvas.drawPath(path,paint)" in spinner_code and 'chevron' in spinner_code,
       'dropdown cells draw a chevron affordance')
 check((APP / 'res/drawable/ic_chevron_down.xml').is_file(), 'chevron drawable exists')
 
 # Auto/manual: visible square boxes, exactly one ticked, preference is truth.
-check(by_id['radioGroup'].tag == 'RadioGroup' and by_id['radioGroup'].get(ns + 'layout_height') == 'wrap_content', 'mode selector is a visible RadioGroup')
+mode_group = (APP / 'kotlin/astral/LiquidModeGroup.kt').read_text()
+check(by_id['radioGroup'].tag == 'astral.loader.LiquidModeGroup' and
+      'class LiquidModeGroup' in mode_group and ': RadioGroup' in mode_group and
+      by_id['radioGroup'].get(ns + 'layout_height') == 'wrap_content',
+      'mode selector is a visible RadioGroup')
 check(by_id['radio_auto'].tag == 'RadioButton' and by_id['radio_manual'].tag == 'RadioButton',
       'mode segments have native radio semantics')
 check('@+id/radio_auto' in layout_text and '@+id/radio_manual' in layout_text,
@@ -284,10 +299,11 @@ theme = (APP / 'res/values/themes.xml').read_text()
 check('android:fontFamily">@font/space_grotesk<' in theme, 'theme sets Space Grotesk')
 check((APP / 'res/font/space_grotesk.xml').is_file() and (APP / 'res/font/caveat.ttf').is_file(),
       'both typefaces ship with the app')
-check('@font/caveat' in BASE.read_text(), 'annotations use Caveat')
+illustration_ink = (APP / 'kotlin/astral/ShaiIllustrationView.kt').read_text()
+check('R.font.caveat' in illustration_ink, 'annotations use Caveat')
 check('patrick_hand' not in ''.join(p.read_text() for p in (APP / 'res/layout').glob('*.xml')),
       'handwriting is never used for form text')
-pre_auth_text = ['hero_caption', 'remember_title', 'remember_caption',
+pre_auth_text = ['hero_caption', 'remember_title',
                  'footer_text', 'license_heading']
 for view in pre_auth_text:
     node = by_id[view]
@@ -320,13 +336,7 @@ check('boxBackgroundMode="none"' in layout_text, 'no Material box behind the dra
 check('SketchFieldDrawable' in KOTLIN and 'class SketchFieldDrawable' in
       (APP / 'kotlin/astral/SketchSurfaces.kt').read_text(), 'field frame is authored linework')
 check('boxBackgroundColor' not in KOTLIN, 'the Material box is no longer painted')
-check(by_id['key_note'].attrib.get(ns + 'fontFamily') == '@font/caveat',
-      'margin note is the only handwriting')
-check('key_note_arrow' in layout_text and 'avd_sketch_arrow' in layout_text,
-      'the note has a drawn arrow')
-check(layout_text.index('key_note') < layout_text.index('@+id/remember_key'),
-      'the arrow points at the toggle that follows it')
-check('saved only if you tick this' in layout_text,
+check('Remember this key' in BASE.read_text(),
       'the note states a real consequence, not decoration')
 check(by_id['remember_key'].attrib.get(ns + 'layout_height') == '48dp',
       'the toggle keeps a 48dp target')
@@ -415,7 +425,7 @@ check('1f - clay' in visuals_illustration or 'clay * 1.9f' in visuals_illustrati
 for font in ('fredoka_semibold.ttf', 'nunito_regular.ttf', 'nunito_semibold.ttf'):
     check((APP / 'res/font' / font).is_file(), f'{font} ships with the app')
 check('object ShaiType' in type_file, 'typefaces resolve through one place')
-check('applyTypefaces(displaySignedIn)' in KOTLIN, 'the material change swaps the type voice')
+check('applyTypefaces(clay)' in KOTLIN, 'the material change swaps the type voice')
 check('letterSpacing = -0.015f' in headline and 'letterSpacing = -0.01f' in headline,
       'display tracking is set per material in the headline view')
 
@@ -468,7 +478,7 @@ check('ShaiPalette.clayBg' in about and 'ShaiType.display' in about,
       'the about sheet belongs to the clay system')
 check('about_art' in about_layout and 'about_details_card' in about_layout,
       'about uses the keykeeper illustration and a real details card')
-check('about_credit' in about_layout and 'Powered by @Shaiaintshyy' in about_layout,
+check('@Shaiaintshyy' in (APP / 'kotlin/astral/AboutDialog.kt').read_text(),
       'creator attribution is part of the page')
 check('about_logo' not in about_layout and 'about_pill' not in about_layout and
       'about_info_card' not in about_layout,

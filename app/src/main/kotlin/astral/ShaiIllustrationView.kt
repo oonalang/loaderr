@@ -47,6 +47,64 @@ class ShaiIllustrationView @JvmOverloads constructor(
     private val washRect = RectF()
     private val formRect = RectF()
     private var animator: ValueAnimator? = null
+    enum class Reaction { CRY, HAPPY, GIGGLE }
+    var portrait = false
+        set(value) { field = value; invalidate() }
+    var onSignClick: (() -> Unit)? = null
+    private var reaction = Reaction.HAPPY
+    private var reactionProgress = 0f
+    private var reactionAnimator: ValueAnimator? = null
+    private var touchPart = 0
+    private val signRect = RectF(8f, 92f, 91f, 142f)
+    private val portraitFace = Path().apply {
+        moveTo(142f, 46f); cubicTo(152f, 53f, 165f, 55f, 178f, 56f)
+        lineTo(177f, 89f); cubicTo(175f, 110f, 161f, 120f, 150f, 114f)
+        cubicTo(135f, 113f, 124f, 100f, 124f, 79f)
+        cubicTo(132f, 68f, 139f, 54f, 142f, 46f); close()
+    }
+    fun react(kind: Reaction) {
+        reactionAnimator?.cancel(); reaction = kind
+        if (!ValueAnimator.areAnimatorsEnabled()) { reactionProgress = 0f; invalidate(); return }
+        reactionAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = InteractionMotion.REACTION_MS
+            addUpdateListener { reactionProgress = it.animatedValue as Float; invalidate() }
+            start()
+        }
+    }
+    fun settleReaction() { reactionAnimator?.cancel(); reactionAnimator = null; reactionProgress = 0f; invalidate() }
+    private fun partAt(x: Float, y: Float): Int {
+        val scale = minOf(width / STUDY_WIDTH, height / STUDY_HEIGHT)
+        if (scale <= 0f) return 0
+        val px = (x - (width - STUDY_WIDTH * scale) * .5f) / scale
+        val py = (y - (height - STUDY_HEIGHT * scale) * .5f) / scale
+        return if (portrait && signRect.contains(px, py)) 2 else if (px in 80f..235f && py in 15f..165f) 1 else 0
+    }
+    override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
+        if (!isClickable) return super.onTouchEvent(event)
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> { touchPart = partAt(event.x,event.y); return touchPart != 0 }
+            android.view.MotionEvent.ACTION_UP -> {
+                val part = partAt(event.x,event.y)
+                if (part == touchPart) { if (part == 2) onSignClick?.invoke() else if (part == 1) performClick() }
+                touchPart = 0; return true
+            }
+            android.view.MotionEvent.ACTION_CANCEL -> { touchPart = 0; return true }
+        }
+        return true
+    }
+    override fun performClick(): Boolean { super.performClick(); return true }
+    override fun onInitializeAccessibilityNodeInfo(info: android.view.accessibility.AccessibilityNodeInfo) {
+        super.onInitializeAccessibilityNodeInfo(info)
+        if (portrait) info.addAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.R.id.button1, "Buy now! Open SHAI store"))
+    }
+    override fun performAccessibilityAction(action: Int, arguments: android.os.Bundle?): Boolean {
+        if (portrait && action == android.R.id.button1) { onSignClick?.invoke(); return true }
+        return super.performAccessibilityAction(action, arguments)
+    }
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility != VISIBLE) settleReaction()
+    }
 
     /** The silhouette and the face opening, filled only once clay arrives. */
     private val cloak = Path()
@@ -234,6 +292,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         animator?.cancel()
         animator = null
+        settleReaction()
         super.onDetachedFromWindow()
     }
 
@@ -262,6 +321,13 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.scale(scale, scale)
 
         val clay = phase
+        val expression = kotlin.math.sin(reactionProgress * Math.PI).toFloat().coerceAtLeast(0f)
+        canvas.scale(1f + .025f * expression, 1f - .035f * expression, 150f, 158f)
+        if (portrait) {
+            drawPortrait(canvas, clay, expression)
+            canvas.restore()
+            return
+        }
         // The pen leaves before the clay sets, so the two never overlap as a
         // double exposure. This is the whole trick of the handover.
         val form = (((clay - .34f) / .66f).coerceIn(0f, 1f))
@@ -305,7 +371,54 @@ class ShaiIllustrationView @JvmOverloads constructor(
             }
         }
         linePaint.alpha = 255
+        drawReaction(canvas, expression, false)
         canvas.restore()
+    }
+
+    private fun drawReaction(canvas: Canvas, amount: Float, front: Boolean) {
+        if (amount <= .001f) return
+        val eyeX = if (front) 138f else 157f
+        fillPaint.shader = null
+        fillPaint.color = if (reaction == Reaction.CRY) Color.rgb(126, 169, 211) else ShaiPalette.clayPinkDeep
+        fillPaint.alpha = (180 * amount).toInt()
+        if (reaction == Reaction.CRY) {
+            canvas.drawOval(eyeX-2f, 82f+reactionProgress*12f, eyeX+2f, 89f+reactionProgress*12f, fillPaint)
+        } else {
+            canvas.drawOval(eyeX-8f, 86f, eyeX+1f, 90f, fillPaint)
+            linePaint.color = if (phase>.5f) ShaiPalette.clayPinkDeep else ShaiPalette.ink
+            linePaint.alpha=(255*amount).toInt();linePaint.strokeWidth=2.5f
+            clayGroove.reset();clayGroove.moveTo(157f,98f);clayGroove.quadTo(164f,106f+3*amount,172f,98f)
+            if (!front) canvas.drawPath(clayGroove,linePaint)
+        }
+        fillPaint.alpha=255;linePaint.alpha=255
+    }
+
+    private fun drawPortrait(canvas: Canvas, clay: Float, expression: Float) {
+        val ink = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayPinkDeep, clay)
+        fillPaint.shader=null;fillPaint.alpha=255;fillPaint.style=Paint.Style.FILL
+        if (clay>.01f) {
+            fillPaint.color=ShaiPalette.clayPink;canvas.drawPath(cloak,fillPaint)
+            fillPaint.color=ShaiPalette.blend(ShaiPalette.clayPink,ShaiPalette.clayRaised,.65f)
+            canvas.drawPath(portraitFace,fillPaint)
+        }
+        linePaint.style=Paint.Style.STROKE;linePaint.color=ink;linePaint.alpha=255;linePaint.strokeWidth=if(clay>.5f) 2.5f else 1.5f
+        canvas.drawPath(cloak,linePaint);canvas.drawPath(portraitFace,linePaint)
+        clayGroove.reset()
+        clayGroove.moveTo(103f,95f);clayGroove.cubicTo(96f,66f,111f,39f,134f,32f);clayGroove.cubicTo(158f,26f,183f,36f,189f,57f)
+        clayGroove.moveTo(132f,77f);clayGroove.quadTo(138f,72f-expression*2,144f,77f)
+        clayGroove.moveTo(158f,77f);clayGroove.quadTo(164f,72f-expression*2,170f,77f)
+        clayGroove.moveTo(150f,84f);clayGroove.quadTo(155f,91f,149f,92f)
+        clayGroove.moveTo(141f,101f);clayGroove.quadTo(151f,109f+expression*3,162f,101f)
+        canvas.drawPath(clayGroove,linePaint)
+        // Hand-drawn sign: real destination, not decoration. Same study-space geometry for hit testing.
+        fillPaint.color=ShaiPalette.paper;canvas.drawRoundRect(signRect,3f,3f,fillPaint)
+        linePaint.color=ShaiPalette.ink;linePaint.strokeWidth=1.5f
+        canvas.drawRoundRect(signRect,3f,3f,linePaint)
+        canvas.drawLine(49f,142f,49f,161f,linePaint)
+        canvas.drawLine(90f,124f,111f,132f,linePaint)
+        fillPaint.color=ShaiPalette.ink;fillPaint.typeface=androidx.core.content.res.ResourcesCompat.getFont(context,R.font.caveat)
+        fillPaint.textSize=23f;canvas.drawText("Buy now!",13f,124f,fillPaint)
+        drawReaction(canvas,expression,true)
     }
 
     /** The paper drawing, sculpted: filled silhouette, cream face, clay padlock. */
@@ -352,25 +465,30 @@ class ShaiIllustrationView @JvmOverloads constructor(
         fillPaint.style = Paint.Style.FILL
         fillPaint.color = ShaiPalette.blend(ShaiPalette.clayPink, ShaiPalette.clayRaised, .55f)
         fillPaint.alpha = (255 * strength).toInt().coerceIn(0, 255)
-        canvas.drawOval(FACE_OVAL, fillPaint)
+        canvas.drawPath(face, fillPaint)
         fillPaint.alpha = 255
 
         // The hood's edge sits *in front of* the face, so it casts into it.
         canvas.save()
-        canvas.clipPath(clayFace)
+        canvas.clipPath(face)
         linePaint.style = Paint.Style.STROKE
         linePaint.strokeWidth = 7f
         linePaint.color = ShaiPalette.clayPinkDeep
         linePaint.alpha = (165 * strength).toInt().coerceIn(0, 255)
-        canvas.drawOval(FACE_OVAL, linePaint)
+        canvas.drawPath(face, linePaint)
         canvas.restore()
 
         // Carved features: a groove, then the light that catches its lower lip.
         clayGroove.reset()
-        clayGroove.moveTo(133f, 79f); clayGroove.quadTo(139f, 73f, 145f, 79f)
-        clayGroove.moveTo(156f, 78f); clayGroove.quadTo(162f, 72f, 168f, 78f)
-        clayGroove.moveTo(150f, 84f); clayGroove.quadTo(153f, 91f, 147f, 92f)
-        clayGroove.moveTo(141f, 100f); clayGroove.quadTo(150f, 107f, 159f, 100f)
+        // The very same eye, brow, nose and mouth landmarks as the notebook profile.
+        clayGroove.moveTo(149f, 71f); clayGroove.quadTo(157f, 65f, 164f, 70f)
+        clayGroove.moveTo(151f, 78f); clayGroove.quadTo(157f, 75.5f, 162f, 78f)
+        clayGroove.moveTo(174f, 73f); clayGroove.lineTo(179f, 75f)
+        clayGroove.moveTo(157f, 98f); clayGroove.quadTo(164f, 105f, 172f, 98f)
+        clayGroove.moveTo(118f, 79f); clayGroove.quadTo(125f, 76f, 122f, 86f)
+        // Hair parting follows the notebook's swept silhouette.
+        clayGroove.moveTo(104f, 100f); clayGroove.cubicTo(91f, 80f, 105f, 40f, 133f, 32f)
+        clayGroove.cubicTo(159f, 23f, 184f, 35f, 189f, 57f)
         linePaint.style = Paint.Style.STROKE
         linePaint.strokeWidth = 3.2f
         linePaint.color = ShaiPalette.clayPinkDeep

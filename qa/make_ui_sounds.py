@@ -48,7 +48,7 @@ def peak_norm(samples, peak):
 
 def write_wav(path, samples):
     peak = max(1e-9, max(abs(s) for s in samples))
-    norm = 0.9 / peak
+    norm = min(1.0, 0.32 / peak)
     data = b"".join(struct.pack("<h", int(max(-1.0, min(1.0, s * norm)) * 32767)) for s in samples)
     with open(path, "wb") as f:
         f.write(b"RIFF")
@@ -87,3 +87,10 @@ for i, freq in enumerate((554.4, 659.3, 880.0)):
 write_wav(RAW / "ui_ready.wav", peak_norm(ready, 0.2))
 
 print("wrote:", [p.name for p in sorted(RAW.glob("ui_*.wav"))])
+
+# Short, self-authored character vocal gestures (synthesis, no sampled voice).
+for name, pitches in (("cry", (520, 440, 380)), ("happy", (520, 660, 780)), ("giggle", (720, 800, 690, 780))):
+    cue = []
+    for i, pitch in enumerate(pitches):
+        mixinto(cue, note(pitch, 0.16, 0.27, attack=0.012, decay=0.07, tone=0.7, bend=0.96), i * 0.12)
+    write_wav(RAW / ("ui_" + name + ".wav"), peak_norm(cue, 0.30))
