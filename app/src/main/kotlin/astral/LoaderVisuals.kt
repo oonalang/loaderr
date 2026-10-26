@@ -12,18 +12,18 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorInt
-import kotlin.random.Random
 
 /** Shared paper and night-ink tokens for the illustrated notebook. */
 internal object ShaiPalette {
-    // Concept sheet
-    val paper = Color.rgb(247, 242, 231)
-    val paperCard = Color.rgb(253, 249, 240)
-    val ink = Color.rgb(33, 28, 36)
-    val pencil = Color.rgb(111, 98, 112)
-    val draft = Color.rgb(106, 74, 140)
-    val gridBlue = Color.rgb(126, 156, 196)
-    val highlight = Color.rgb(245, 212, 66)
+    // Concept sheet. Five roles only: paper, grid, ink, pencil, highlighter.
+    val paper = Color.rgb(253, 252, 247)
+    val paperCard = Color.rgb(255, 255, 255)
+    val ink = Color.rgb(31, 41, 55)
+    val pencil = Color.rgb(119, 123, 132)
+    val gridBlue = Color.rgb(201, 218, 248)
+    val highlight = Color.rgb(255, 241, 118)
+    /** Paper emphasis is ink weight, not a sixth hue; the court turns it gold. */
+    val draft = ink
 
     // Violet court
     val void = Color.rgb(10, 6, 16)
@@ -56,41 +56,37 @@ class LoaderBackdropView @JvmOverloads constructor(
 ) : View(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val density = resources.displayMetrics.density
-    private val seed = Random(1835)
-    private val grain = List(120) { seed.nextFloat() to seed.nextFloat() }
     var phase: Float = 0f
         set(value) { field = value.coerceIn(0f, 1f); invalidate() }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas.drawColor(ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.void, phase))
-        // Faint blue graph ruling on the concept sheet; it lifts as the court takes over.
+        // One geometry pass: 24dp ruling, drawn rather than tiled from a bitmap.
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 0.75f * density
+        paint.strokeWidth = GRID_STROKE_DP * density
         paint.color = ShaiPalette.gridBlue
-        paint.alpha = (46 * (1f - phase)).toInt()
-        var gx = 24f * density
-        while (gx < width) {
-            canvas.drawLine(gx, 0f, gx, height.toFloat(), paint)
-            gx += 24f * density
-        }
-        var gy = 24f * density
-        while (gy < height) {
-            canvas.drawLine(0f, gy, width.toFloat(), gy, paint)
-            gy += 24f * density
-        }
-        paint.style = Paint.Style.FILL
-        paint.color = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phase)
-        paint.alpha = 24
-        grain.forEach { (x, y) -> canvas.drawCircle(x * width, y * height, .45f * density, paint) }
-        paint.alpha = 65
-        paint.strokeWidth = .7f * density
-        var y = 24f * density
-        while (y < height) {
-            canvas.drawLine(5f * density, y, 10f * density, y, paint)
-            y += 24f * density
+        paint.alpha = ((GRID_ALPHA * (1f - phase)).toInt()).coerceIn(0, 255)
+        if (paint.alpha > 0) {
+            val step = GRID_STEP_DP * density
+            var gx = step
+            while (gx < width) {
+                canvas.drawLine(gx, 0f, gx, height.toFloat(), paint)
+                gx += step
+            }
+            var gy = step
+            while (gy < height) {
+                canvas.drawLine(0f, gy, width.toFloat(), gy, paint)
+                gy += step
+            }
         }
         paint.alpha = 255
+    }
+
+    private companion object {
+        const val GRID_STEP_DP = 24f
+        const val GRID_STROKE_DP = 0.75f
+        const val GRID_ALPHA = 132f
     }
 }
 

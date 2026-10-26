@@ -1,166 +1,192 @@
-# SHAI Loader · Concept sheet → Violet court
+# SHAI Loader — opening and key page
 
-## Direction and acceptance
+Pass: Conceptual Sketch, second iteration (2026-10-26).
+Scope: the cover (`SplashActivity`) and the unauthenticated page, plus the
+continuity of that drawing into the signed-in court. Licensing, catalog,
+selection, preparation and injection behaviour are unchanged.
 
-- Subject: Android library-access loader for panel-issued game keys.
-- Audience: phone users redeeming a key, then preparing and injecting one library.
-- Job: redeem → choose a library explicitly → prepare → inject.
-- Mode: upgrade, retaining the Kotlin / Android XML / Gradle stack and every view ID.
-- Before authentication: a **concept sheet**. Ivory paper, graphite contour
-  drawing, drafting margin, construction circle, annotation arrow and a violet
-  pencil. The sheet includes a ghosted frame of the signed-in layout, so the
-  first screen is literally a drawing of the second.
-- After authentication: **violet court maximalism**. The sketch is built out:
-  aubergine field, gilded double frame, girih-like guilloche rings, mirrored
-  corner scrolls, star dust, serif display type, plasma crest, engraved
-  license plaque, gold-foil primary action and an instrument panel.
-- Dials: variance 6/10 sketch, 8/10 court; motion 2/10 sketch, 5/10 court;
-  density 3/10 sketch, 8/10 court.
-- Signature: one line drawing becomes the gilded crest, and the sheet's ghosted
-  frame becomes the real frame.
-- Rules: one primary action; every ornament is structural (margin, rule, frame,
-  plaque, plate); the sketch is not a filled-in form, the court is not a recolour.
+Rendered frames: `qa/screenshots/` (390dp sheet, 360dp sheet, cover, court).
 
-### Tokens
+## What changed
 
-| Token | Value |
-|---|---|
-| paper | `#F7F2E7` |
-| paper card | `#FDF9F0` |
-| ink | `#211C24` |
-| pencil | `#6F6270` |
-| draft violet | `#6A4A8C` |
-| court void | `#0A0610` |
-| court plum | `#241232` |
-| court amethyst | `#3A1F57` |
-| gold | `#E9C77E` |
-| deep gold | `#9D743A` |
-| orchid | `#E2C7FF` |
-| brand violet | `#925CF4` |
-| mint / active | `#58E2AA` |
+### The cover
+- The boxed splash card is gone. The cover is a page: wordmark with one
+  highlighter pass, the keykeeper drawing, and a single honest status line.
+- Removed `SHAI / 01`, "The keykeeper's notebook", "opens right here",
+  "SHEET 01", and the indeterminate progress bar. There is no simulated
+  percentage and no filler copy.
+- The hand-off is no longer a timer. The cover paints, runs the VPN gate and
+  the one-time notification prompt, and leaves the moment they settle
+  (`Choreographer` + permission result, not `postDelayed(320)`). Two frames are
+  posted after the checks only so the cover has actually drawn; no animation
+  is awaited. With the system animation scale at zero it is unchanged.
 
-- Type: `casual` hand lettering and sans labels on the sheet; `serif` display,
-  tracked sans metadata and monospace package data in the court.
-- Shape: 3dp sketch contours, 7dp panels and 9dp primary action in the court.
-- Motion: one 520ms assembled phase transition with a 420ms return, all
-  curves and durations in `ShaiMotion`; every animation honours the system
-  animator scale. No looping animation.
-- Interaction: 100ms press-in / 160ms press-out feedback, a 320ms sheet
-  entrance, a 300ms drawer with a capped row stagger, and a 760ms reveal
-  before the drawer opens.
-- Handoff: splash enters for 240ms, activity transitions are 220ms in /
-  180ms out. The signed-in plaque replaces the license form and rises with
-  the phase instead of racing it with its own fade.
+### The key page
+- Header is the wordmark plus real state ("Key required" / "Key verified");
+  the sheet numbers, folio rule, subtitle and "Library access" eyebrow are
+  gone.
+- The illustration moved from a vector `ImageView` into
+  `ShaiIllustrationView`: hand-authored contours drawn with Canvas and revealed
+  stroke-by-stroke through `PathMeasure`.
+- Typography is Space Grotesk (400/500/700, bundled) with Caveat reserved for
+  one margin note. Sheet body text is now 16sp or larger; the headline is 30sp
+  with display tracking.
+- The key field is a drawn box (`SketchFieldDrawable`) over a `boxBackgroundMode="none"`
+  input, so the control keeps Material's hint/error/accessibility while the
+  outline is authored linework with a stateful focus stroke.
+- One annotation with a real target: "saved only if you tick this", arrow
+  landing on the Remember toggle.
+- The primary action reads "Redeem key" in sentence case; the signed-in
+  actions follow ("Choose library", "Prepare library", "Inject").
+- Edge-to-edge insets for the status bar, cutout and IME; the field scrolls
+  above the keyboard.
+- Removed: the washi-tape strip (the drawing is on the page, not taped to it),
+  the bitmap paper tile and its density PNGs, the old highlight vector, the
+  old splash card shape, Patrick Hand.
 
-## De-slopped controls (frontend-design-deslop audit)
+### Continuity
+The same drawing persists into the court: `phase` blends ink → gold and pencil
+→ lilac per stroke, the highlighter wash fades out with the paper, the headline
+sweep becomes a quiet gold trace, and the Remember box switches to the gold
+court box. No second artwork, no bitmap cross-fade.
 
-Audited against `samber/cc-skills@frontend-design-deslop`'s slop checklist;
-the committed direction and audit table live in `DESIGN.md`.
+## Startup crash investigation
 
-- **Signed-in gating.** `library_card`, `operation_section` (method, delay,
-  mode) and `browse_button` are `gone` before login and revealed with a short
-  stagger only after the key is accepted; leaving the signed-in phase hides
-  them again. The unauthenticated sheet is only the key form.
-- **Real dropdowns.** Method and delay were already spinners but had no drawn
-  affordance; their cells now carry a gold `ic_chevron_down` over the
-  phase-bordered surface, and they still open as `spinnerMode="dropdown"`.
-- **Auto / Manual control.** The 1dp hidden `RadioGroup` stub is gone. In its
-  place, inside the gated injection section, sit two labelled 48dp rows of
-  square court boxes (18dp box, 4dp gold border): exactly one is ticked —
-  checkbox look, radio behaviour. `LoaderPreferences.isAutoMode()` is now the
-  source of truth when injecting, so auto injection no longer depends on a
-  hidden widget's state.
-- **Fixed: controls stayed disabled after login.** `beginLicenseRedemption`
-  disabled the mode/delay controls but nothing re-enabled them on the success
-  path; they now re-enable (and dim to 0.45 alpha when disabled) through one
-  owner, `setInjectionControlsEnabled`.
-- **Type floor.** 22 labels below 11sp were raised to 11sp; sentence hints to
-  12sp. The floor is enforced by the QA contract.
+**Input available:** none. The brief asked to investigate "the reported crash";
+no stack trace, `logcat`, device model or reproduction steps were supplied, and
+the repository and its history contain no crash record. A root cause cannot be
+asserted without evidence, so this is reported as an investigation, not a fix.
 
-## Restored controls and remembered key
+**Device/emulator attempt — BLOCKED.** The Android 35 x86_64 system image and
+emulator were installed and an AVD created, but the emulator cannot start:
 
-- `delay_spinner` and `method_spinner` are visible 50dp selectors with labels,
-  persisted through `LoaderPreferences`; they are no longer 1dp hidden stubs.
-  Delay remains "time after the game opens, before the library loads".
-- `remember_key` is an opt-in checkbox. While checked, the field's value is
-  stored in app-private `SharedPreferences`; unchecking, or "Use another key",
-  deletes it.
-- One-shot auto-login runs after the catalog/version check: it fills the saved
-  key and starts the **same** redemption flow. It never downloads, prepares or
-  injects a library, never opens the game, and does not repeat in a session.
-- The accepted key is shown only as a fingerprint (`KEY  ABCD ···· WXYZ`) in the
-  signed-in plaque.
-- Auto-login is skipped when the activity is recreated; the saved key is still
-  prefilled so the user can redeem deliberately.
-- License keys remain in app-private preferences, the same store the existing
-  per-library license map already used. They are not encrypted at rest and are
-  only sent to the configured panel endpoints.
+```
+ProbeKVM: This user doesn't have permissions to use KVM (/dev/kvm).
+ERROR | x86_64 emulation currently requires hardware acceleration!
+```
 
-## Changed files
+`/dev/kvm` exists but is `root:kvm 0660` and the sandbox user is not in `kvm`;
+`sudo` is refused ("no new privileges" flag). ARM images are not supported on
+an x86_64 host, so there is no path to a booted device here.
 
-- `app/src/main/res/layout/activity_main.xml` — two-phase hierarchy; restored
-  selectors; remember control; fingerprint; ornament rules; plaque.
-- `app/src/main/kotlin/astral/LoaderVisuals.kt` — paper/court backdrop painting,
-  phase surfaces, gilded states, `OrnamentRuleView`.
-- `app/src/main/kotlin/astral/MainActivity.kt` — phase styling, remembered-key
-  flow, one-shot auto-login, control wiring, fingerprint, press feedback,
-  drawer/row choreography, success reveal, keyboard and focus recovery.
-- `app/src/main/kotlin/astral/ShaiMotion.kt` — shared curves, durations and
-  reduced-motion timing.
-- `app/src/main/kotlin/astral/LoaderPreferences.kt` — opt-in key storage.
-- `app/src/main/kotlin/astral/SimpleSpinnerAdapter.kt` + spinner layouts —
-  phase-aware cells, readable dark dropdown.
-- `app/src/main/res/drawable/hero_sketch.xml`, `hero_ethereal.xml` — measured
-  concept figure and the maximal crest.
-- `app/src/main/res/drawable/seal_ring.xml` — double-ring plaque seal.
-- `app/src/main/res/drawable/checkbox_sheet*.xml` — drawn remember-key control.
-- `app/src/main/res/layout/activity_splash.xml`, `activity_splash` colors —
-  the sheet language carried into the opening screen.
-- `app/src/main/res/layout/item_library_drawer.xml`, `status_pill.xml`,
-  `maintenance_pill.xml`, `colors.xml`, `themes.xml` — court palette and rows.
-- `app/src/main/res/layout/spinner_item_simple.xml`,
-  `res/drawable/ic_chevron_down.xml` — drawn dropdown affordance.
-- `app/src/main/res/drawable/checkbox_court*.xml` — 18dp/4dp AUTO/MANUAL
-  boxes; the old 1dp `RadioGroup` stub was removed from the layout.
-- `app/src/main/kotlin/astral/LoaderPreferences.kt` — `isAutoMode()` is the
-  injection-time source of truth.
-- `DESIGN.md` — design system of record and the de-slop audit table.
-- `app/src/main/kotlin/astral/AboutDialog.kt` — serif/gold treatment when signed
-  in, staged entrance and press feedback.
-- `app/src/main/kotlin/astral/SplashActivity.kt`, `res/anim/fade_in.xml`,
-  `res/anim/fade_out.xml` — short eased handoff and splash sheet settle.
-- `qa/verify_ui_contract.py` — checks for visible controls, remembered-key flow,
-  distinct phase systems, and motion tokens/reduced-motion fallbacks.
+**What was actually executed instead.** `PageRenderTest` starts both activities
+under Robolectric with native graphics and renders the real layouts:
+`MainActivity` reaches RESUMED, `onCreate` (Glide load, view binding,
+`setupVisuals`, `updateTheme(0f)`, entrance animators, catalog coroutine) and
+the first draw all complete without exception; `SplashActivity` creates and
+inflates its page without exception. This is real JVM Android rendering, not a
+hardware runtime.
+
+**Launch-path defects found and fixed during the audit:**
+
+1. **Orphaned permission dialog (real, reproducible by reading the code).**
+   `SplashActivity` requested `POST_NOTIFICATIONS` and then finished 320ms
+   later regardless of the answer. A prompt still on screen outlived its
+   activity, and the denial path could `Toast` on a finishing activity. The
+   requester now reports back (`onSettled` / `onPermissionResult`), the cover
+   waits for the real result, and navigation is idempotent (`leaving`,
+   `isFinishing`, `isDestroyed`).
+2. **Startup timer.** The VPN gate ran after a fixed 320ms delay "to finish an
+   animation". It now runs on the first painted frame, and navigation waits only for the checks plus two frames of cover.
+3. **Edge-to-edge on API 35.** With `targetSdk 35`, content is laid out under
+   the status bar; the sheet's header would sit under the clock on Android 15.
+   Explicit `WindowCompat` insets are applied to both pages.
+4. **First-frame view lookups.** `updateTheme()` runs inside `onCreate` and
+   reads ~30 ids; removing an editorial label without removing its lookup is a
+   guaranteed `NullPointerException` at startup. All references to the removed
+   ids were deleted and the page is rendered in tests to prove the binding set
+   is complete.
+
+**Verdict: no crash reproduced; hardware startup is UNVERIFIED.** If the crash
+persists, a `adb logcat -b crash` trace (or the Play Console stack) is needed to
+go further; a hypothesis is not a root cause.
 
 ## Verification
 
-Environment: Temurin JDK 17.0.21, Android SDK Platform 35, Build-Tools 35.0.0,
-Gradle 8.11.1, AGP 8.9.1, Kotlin 2.0.21. Build command:
+Environment: Temurin JDK 17, Android SDK 35 / Build-Tools 35.0.0, Gradle 8.11.1,
+AGP 8.9.1, Kotlin 2.0.21, Robolectric 4.14.1 (test only).
 
-```sh
-bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --no-parallel \
-  -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8"
-```
+| Check | Result | Evidence |
+|---|---|---|
+| `:app:assembleDebug` | **PASSED** | APK produced |
+| `:app:testDebugUnitTest` | **PASSED** (6 tests, 0 failures) | includes 4 render/startup tests |
+| `:app:lintDebug` | **PASSED**, 0 errors, 180 warnings | 6 fewer than the previous pass |
+| `python3 qa/verify_ui_contract.py` | **PASSED**, 139 assertions | includes 30 new contract checks |
+| Rendered cover, 390dp | **PASSED** | `qa/screenshots/splash-390dp.png` |
+| Rendered key page, 390dp | **PASSED** | `qa/screenshots/key-page-390dp.png` |
+| Rendered key page, 360dp, no clipping | **PASSED** | `qa/screenshots/key-page-360dp.png` |
+| Court re-ink (`updateTheme(1f)`) | **PASSED** | `qa/screenshots/court-phase-390dp.png` |
+| Reduced motion (animator scale 0) | **PASSED** (source + contract) | illustration completes, sweep full |
+| Startup on a hardware device | **BLOCKED** | KVM denied, no device attached |
+| Frame pacing / haptics / IME on hardware | **UNVERIFIED** | requires a device |
+| Live panel redemption, download, injection | **UNVERIFIED** | requires a valid key and game |
 
-| Check | Result |
+Notes: lint warnings are the pre-existing set (hardcoded design strings,
+`TooManyViews`, legacy unused resources and loader security/permission notices).
+`--- Failed to create image decoder with message 'unimplemented'` in the test
+log is Robolectric's native-graphics decoder stub for the Glide-packed PNG
+banner, not a failure.
+
+## Changed files
+
+- `app/src/main/kotlin/astral/ShaiIllustrationView.kt` — new Canvas
+  illustration with per-stroke `PathMeasure` reveal, phase inking, one-shot
+  animation and reduced-motion completion.
+- `app/src/main/kotlin/astral/SketchSurfaces.kt` — new `SketchFieldDrawable`
+  (drawn field, focus/disabled states) and `HighlightSweepDrawable`.
+- `app/src/main/kotlin/astral/SplashActivity.kt` — cover page, insets, painted
+  first frame, permission-aware hand-off, no timer.
+- `app/src/main/kotlin/astral/NotificationPermissionRequester.kt` — reports
+  whether the prompt settled.
+- `app/src/main/kotlin/astral/MainActivity.kt` — sheet header/status, drawn
+  field, illustration + sweep wiring, insets and IME scroll, court checkbox,
+  sentence-case actions, removal of the label/typeface overrides.
+- `app/src/main/kotlin/astral/LoaderVisuals.kt` — specified paper palette,
+  24dp canvas ruling, no grain, no bitmap texture.
+- `app/src/main/kotlin/astral/ShaiMotion.kt` — illustration and sweep tokens.
+- `app/src/main/res/layout/activity_splash.xml` — cover composition.
+- `app/src/main/res/layout/activity_main.xml` — sheet rework, 16sp floor,
+  drawn field, annotation target, gated menu.
+- `app/src/main/res/font/{space_grotesk*.ttf,space_grotesk.xml,caveat.ttf}` —
+  bundled typefaces (OFL, licenses in `assets/`).
+- `app/src/main/res/drawable/checkbox_sheet*.xml` — sheet inks.
+- `app/src/test/kotlin/astral/PageRenderTest.kt` — JVM rendering/startup tests.
+- `app/build.gradle.kts` — Robolectric (test only) + android resources.
+- Deleted: `hero_sketch.xml`, `hero_ethereal.xml`, `highlight_swipe.xml`,
+  `splash_sketch.xml`, `tape_piece.xml`, `paper_grid.xml`, five
+  `paper_grid_tile.png` density tiles, `patrick_hand.ttf` and its licence.
+- `qa/verify_ui_contract.py`, `DESIGN.md`, `qa/RELEASE_REPORT.md`, `context.md`.
+
+## Independent critical review
+
+**As an Android engineer.** The risky parts are covered: startup completes in a
+real inflater/renderer, the new views respect `areAnimatorsEnabled`, animations
+cancel before restarting, and the drawn field preserves exact bounds for touch.
+The weak points are environmental: nothing here ran on a phone, so the stroke
+timing, the 720ms reveal against a fast device's launch, and IME behaviour are
+unmeasured. Robolectric also cannot catch OEM theme or hardware-accelerated
+canvas differences. The page is one long `ScrollView` with a fixed 184dp
+illustration; at 200% font scale the art does not grow, which is correct for an
+illustration but means the page becomes very tall.
+
+**As an editorial designer.** It reads as a page rather than a themed form: one
+drawing, one highlighter, one note, one action, and a ruling that stays quiet.
+The illustration is specific (a keykeeper with a key laid beside her) and is
+inked, not pasted. The weakest composition is the header: a 27sp wordmark and a
+30sp headline sit close in weight, and the right-aligned state label competes
+slightly. The key floats beside the figure rather than being held — a deliberate
+choice after a drawn forearm read as a mask at real size; it now behaves like an
+object laid on the page, but it is less narrative than holding it.
+
+**As a critic against the brief's reject criteria.**
+
+| Criterion | Verdict |
 |---|---|
-| `:app:assembleDebug` | **PASS** |
-| `:app:testDebugUnitTest` | **PASS** (2 tests) |
-| `:app:lintDebug` | **PASS**, 0 errors, warnings only |
-| `python3 qa/verify_ui_contract.py` | **PASS**, all assertions |
-| XML parse + ID uniqueness + resource resolution | **PASS** |
-| Kotlin compilation | **PASS** |
-| Motion contract (tokens, staged reveal, press/focus, IME) | **PASS** (source-level) |
-| Signed-in gating, dropdown affordance, mode boxes, 11sp floor | **PASS** (source-level) |
-| Slop checklist (`DESIGN.md`) | **PASS** after fixes; render-only items NOT RUN |
-| Device/emulator rendering and touch checks | **NOT RUN** (no device attached) |
-| Live panel redemption, download, injection | **NOT RUN** (requires a valid key and game package) |
-
-Known non-blocking lint warnings: 186 total, 0 errors (down from 202 after
-the radio stubs and sub-11sp labels were removed). Mostly hardcoded design
-strings, small tracked labels, `TooManyViews` on the single scrolling screen,
-unused legacy resources, and pre-existing security/permission warnings from
-the loader core. No new errors.
-
-The debug APK is produced at `app/build/outputs/apk/debug/app-debug.apk`; build
-outputs are intentionally not committed.
+| Artwork removable and the page still a generic form | Partly — the field and type are composed around the drawing, but the page would still function without it. Weakest point. |
+| Meaningless handwriting or fake concept labels | Pass — all invented labels removed; one note with a real consequence. |
+| Strokes mechanically perfect or randomly distorted | Pass — hand-authored cubics with fixed, deliberate irregularity. |
+| Annotations without legitimate targets | Pass — the arrow lands on the Remember toggle. |
+| Resemblance only via the background grid | Pass — the drawing, the field contour and the note carry the style. |
+| Authenticated state loses the illustration | Pass — same strokes, re-inked; verified in the court render. |
+| Effects interfering with function | Pass — sweep sits behind text, no overlay over controls; contrast held. |
+| Startup crash uninvestigated | Fail to *prove*: investigated and exercised on the JVM, but device reproduction is blocked (see above). |

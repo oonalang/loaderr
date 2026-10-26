@@ -1,5 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Functional voice: Space Grotesk. Caveat is used only by annotations. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="fontFamily">@font/space_grotesk</item>
         <item name="android:navigationBarColor">@color/background_color_dark</item>
         <item name="android:windowBackground">@color/background_color_dark</item>
         <item name="android:textColor">@color/textColor</item>

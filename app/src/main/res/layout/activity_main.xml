@@ -28,45 +28,11 @@
             android:paddingEnd="20dp"
             android:paddingBottom="36dp">
 
-            <!-- Sheet plate: the concept-drawing label before auth, the access plate after. -->
+            <!-- Wordmark and honest state. No sheet numbers, no invented editorial
+                 labels. The library menu belongs to the authenticated page. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/sheet_plate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:letterSpacing="0.18"
-                    android:text="SHAI / 01"
-                    android:textSize="11sp" />
-
-                <View
-                    android:id="@+id/sheet_rule"
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
-                    android:layout_weight="1"
-                    android:background="#3D6F6270" />
-
-                <TextView
-                    android:id="@+id/sheet_note"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:gravity="end"
-                    android:layout_height="wrap_content"
-                    android:letterSpacing="0.02"
-                    android:text="Not yet verified"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -77,34 +43,28 @@
                     android:background="@android:color/transparent"
                     android:contentDescription="Open library list"
                     android:padding="12dp"
-                    android:src="@drawable/ic_menu" />
+                    android:src="@drawable/ic_menu"
+                    android:visibility="gone" />
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/brand_title"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
+                    android:includeFontPadding="false"
+                    android:letterSpacing="-0.015"
+                    android:text="SHAI LOADER"
+                    android:textColor="@color/sketch_ink"
+                    android:textSize="27sp"
+                    android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/brand_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:includeFontPadding="false"
-                        android:text="SHAI LOADER"
-                        android:textSize="25sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/brand_subtitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:letterSpacing="0.02"
-                        android:text="The keykeeper’s notebook"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
+                <TextView
+                    android:id="@+id/sheet_note"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.01"
+                    android:text="Key required"
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <astral.loader.OrnamentRuleView
@@ -113,17 +73,8 @@
                 android:layout_height="20dp"
                 android:layout_marginTop="8dp" />
 
-            <TextView
-                android:id="@+id/chapter_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:letterSpacing="0.02"
-                android:text="Library access"
-                android:textSize="11sp" />
-
-            <!-- One illustration that becomes the crest. Taped onto the sheet
-                 before auth; the tape lifts as the court takes over. -->
+            <!-- One illustration, inked straight onto the page, that becomes
+                 the crest when the court takes over. -->
             <LinearLayout
                 android:id="@+id/hero_block"
                 android:layout_width="match_parent"
@@ -132,39 +83,17 @@
                 android:orientation="vertical">
 
                 <FrameLayout
-                    android:id="@+id/hero_tape_frame"
+                    android:id="@+id/hero_frame"
                     android:layout_width="match_parent"
                     android:layout_height="184dp">
 
-                    <ImageView
+                    <astral.loader.ShaiIllustrationView
                         android:id="@+id/hero_art"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:importantForAccessibility="no"
-                        android:scaleType="fitCenter"
-                        android:src="@drawable/hero_sketch" />
+                        android:importantForAccessibility="no" />
 
-                    <ImageView
-                        android:id="@+id/tape_start"
-                        android:layout_width="52dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="start|top"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginTop="12dp"
-                        android:importantForAccessibility="no"
-                        android:rotation="-38"
-                        android:src="@drawable/tape_piece" />
 
-                    <ImageView
-                        android:id="@+id/tape_end"
-                        android:layout_width="52dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="end|top"
-                        android:layout_marginEnd="16dp"
-                        android:layout_marginTop="12dp"
-                        android:importantForAccessibility="no"
-                        android:rotation="38"
-                        android:src="@drawable/tape_piece" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -177,11 +106,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:background="@drawable/highlight_swipe"
                         android:includeFontPadding="false"
-                        android:paddingBottom="4dp"
+                        android:letterSpacing="-0.015"
+                        android:paddingStart="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="6dp"
                         android:text="Your key comes first."
-                        android:textSize="28sp"
+                        android:textSize="30sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -189,9 +121,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:lineSpacingExtra="3dp"
+                        android:lineSpacingExtra="4dp"
                         android:text="Paste a key from your panel. Nothing opens until it is checked."
-                        android:textSize="14sp" />
+                        android:textSize="16sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -206,68 +138,78 @@
                     android:id="@+id/license_heading"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:letterSpacing="0.02"
                     android:text="Your license"
-                    android:textSize="11sp" />
+                    android:textColor="@color/sketch_ink"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                <!-- Margin note: the arrow aims at the real key field below. -->
+                <!-- The field is a drawn box, not a filled Material control. -->
+                <FrameLayout
+                    android:id="@+id/key_field"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:paddingStart="16dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="6dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/input_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Paste your license key"
+                        app:boxBackgroundMode="none"
+                        app:endIconMode="password_toggle">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/input_key"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:imeOptions="actionDone"
+                            android:importantForAutofill="no"
+                            android:inputType="textPassword"
+                            android:minHeight="56dp"
+                            android:paddingStart="2dp"
+                            android:paddingEnd="2dp"
+                            android:singleLine="true"
+                            android:textSize="17sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </FrameLayout>
+
+                <!-- Margin note with a real target: the remember toggle below. -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="end|bottom"
+                    android:layout_marginTop="8dp"
+                    android:gravity="start|bottom"
                     android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/key_note"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="10dp"
-                        android:fontFamily="@font/patrick_hand"
-                        android:text="your panel key goes here"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="@font/caveat"
+                        android:text="saved only if you tick this"
                         android:textColor="@color/sketch_pencil"
-                        android:textSize="17sp" />
+                        android:textSize="20sp" />
 
                     <ImageView
                         android:id="@+id/key_note_arrow"
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
-                        android:layout_gravity="end"
-                        android:layout_marginEnd="52dp"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_gravity="start"
+                        android:layout_marginStart="18dp"
                         android:importantForAccessibility="no"
-                        android:rotation="8"
+                        android:rotation="6"
                         android:scaleType="fitCenter"
                         android:src="@drawable/avd_sketch_arrow" />
                 </LinearLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/input_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:hint="License key"
-                    app:boxBackgroundMode="outline"
-                    app:boxCornerRadiusBottomEnd="4dp"
-                    app:boxCornerRadiusBottomStart="4dp"
-                    app:boxCornerRadiusTopEnd="4dp"
-                    app:boxCornerRadiusTopStart="4dp"
-                    app:endIconMode="password_toggle">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/input_key"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:imeOptions="actionDone"
-                        android:importantForAutofill="no"
-                        android:inputType="textPassword"
-                        android:minHeight="58dp"
-                        android:singleLine="true"
-                        android:textSize="15sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -277,6 +219,7 @@
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:button="@drawable/checkbox_sheet"
+                        android:buttonTint="@null"
                         android:contentDescription="Remember this key"
                         android:paddingStart="12dp"
                         android:paddingEnd="4dp" />
@@ -294,15 +237,16 @@
                             android:layout_height="wrap_content"
                             android:labelFor="@id/remember_key"
                             android:text="Remember this key"
-                            android:textSize="13sp" />
+                            android:textSize="16sp" />
 
                         <TextView
                             android:id="@+id/remember_caption"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
+                            android:lineSpacingExtra="3dp"
                             android:text="Redeem automatically the next time SHAI opens."
-                            android:textSize="11sp" />
+                            android:textSize="16sp" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -654,13 +598,13 @@
                 android:id="@+id/login_button"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
-                android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.09"
+                android:layout_marginTop="20dp"
+                android:letterSpacing="0"
                 android:stateListAnimator="@null"
-                android:text="REDEEM KEY"
+                android:text="Redeem key"
                 android:textAllCaps="false"
-                android:textSize="16sp" />
+                android:textSize="17sp"
+                android:textStyle="bold" />
 
             <ProgressBar
                 android:id="@+id/progressBar"
@@ -696,7 +640,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@Shaiaintshyy"
-                    android:textSize="11sp" />
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/about_button"
@@ -707,8 +651,8 @@
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
                     android:paddingEnd="4dp"
-                    android:text="ABOUT  ↗"
-                    android:textSize="12sp" />
+                    android:text="About  ↗"
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <!-- Existing operational controls are retained for compatibility with the loader core. -->

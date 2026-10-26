@@ -65,6 +65,12 @@ android {
         viewBinding = false
         buildConfig = true
     }
+
+    // Robolectric renders the real layouts on the JVM so the notebook page can be
+    // checked without a device (this project is built on-device, with no emulator).
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -75,4 +81,5 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
 }

@@ -4,9 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.widget.ProgressBar
+import android.view.Choreographer
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,21 +12,26 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityOptionsCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import java.net.NetworkInterface
 
+/**
+ * The cover page. It exists to run the real launch checks — VPN gate and the
+ * one-time notification prompt — and leaves as soon as they settle. It never
+ * waits for the drawing to finish.
+ */
 class SplashActivity : AppCompatActivity() {
 
     init {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
     }
 
-    private lateinit var handler: Handler
-    private lateinit var progressBar: ProgressBar
     private lateinit var notificationPermissionRequester: NotificationPermissionRequester
     private lateinit var permissionLauncher: ActivityResultLauncher<String>
-
-    // The splash marks the app handoff, not a simulated network task.
-    private val openingDurationMs = 320L
+    private var leaving = false
+    private var checksSettled = false
 
     companion object {
         var detectedVpn: String? = null
@@ -75,80 +78,86 @@ class SplashActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_splash)
-        window.statusBarColor = android.graphics.Color.rgb(247, 242, 231)
-        window.navigationBarColor = android.graphics.Color.rgb(247, 242, 231)
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-            android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
 
-        progressBar = findViewById(R.id.progressBarSplash)
-        progressBar.isIndeterminate = true
+        val brand = findViewById<android.widget.TextView>(R.id.splash_brand)
+        val art = findViewById<ShaiIllustrationView>(R.id.splash_art)
+        val content = findViewById<android.view.View>(R.id.splash_content)
+        ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop + bars.top,
+                view.paddingRight,
+                view.paddingBottom + bars.bottom
+            )
+            insets
+        }
 
-        // The sheet is already composited; ease it in so the handoff does not
-        // flash a fully formed frame before MainActivity takes over.
+        val sweep = HighlightSweepDrawable().apply {
+            if (!ValueAnimator.areAnimatorsEnabled()) progress = 1f
+        }
+        brand.background = sweep
+        brand.setPadding(
+            (4 * resources.displayMetrics.density).toInt(),
+            0,
+            (8 * resources.displayMetrics.density).toInt(),
+            0
+        )
         if (ValueAnimator.areAnimatorsEnabled()) {
-            val density = resources.displayMetrics.density
-            findViewById<android.view.View>(R.id.splash_card).apply {
-                alpha = 0f
-                translationY = 12f * density
-                animate().alpha(1f).translationY(0f)
-                    .setStartDelay(30L)
-                    .setDuration(240L)
-                    .setInterpolator(ShaiMotion.easeOut)
-                    .start()
-            }
-            findViewById<android.view.View>(R.id.splash_footer).apply {
-                alpha = 0f
-                animate().alpha(1f)
-                    .setStartDelay(140L)
-                    .setDuration(160L)
-                    .setInterpolator(ShaiMotion.easeOut)
-                    .start()
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                startDelay = 90L
+                duration = ShaiMotion.HIGHLIGHT_MS
+                interpolator = ShaiMotion.easeOut
+                addUpdateListener { sweep.progress = it.animatedValue as Float }
+                start()
             }
         }
+        art.playReveal(120L)
 
         permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (!isGranted) {
-                Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Notifications are off", Toast.LENGTH_SHORT).show()
+            }
+            notificationPermissionRequester.onPermissionResult()
+        }
+        notificationPermissionRequester = NotificationPermissionRequester(this, permissionLauncher)
+
+        // The real gate runs immediately; navigation waits only for the checks,
+        // plus two frames so the cover has actually painted. No animation wait.
+        Choreographer.getInstance().postFrameCallback {
+            notificationPermissionRequester.request {
+                checksSettled = true
+                window.decorView.postOnAnimationDelayed({ if (checksSettled) openLoader() }, 32L)
             }
         }
+    }
 
-        notificationPermissionRequester = NotificationPermissionRequester(this, permissionLauncher)
-        notificationPermissionRequester.request()
-
-        handler = Handler(Looper.getMainLooper())
-        handler.postDelayed({
-
-            detectedVpn = getDetectedVPN()
-
-            if (detectedVpn != null) {
-                showDialog(
-                    this,
-                    "VPN DETECTED",
-                    "Detected VPN Interface:\n$detectedVpn\n\nPlease disable your VPN and try again."
-                )
-                return@postDelayed
-            }
-
-            val options = ActivityOptionsCompat.makeCustomAnimation(
+    private fun openLoader() {
+        if (leaving || isFinishing || isDestroyed) return
+        leaving = true
+        detectedVpn = getDetectedVPN()
+        if (detectedVpn != null) {
+            showDialog(
                 this,
-                R.anim.fade_in,
-                R.anim.fade_out
+                "VPN DETECTED",
+                "Detected VPN Interface:\n$detectedVpn\n\nPlease disable your VPN and try again."
             )
-
-            startActivity(
-                Intent(this, MainActivity::class.java),
-                options.toBundle()
-            )
-            finish()
-
-        }, openingDurationMs)
+            return
+        }
+        startActivity(
+            Intent(this, MainActivity::class.java),
+            ActivityOptionsCompat.makeCustomAnimation(this, R.anim.fade_in, R.anim.fade_out).toBundle()
+        )
+        finish()
     }
 
-    override fun onDestroy() {
-        handler.removeCallbacksAndMessages(null)
-        super.onDestroy()
-    }
 }

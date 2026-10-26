@@ -4,7 +4,6 @@ import android.animation.ValueAnimator
 import android.content.res.ColorStateList
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
-import android.graphics.Typeface
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.inputmethod.EditorInfo
@@ -19,7 +18,6 @@ import android.graphics.Shader
 import android.graphics.drawable.Animatable
 import android.net.Uri
 import android.util.Log
-import android.util.TypedValue
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -44,6 +42,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.textfield.TextInputEditText
@@ -117,6 +118,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var drawerSearchSurface: PhaseSurfaceDrawable
     private lateinit var delaySurface: PhaseSurfaceDrawable
     private lateinit var methodSurface: PhaseSurfaceDrawable
+    private lateinit var fieldSurface: SketchFieldDrawable
+    private lateinit var headlineSweep: HighlightSweepDrawable
+    private lateinit var heroIllustration: ShaiIllustrationView
     private var phaseProgress = 0f
     private var phaseTarget = 0f
     private var phaseAnimator: ValueAnimator? = null
@@ -129,6 +133,7 @@ class MainActivity : AppCompatActivity() {
     private var isPreparingLibrary = false
     private var lastDisplayedSignedIn: Boolean? = null
     private var lastHandStyle: Boolean? = null
+    private var lastCourtToggle: Boolean? = null
     private var pendingRememberedKey: String? = null
     private var autoLoginStarted = false
     private var restoredFromState = false
@@ -138,6 +143,7 @@ class MainActivity : AppCompatActivity() {
         restoredFromState = savedInstanceState != null
         super.onCreate(null)
         setContentView(R.layout.activity_main)
+        applyWindowInsets()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -292,7 +298,7 @@ class MainActivity : AppCompatActivity() {
                 } else if (selectedLibrary.name.isBlank() || selectedLibrary.type != redeemedGame) {
                     showToast("Choose a library for your redeemed key")
                     findViewById<TextView>(R.id.success_detail).text = "Choose a library from the list, then tap Prepare library."
-                    loginButton.text = "CHOOSE LIBRARY"
+                    loginButton.text = "Choose library"
                     loginButton.isEnabled = true
                     setLibraryDrawerOpen(true)
                 } else {
@@ -338,6 +344,35 @@ class MainActivity : AppCompatActivity() {
     }
     
 
+    /** Edge-to-edge is enforced on API 35, so the page pads itself instead of
+     *  relying on the system bars, and the field stays above the keyboard. */
+    private fun applyWindowInsets() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val content = findViewById<View>(R.id.main_content)
+        val start = content.paddingStart
+        val top = content.paddingTop
+        val end = content.paddingEnd
+        val bottom = content.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_scroll)) { _, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            content.setPadding(start, top + bars.top, end, bottom + maxOf(bars.bottom, ime))
+            if (ime > 0 && licenseKeyInput.hasFocus()) {
+                val field = findViewById<View>(R.id.key_field)
+                field.post {
+                    mainScroll.smoothScrollTo(
+                        0,
+                        (field.top - 24 * resources.displayMetrics.density).toInt().coerceAtLeast(0)
+                    )
+                }
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(content)
+    }
+
     private fun playEntranceMotion() {
         val content = findViewById<View>(R.id.main_content)
         val rule = findViewById<OrnamentRuleView>(R.id.hero_rule)
@@ -350,7 +385,19 @@ class MainActivity : AppCompatActivity() {
             rule.reveal = 1f
             keyNote.alpha = 1f
             keyArrow.alpha = 1f
+            headlineSweep.progress = 1f
+            heroIllustration.completeReveal()
             return
+        }
+        // The drawing inks itself first; everything else waits for its linework.
+        heroIllustration.playReveal(80L)
+        headlineSweep.progress = 0f
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            startDelay = ShaiMotion.ILLUSTRATION_MS - 140L
+            duration = ShaiMotion.HIGHLIGHT_MS
+            interpolator = ShaiMotion.easeOut
+            addUpdateListener { headlineSweep.progress = it.animatedValue as Float }
+            start()
         }
         // One orchestrated sheet settle, not a fade-up on every section.
         content.alpha = 0f
@@ -414,6 +461,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRememberedKey() {
+        // The toggle is a drawn box on paper; the theme must not wash it grey.
+        rememberKeyCheck.buttonTintList = null
         val remembered = loaderPreferences.getRememberedKey()
         rememberKeyCheck.isChecked = !remembered.isNullOrBlank()
         if (!remembered.isNullOrBlank()) {
@@ -476,7 +525,7 @@ class MainActivity : AppCompatActivity() {
         if (licenseVerified || redemptionInFlight) return
         redemptionInFlight = true
         loginButton.isEnabled = false
-        loginButton.text = "VERIFYING KEY…"
+        loginButton.text = "Verifying key…"
         findViewById<TextView>(R.id.hero_caption).text = "Verifying your key…"
         licenseKeyInput.isEnabled = false
         licenseKeyInputLayout.error = null
@@ -535,13 +584,18 @@ class MainActivity : AppCompatActivity() {
         methodSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SELECT)
         delaySpinner.background = delaySurface
         methodSpinner.background = methodSurface
+        fieldSurface = SketchFieldDrawable()
+        findViewById<View>(R.id.key_field).background = fieldSurface
+        headlineSweep = HighlightSweepDrawable()
+        tv(R.id.hero_headline).background = headlineSweep
+        heroIllustration = findViewById(R.id.hero_art)
         findViewById<View>(R.id.library_card).background = libraryCardSurface
         loginButton.background = primarySurface
         findViewById<View>(R.id.browse_button).background = secondarySurface
         findViewById<View>(R.id.success_section).background = successSurface
         libraryDrawer.background = drawerSurface
         librarySearch.background = drawerSearchSurface
-        loginButton.text = "REDEEM KEY"
+        loginButton.text = "Redeem key"
         loginButton.isEnabled = true
         updateTheme(0f)
     }
@@ -578,7 +632,7 @@ class MainActivity : AppCompatActivity() {
         appBanner.isEnabled = true
         licenseKeyInput.isEnabled = true
         librarySpinner.isEnabled = true
-        loginButton.text = "REDEEM KEY"
+        loginButton.text = "Redeem key"
         loginButton.isEnabled = true
         animateToPhase(0f)
     }
@@ -620,13 +674,11 @@ class MainActivity : AppCompatActivity() {
         drawerSearchSurface.phase = phaseProgress
         delaySurface.phase = phaseProgress
         methodSurface.phase = phaseProgress
+        fieldSurface.phase = phaseProgress
+        headlineSweep.phase = phaseProgress
+        heroIllustration.phase = phaseProgress
         (cv(R.id.hero_rule) as OrnamentRuleView).phase = phaseProgress
         (cv(R.id.drawer_rule) as OrnamentRuleView).phase = phaseProgress
-        // The washi tape holds the unsigned sketch on the sheet; it lifts as the court takes over.
-        val tapeAlpha = 1f - phaseProgress
-        cv(R.id.tape_start).alpha = tapeAlpha
-        cv(R.id.tape_end).alpha = tapeAlpha
-
         val ink = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
         val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
         val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
@@ -640,7 +692,7 @@ class MainActivity : AppCompatActivity() {
             R.id.radio_auto, R.id.radio_manual
         )
         val secondaryIds = intArrayOf(
-            R.id.brand_subtitle, R.id.chapter_label, R.id.library_game,
+            R.id.library_game,
             R.id.library_version, R.id.library_package, R.id.hero_caption,
             R.id.license_heading, R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
@@ -650,7 +702,7 @@ class MainActivity : AppCompatActivity() {
         secondaryIds.forEach { tv(it).setTextColor(secondary) }
         intArrayOf(
             R.id.library_arrow, R.id.about_button, R.id.drawer_about,
-            R.id.change_key_link, R.id.sheet_plate, R.id.operation_heading,
+            R.id.change_key_link, R.id.operation_heading,
             R.id.method_label, R.id.delay_label, R.id.mode_label, R.id.key_fingerprint
         ).forEach { tv(it).setTextColor(accent) }
         tv(R.id.library_status).setTextColor(accent)
@@ -665,15 +717,11 @@ class MainActivity : AppCompatActivity() {
         )
         licenseKeyInput.setTextColor(ink)
         licenseKeyInput.setHintTextColor(secondary)
-        licenseKeyInputLayout.boxBackgroundColor =
-            ShaiPalette.blend(ShaiPalette.paperCard, Color.rgb(28, 24, 38), phaseProgress)
-        licenseKeyInputLayout.boxStrokeColor = accent
-        licenseKeyInputLayout.defaultHintTextColor = ColorStateList.valueOf(secondary)
+        licenseKeyInputLayout.setHintTextColor(ColorStateList.valueOf(secondary))
         findViewById<EditText>(R.id.library_search).apply {
             setTextColor(ink)
             setHintTextColor(secondary)
         }
-        findViewById<View>(R.id.sheet_rule).backgroundTintList = ColorStateList.valueOf(line)
         findViewById<View>(R.id.library_divider).backgroundTintList = ColorStateList.valueOf(line)
         findViewById<View>(R.id.success_rule).backgroundTintList = ColorStateList.valueOf(line)
         progressBar.progressTintList = ColorStateList.valueOf(accent)
@@ -691,36 +739,28 @@ class MainActivity : AppCompatActivity() {
         }
         phaseColorMatrix.setSaturation(phaseProgress)
         appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)
+        val courtToggle = phaseProgress >= .5f
+        if (lastCourtToggle != courtToggle) {
+            // The remember box is drawn in ink on paper and in gold in the court.
+            rememberKeyCheck.setButtonDrawable(
+                if (courtToggle) R.drawable.checkbox_court else R.drawable.checkbox_sheet
+            )
+            lastCourtToggle = courtToggle
+        }
         val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
-            val display = Typeface.create("sans-serif", Typeface.BOLD)
-            val brand = tv(R.id.brand_title)
-            val success = tv(R.id.success_title)
-            brand.typeface = display
-            heroHeadline.typeface = display
-            success.typeface = display
-            brand.letterSpacing = 0f
-            heroHeadline.letterSpacing = 0f
-            heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
-            success.letterSpacing = 0f
-            success.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             if (::delayAdapter.isInitialized) delayAdapter.applyPhase(phaseProgress)
             if (::methodAdapter.isInitialized) methodAdapter.applyPhase(phaseProgress)
             lastHandStyle = handMode
         }
         if (lastDisplayedSignedIn != displaySignedIn) {
-            tv(R.id.sheet_plate).text =
-                if (displaySignedIn) "SHAI / 02" else "SHAI / 01"
-            tv(R.id.sheet_note).text =
-                if (displaySignedIn) "READY" else "Not yet verified"
+    
             tv(R.id.operation_heading).text =
                 if (displaySignedIn) "Injection" else "Operations"
             tv(R.id.operation_note).text =
                 if (displaySignedIn) "Set before prepare" else "Applies after access"
-            tv(R.id.brand_subtitle).text =
-                "The keykeeper’s notebook"
-            tv(R.id.chapter_label).text =
-                if (displaySignedIn) "Your collection" else "Library access"
+            tv(R.id.sheet_note).text =
+                if (displaySignedIn) "Key verified" else "Key required"
             heroHeadline.text =
                 if (displaySignedIn) "Access granted." else "Your key comes first."
             findViewById<TextView>(R.id.hero_caption).text = if (displaySignedIn) {
@@ -728,36 +768,8 @@ class MainActivity : AppCompatActivity() {
             } else {
                 "Paste a key from your panel. Nothing opens until it is checked."
             }
-            val heroArt = findViewById<ImageView>(R.id.hero_art)
-            heroArt.setImageResource(if (displaySignedIn) R.drawable.hero_ethereal else R.drawable.hero_sketch)
-            heroArt.contentDescription =
-                "Illustrated keykeeper holding a key"
-            if (ValueAnimator.areAnimatorsEnabled()) {
-                heroArt.animate().cancel()
-                if (displaySignedIn) {
-                    // Stamp the crest, rather than only fading one image into another.
-                    heroArt.alpha = 0.6f
-                    heroArt.scaleX = 0.90f
-                    heroArt.scaleY = 0.90f
-                    heroArt.rotation = -3f
-                    heroArt.animate()
-                        .alpha(1f).scaleX(1f).scaleY(1f).rotation(0f)
-                        .setDuration(ShaiMotion.CREST_MS)
-                        .setInterpolator(ShaiMotion.easeOut)
-                        .start()
-                } else {
-                    heroArt.alpha = 1f
-                    heroArt.scaleX = 1f
-                    heroArt.scaleY = 1f
-                    // Paper tilt: the unsigned sketch is taped onto the sheet, not stamped.
-                    heroArt.rotation = -1.5f
-                }
-            } else {
-                heroArt.alpha = 1f
-                heroArt.scaleX = 1f
-                heroArt.scaleY = 1f
-                heroArt.rotation = if (displaySignedIn) 0f else -1.5f
-            }
+            // Paper tilt keeps the hand-placed quality of a sketch on a page.
+            heroIllustration.rotation = if (displaySignedIn) 0f else -1.5f
             findViewById<TextView>(R.id.library_status).text = when {
                 selectedLibrary.name.isBlank() && !licenseVerified -> "KEY REQUIRED"
                 selectedLibrary.name.isBlank() && licenseVerified -> "CHOOSE LIBRARY"
@@ -839,7 +851,7 @@ class MainActivity : AppCompatActivity() {
             // Older loader versions use the public catalog. This client reads
             // update metadata only and waits for /redeem before showing entries.
             refreshLibraryDrawer()
-            loginButton.text = "REDEEM KEY"
+            loginButton.text = "Redeem key"
             loginButton.isEnabled = true
             maybeAutoLogin()
         }
@@ -1180,14 +1192,14 @@ class MainActivity : AppCompatActivity() {
         if (maintenance) {
             isPreparingLibrary = false
             isReadyToInject = false
-            loginButton.text = "UNAVAILABLE"
+            loginButton.text = "Unavailable"
             loginButton.isEnabled = false
         } else {
             loginButton.isEnabled = true
             if (licenseVerified) {
                 loginButton.text = if (isReadyToInject) "INJECT" else "PREPARE LIBRARY"
             } else if (!isReadyToInject) {
-                loginButton.text = "REDEEM KEY"
+                loginButton.text = "Redeem key"
             }
         }
         val logoUrl = jsonObject.optString("LOGO")
@@ -1208,12 +1220,12 @@ class MainActivity : AppCompatActivity() {
             remoteLibrarySize = 0
             File(cacheDir, LIBRARY_FILE_NAME).delete()
             findViewById<TextView>(R.id.success_detail).text = "Selected ${selectedLibrary.name}. Tap Prepare library when you are ready."
-            loginButton.text = "PREPARE LIBRARY"
+            loginButton.text = "Prepare library"
             loginButton.isEnabled = true
         } else if (licenseVerified) {
             findViewById<TextView>(R.id.success_detail).text = "Selected ${selectedLibrary.name}. Tap Prepare library when you are ready."
             if (!isReadyToInject) {
-                loginButton.text = "PREPARE LIBRARY"
+                loginButton.text = "Prepare library"
                 loginButton.isEnabled = true
             }
         }
@@ -1224,7 +1236,7 @@ class MainActivity : AppCompatActivity() {
         val game = redeemedGame ?: return
         val targetName = selectedLibrary.name
         isPreparingLibrary = true
-        loginButton.text = "VERIFYING…"
+        loginButton.text = "Verifying…"
         loginButton.isEnabled = false
         librarySpinner.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
@@ -1345,7 +1357,7 @@ class MainActivity : AppCompatActivity() {
                 if (filteredLibraries.isEmpty()) {
                     findViewById<TextView>(R.id.success_detail).text =
                         "No active libraries are currently published for ${redemption.optString("game_label", game)}."
-                    loginButton.text = "NO LIBRARIES AVAILABLE"
+                    loginButton.text = "No libraries available"
                     loginButton.isEnabled = false
                     refreshLibraryDrawer()
                     showToast("No available libraries for this key")
@@ -1358,7 +1370,7 @@ class MainActivity : AppCompatActivity() {
                     findViewById<TextView>(R.id.library_package).visibility = View.GONE
                     findViewById<TextView>(R.id.library_status).text = "CHOOSE LIBRARY"
                     findViewById<TextView>(R.id.success_detail).text = "Choose one library to continue."
-                    loginButton.text = "CHOOSE LIBRARY"
+                    loginButton.text = "Choose library"
                     loginButton.isEnabled = true
                     appBanner.isEnabled = true
                     refreshLibraryDrawer()
@@ -1389,7 +1401,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             "Check the key and try again."
         }
-        loginButton.text = "REDEEM KEY"
+        loginButton.text = "Redeem key"
         loginButton.isEnabled = true
         licenseKeyInput.isEnabled = true
         librarySpinner.isEnabled = true
@@ -1445,7 +1457,8 @@ class MainActivity : AppCompatActivity() {
         val views = listOf(
             findViewById<View>(R.id.library_card),
             findViewById<View>(R.id.operation_section),
-            findViewById<View>(R.id.browse_button)
+            findViewById<View>(R.id.browse_button),
+            findViewById<View>(R.id.library_menu_button)
         )
         if (visible) {
             val density = resources.displayMetrics.density
@@ -1514,7 +1527,7 @@ class MainActivity : AppCompatActivity() {
                         lifecycleScope.launch(Dispatchers.Main) {
                             delay(2500)
                             if (currentLibrary != selectedLibrary.name || !licenseVerified) return@launch
-                            loginButton.text = "INJECT"
+                            loginButton.text = "Inject"
                             findViewById<TextView>(R.id.success_detail).text = "$currentLibrary is ready. Tap Inject when you are ready."
                             showToast("Ready to inject")
                             loginButton.isEnabled = true
@@ -1580,9 +1593,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.Main) {
             delay(3000)
             showToast("Injection completed")
-            loginButton.text = "RE-INJECT"
+            loginButton.text = "Inject again"
             delay(5000)
-            loginButton.text = "RE-INJECT"
+            loginButton.text = "Inject again"
             loginButton.isEnabled = true
             setInjectionControlsEnabled(true)
         }

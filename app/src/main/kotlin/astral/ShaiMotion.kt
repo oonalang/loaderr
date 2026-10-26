@@ -27,6 +27,10 @@ internal object ShaiMotion {
     const val ROW_STAGGER_MS = 35L
     const val CARD_CONFIRM_MS = 220L
 
+    /** The illustration inks itself once; no stroke loops afterwards. */
+    const val ILLUSTRATION_MS = 720L
+    const val HIGHLIGHT_MS = 300L
+
     const val SUCCESS_SCROLL_DELAY_MS = 560L
     const val DRAWER_REVEAL_DELAY_MS = 760L
     const val REDUCED_REVEAL_DELAY_MS = 80L

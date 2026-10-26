@@ -1,38 +1,132 @@
-# SHAI — The keykeeper's notebook
+# SHAI — a designer's notebook, brought to life
 
-## Evidence and scope
-Native Android Views, not Compose: `activity_main.xml` is a scrolling form and overlay library drawer. `astral/MainActivity.kt` binds IDs and owns authentication, selection, preparation and phase styling. `LoaderVisuals.kt` supplies Canvas backdrops, stateful surface drawables and rules. Vector XML supplies the art. SplashActivity and AboutDialog are separate entry/help surfaces. AGP 8.9.1, Kotlin 2.0.21, SDK 35, minimum API 28; existing Gradle wrapper and JUnit tests retained.
+This file is the design system of record for the opening and unauthenticated
+screens. The rendered frames in `qa/screenshots/` are the current truth; this
+document explains the choices behind them.
 
-No reference sketch was attached to this conversation. The character artwork is an original interpretation; matching the user's reference remains blocked. No screenshot or device render has been inspected.
+## Direction
 
-## Source-based design audit
-- `drawable/hero_sketch.xml`: faceless circular bust reads as a placeholder rather than an illustration with a subject.
-- `drawable/hero_ethereal.xml`: unrelated crown/gem replaces the bust; identity is lost after authentication.
-- `LoaderVisuals.kt / LoaderBackdropView`: random stars, radial glows, guilloche rings and double frames compete with the actual task. Percentage-positioned arrows cannot track form fields when content scrolls.
-- `LoaderVisuals.kt / PhaseSurfaceDrawable`: almost every surface receives gilded double borders and corner ticks, flattening hierarchy.
-- `activity_main.xml / hero_block`: 104dp thumbnail plus narrow text column relegates the drawing to an icon; casual typeface is a system fallback, not hand lettering.
-- `MainActivity.updateTheme`: 26→31sp and casual→serif changes cause avoidable text reflow at the state boundary.
-- `AboutDialog.applyPhaseStyle`: all text ≥13sp becomes bold display type, erasing body hierarchy.
-- `activity_about.xml`: generic promotional copy and a noninteractive chevron promise information that is not actionable.
-- Previous DESIGN.md claimed no halos despite explicit halo rendering. This document supersedes that claim.
+The app is a composed page of interface studies, not a themed form. Paper,
+ruling, one contour drawing, one highlighter and handwritten notes are the
+whole vocabulary. The drawing is authored, not decorative: the same lines carry
+the identity into the signed-in court, where only the inks change.
 
-## One direction
-An illustrated notebook, not a dashboard or fantasy badge collection. An asymmetric portrait of a cloaked keykeeper holding a physical key anchors the page. Visible facial features, hair strands, fabric folds and hatching give it a specific subject. The same paths persist in the night-ink authenticated state; only inks change.
+Two states, one hand:
 
-### Composition
-Single scroll column, 20dp outer margins. Full-width 184dp illustration above left-aligned heading and explanatory text. Header is a quiet folio. Authentication and library operations retain their existing gates. No decorative overlays cross the form. Background uses sparse deterministic paper grain and edge binding ticks only. Rows and success information use single rules; input and primary action remain enclosed. No floating pills, halos or nested ornamental frames.
+- **Sheet (before auth):** paper `#FDFCF7`, ruling `#C9DAF8`, ink `#1F2937`,
+  pencil `#777B84`, highlighter `#FFF176`. Most of the screen is paper.
+- **Court (signed in):** ink-dark surfaces with gold `#E9C77E` and lilac
+  `#C2A3FF`, the same contours re-inked rather than redrawn.
 
-### Typography
-Platform serif bold for display, 28sp hero and 25sp brand in BOTH states. Sans-serif body 14sp, labels 12sp, metadata 11–12sp. Monospace is reserved for folio/data. Display tracking 0; short labels at most .10em. Body is never universally bolded. Platform fonts require no network or bundled font dependency; OEM rendering can vary.
+## Palette
 
-### Color
-Paper #F7F2E7, paper surface #FDF9F0, ink #211C24, secondary #6F6270, annotation violet #6A4A8C. Night paper #0A0610, surfaces #160C22, secondary #BCADD1, lettering #F6EFFF, gold #E9C77E. Violet is an illustration ink, not a glow. Gold belongs to the physical key, primary action and selected state. Status retains text as well as color. Keep existing semantic status colors.
+| Role | Value | Used for |
+|---|---|---|
+| Paper | `#FDFCF7` | page and toggle fills |
+| Grid | `#C9DAF8` | 24dp ruling at 52% alpha, fades out in the court |
+| Ink | `#1F2937` | linework, headlines, body, field outline |
+| Pencil | `#777B84` | secondary copy, hatching, the ground line |
+| Highlighter | `#FFF176` | primary action fill, headline sweep, the key's wash |
 
-### Spacing / interaction
-4dp base rhythm: 8 within small groups, 12–16 between related elements, 24 between sections. Controls at least 48dp high, content-driven text height and scrolling. Hero is decorative to accessibility services; task text announces state. Press/focus/disabled states must remain visible.
+There is no sixth hue on paper. Emphasis is ink weight and the single
+highlighter, which is why `sketch_draft` resolves to ink. Rules that are
+"derived" colours must be documented here before they are used.
 
-### Motion
-Retain existing named motion and reduced-motion gates: press 100/160ms, entrance 320ms, phase 520/420ms, drawer 300/220ms. No ambient animation or shimmer. Authentication changes inks and reveals controls; display metrics remain stable. No network, licensing, preparation, persistence or injection behavior is changed for visual effect.
+## Typography
 
-## Verification policy
-XML parsing and source contracts are not device tests. Build, lint, JUnit and device results are reported separately in `qa/REDESIGN_REPORT.md`. Reference fidelity, font scaling, TalkBack and visual approval require the missing sketch and an Android device/emulator.
+- **Space Grotesk** is the functional voice: headings, controls, navigation,
+  body. Bundled as static 400/500/700 faces behind `@font/space_grotesk`; the
+  theme sets it, so no layout opts in individually.
+- **Caveat** is the annotation voice and nothing else: one margin note with a
+  real target.
+- Body floor **16sp** on the sheet. Display 27–36sp with `-0.015em`-equivalent
+  negative tracking; body tracking stays neutral. Sizes live in the layout, not
+  in per-frame code, so authentication never reflows text.
+
+## Illustration
+
+`ShaiIllustrationView` inks the keykeeper with `Path` + `PathMeasure`: each
+contour is one stroke, revealed by `getSegment` on a 0.54–0.90 timeline, with
+slow-in/slow-out per stroke so the pen starts and stops with weight. Geometry is
+authored in a 320 × 184 study space and scaled to fit, so it composes identically
+on 360dp and 390dp phones.
+
+- Line weights: 1.7 units for silhouette, 1.0 for detail/hatching, 2.4 for the
+  key.
+- Detail strokes use pencil; the key is the only object with extra weight and
+  the only object the highlighter touches. That wash belongs to paper and fades
+  out as the court arrives.
+- The figure stands on a loose ground line; there is no frame, tape or sticker
+  around it. It is drawn on the page, not pasted onto it.
+- No texture bitmap, no gradient, no glow. The page is drawn at runtime
+  (`LoaderBackdropView`, 24dp ruling, one pass per frame).
+
+## Surfaces
+
+- **Key field:** a stateful `SketchFieldDrawable` — four bowed edges that
+  overshoot their corners plus a lighter second pass at a different offset.
+  Bounds stay exact, so touch and accessibility remain honest; only the outline
+  is imperfect. Focus thickens and darkens the stroke; disabled drops to 45%.
+- **Primary action:** highlighter fill with the same double-pass contour;
+  pressed state darkens, never scales the text.
+- **Rules:** `OrnamentRuleView` draws from the centre outward once per entrance.
+- Rectangles that are information (not controls) are separated by a single
+  pencil rule, never a floating card with a shadow.
+
+## Annotations
+
+A handwritten note is allowed only with a genuine consequence and a real
+target. The single note on the sheet sits directly above the Remember toggle,
+reads "saved only if you tick this", and is connected by a drawn arrow that
+lands on that toggle. Delete a note and its arrow together.
+
+Removed in this pass: `SHAI / 01`, `SHAI / 02`, `SHEET 01`,
+"The keykeeper's notebook", "Not yet verified", "Library access", "opens right
+here", the bordered splash card, the taped-sketch strip, and every label that
+only announced the style.
+
+## Composition
+
+- 390dp first; 360dp verified. 20dp page margins on the sheet, 32dp on the cover.
+- One primary action per state: `Redeem key` before auth, then selection and
+  preparation after it.
+- Illustration → headline → caption → key field → mode note → action, in one
+  reading order; the field's outline is the same ink as the drawing.
+- 48dp minimum touch targets (56dp primary), `wrap_content` text heights, and a
+  ScrollView that absorbs font scaling.
+- Edge-to-edge on API 35: the page adds status-bar and cutout insets itself and
+  pads for the IME; the field is scrolled above the keyboard on focus.
+
+## Motion
+
+One primary language: strokes reveal themselves.
+
+| Moment | Token | Notes |
+|---|---|---|
+| Illustration | `ILLUSTRATION_MS = 720` | per-stroke stagger, `smoothstep` speed |
+| Highlighter | `HIGHLIGHT_MS = 300` | one left-to-right clip, starts as the drawing lands |
+| Sheet entrance | `ENTRANCE_MS = 320` | opacity + 14dp settle, once |
+| Rule reveal | `RULE_REVEAL_MS = 360` | from the centre |
+| Phase change | `PHASE_IN_MS = 520` / `PHASE_OUT_MS = 420` | ink blend, quicker on return |
+| Press | `PRESS_IN_MS = 100` / `PRESS_OUT_MS = 160` | immediate, reversible |
+
+Every animation can be cancelled by the next one and starts from the current
+on-screen value (`ValueAnimator.ofFloat(phaseProgress, target)`), so an
+interrupted phase change never jumps. With the system animation scale at zero,
+each surface renders directly in its completed state: the illustration is
+fully inked, the sweep full, the rule whole, controls visible. Nothing loops.
+
+## Continuity into the court
+
+The illustration view takes a `phase` value and blends every stroke:
+ink → gold, pencil → lilac, paper wash → transparent. No bitmap swap, no second
+artwork. The headline's highlighter becomes a quiet gold trace, the remember
+toggle switches to the gold court box, and the sheet's 24dp ruling lifts as the
+court's void arrives. The drawing is recognisably the same drawing.
+
+## Verification
+
+Rendered frames come from `PageRenderTest` (Robolectric, native graphics) at
+390dp and 360dp; see `qa/screenshots/`. They are real Android rendering of the
+real layouts, but not a hardware device: frame pacing, haptics and IME
+behaviour remain unverified on hardware.

@@ -48,8 +48,10 @@ check('verifySelectedLibraryAndDownload()' in primary and 'licenseVerified' in p
 check('selectedLibrary.name.isBlank()' in primary, 'preparation checks explicit library selection')
 
 # Visual phases and reduced motion are represented in the implementation.
-check('R.drawable.hero_sketch' in KOTLIN and 'R.drawable.hero_ethereal' in KOTLIN,
-      'sketch and ethereal art switch with auth state')
+ILLUSTRATION = (APP / 'kotlin/astral/ShaiIllustrationView.kt').read_text()
+check('class ShaiIllustrationView' in ILLUSTRATION and 'PathMeasure' in ILLUSTRATION and
+      'getSegment' in ILLUSTRATION,
+      'one illustration, stroke-revealed with PathMeasure')
 check('ValueAnimator.areAnimatorsEnabled()' in KOTLIN,
       'transition respects Android animator setting')
 check('startFakeLoading()' not in SPLASH, 'removed simulated splash percentage')
@@ -97,21 +99,16 @@ check('if (ruled)' in visuals and 'state_pressed' in visuals and 'state_focused'
       'ruled surfaces preserve pressed and focus rendering')
 check('class OrnamentRuleView' in visuals and 'OrnamentRuleView' in KOTLIN,
       'ornament rule is phase-aware')
-check('hero_ethereal' in KOTLIN and 'hero_sketch' in KOTLIN, 'crest swaps with auth state')
-crest = (APP / 'res/drawable/hero_ethereal.xml').read_text()
-check('#E9C77E' in crest and '#C2A3FF' in crest, 'night illustration uses gold and lilac inks')
-sketch = ET.parse(APP / 'res/drawable/hero_sketch.xml').getroot()
-night = ET.parse(APP / 'res/drawable/hero_ethereal.xml').getroot()
-check([p.attrib.get(ns + 'pathData') for p in sketch] ==
-      [p.attrib.get(ns + 'pathData') for p in night],
-      'keykeeper geometry remains identical across authentication')
+check('heroIllustration.phase = phaseProgress' in KOTLIN,
+      'the crest is the same drawing re-inked by the phase blend')
+check('hero_sketch' not in KOTLIN and 'hero_ethereal' not in KOTLIN,
+      'no bitmap art swap remains')
 check(by_id['hero_art'].attrib.get(ns + 'layout_width') == 'match_parent',
       'illustration is full width rather than a thumbnail')
 check(by_id['hero_art'].attrib.get(ns + 'importantForAccessibility') == 'no',
       'decorative illustration does not repeat task announcements')
-check('if (handMode) 26f else 31f' not in KOTLIN and
-      'heroHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)' in KOTLIN,
-      'display size is stable across authentication')
+check('android:textSize="30sp"' in BASE.read_text() and 'TypedValue' not in KOTLIN,
+      'display size is fixed in the layout, not resized at runtime')
 check(by_id['drawer_close'].attrib.get(ns + 'layout_height') == '48dp',
       'drawer close has a 48dp touch target')
 
@@ -149,8 +146,10 @@ check('imeOptions="actionDone"' in BASE.read_text() and
 fades = (APP / 'res/anim/fade_in.xml').read_text() + (APP / 'res/anim/fade_out.xml').read_text()
 check('duration="450"' not in fades and 'decelerate_interpolator' in fades,
       'activity handoff is short and eased')
-splash_motion = 'splash_card' in SPLASH and 'ShaiMotion.easeOut' in SPLASH
-check(splash_motion, 'splash sheet eases in rather than appearing finished')
+check('R.id.splash_brand' in SPLASH and 'R.id.splash_art' in SPLASH,
+      'the cover is a wordmark, one drawing and one status line')
+check('postDelayed' not in SPLASH and 'Choreographer' in SPLASH,
+      'the cover leaves when its launch checks settle, not on a timer')
 about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
 check('playbackEntrance' in about and 'R.id.about_logo' in about,
       'about sheet has a staged entrance')
@@ -160,14 +159,14 @@ check('playbackEntrance' in about and 'R.id.about_logo' in about,
 gating = inside('    private fun setSignedInControlsVisible(',
                 '    /** One place owns enablement')
 check('R.id.library_card' in gating and 'R.id.operation_section' in gating and
-      'R.id.browse_button' in gating,
+      'R.id.browse_button' in gating and 'R.id.library_menu_button' in gating,
       'signed-in controls are gated together')
 check('setSignedInControlsVisible(true)' in KOTLIN,
       'signed-in controls revealed after redemption')
 clear_phase = inside('    private fun clearAuthenticatedPhase()', '    private fun animateToPhase')
 check('setSignedInControlsVisible(false)' in clear_phase,
       'leaving the signed-in phase hides them again')
-for gated in ('library_card', 'operation_section', 'browse_button'):
+for gated in ('library_card', 'operation_section', 'browse_button', 'library_menu_button'):
     node = by_id.get(gated)
     check(node is not None, f'{gated} exists')
     check(node.attrib.get(ns + 'visibility') == 'gone',
@@ -213,5 +212,98 @@ text = BASE.read_text()
 for item in ['android:layout_height="56dp"', 'android:layout_height="52dp"',
              'android:layout_height="48dp"']:
     check(item in text, f'touch target declared {item}')
+
+# --- Conceptual sketch contract (2026-10 pass) ---------------------------------
+colors = (APP / 'res/values/colors.xml').read_text()
+for role, hex_value in (('paper', '#FDFCF7'), ('grid', '#C9DAF8'), ('ink', '#1F2937'),
+                        ('pencil', '#777B84'), ('highlight', '#FFF176')):
+    check(f'name="sketch_{role}">{hex_value}<' in colors, f'{role} uses the specified value')
+check('paper = Color.rgb(253, 252, 247)' in visuals and 'gridBlue = Color.rgb(201, 218, 248)' in visuals,
+      'canvas tokens match the palette')
+check('highlight = Color.rgb(255, 241, 118)' in visuals, 'one accent, highlighter yellow')
+check('draft = ink' in visuals, 'paper has no sixth hue')
+
+# Typography: Space Grotesk for everything functional, Caveat only for notes.
+theme = (APP / 'res/values/themes.xml').read_text()
+check('android:fontFamily">@font/space_grotesk<' in theme, 'theme sets Space Grotesk')
+check((APP / 'res/font/space_grotesk.xml').is_file() and (APP / 'res/font/caveat.ttf').is_file(),
+      'both typefaces ship with the app')
+check('@font/caveat' in BASE.read_text(), 'annotations use Caveat')
+check('patrick_hand' not in ''.join(p.read_text() for p in (APP / 'res/layout').glob('*.xml')),
+      'handwriting is never used for form text')
+pre_auth_text = ['hero_caption', 'remember_title', 'remember_caption', 'sheet_note',
+                 'footer_text', 'license_heading']
+for view in pre_auth_text:
+    node = by_id[view]
+    size = int(node.attrib.get(ns + 'textSize', '11sp').replace('sp', ''))
+    check(size >= 16, f'{view} meets the 16sp body floor ({size}sp)')
+check('android:textSize="16sp"' in (APP / 'res/layout/activity_splash.xml').read_text(),
+      'cover status is set at body size')
+
+# No fake editorial metadata, no image paper, no duplicated splash card.
+layout_text = BASE.read_text()
+for label in ('SHAI / 01', 'SHAI / 02', 'Not yet verified', 'The keykeeper’s notebook',
+              'Library access', 'sheet_plate', 'chapter_label', 'brand_subtitle'):
+    check(label not in layout_text, f'removed invented label: {label}')
+check(not (APP / 'res/drawable/paper_grid.xml').exists() and
+      not list((APP / 'res').glob('drawable-*dpi/paper_grid_tile.png')),
+      'paper is drawn, not tiled from a bitmap')
+check('GRID_STEP_DP = 24f' in visuals and 'GRID_ALPHA' in visuals,
+      'ruling is 24dp canvas geometry')
+splash_layout = (APP / 'res/layout/activity_splash.xml').read_text()
+check('LoaderBackdropView' in splash_layout and 'splash_card' not in splash_layout,
+      'the cover is a page, not a bordered card')
+check('ProgressBar' not in splash_layout and 'progressBarSplash' not in SPLASH,
+      'no simulated loading percentage')
+for phrase in ('opens right here', 'SHEET 01', 'SHAI / 01'):
+    check(phrase not in (APP / 'res/layout/activity_splash.xml').read_text(), f'no fake copy: {phrase}')
+
+# The drawn field and the annotated toggle.
+check('android:id="@+id/key_field"' in layout_text, 'the key field is a drawn surface')
+check('boxBackgroundMode="none"' in layout_text, 'no Material box behind the drawn field')
+check('SketchFieldDrawable' in KOTLIN and 'class SketchFieldDrawable' in
+      (APP / 'kotlin/astral/SketchSurfaces.kt').read_text(), 'field frame is authored linework')
+check('boxBackgroundColor' not in KOTLIN, 'the Material box is no longer painted')
+check(by_id['key_note'].attrib.get(ns + 'fontFamily') == '@font/caveat',
+      'margin note is the only handwriting')
+check('key_note_arrow' in layout_text and 'avd_sketch_arrow' in layout_text,
+      'the note has a drawn arrow')
+check(layout_text.index('key_note') < layout_text.index('@+id/remember_key'),
+      'the arrow points at the toggle that follows it')
+check('saved only if you tick this' in layout_text,
+      'the note states a real consequence, not decoration')
+check(by_id['remember_key'].attrib.get(ns + 'layout_height') == '48dp',
+      'the toggle keeps a 48dp target')
+check(by_id['login_button'].attrib.get(ns + 'layout_height') == '56dp',
+      'the primary action keeps a 56dp target')
+check('android:text="Redeem key"' in layout_text and 'textAllCaps="false"' in layout_text,
+      'one primary action in sentence case')
+
+# Motion: strokes first, then the annotation, and nothing loops.
+motion = (APP / 'kotlin/astral/ShaiMotion.kt').read_text()
+check('ILLUSTRATION_MS' in motion and 'HIGHLIGHT_MS' in motion,
+      'illustration and sweep timings are tokens')
+check('completeReveal()' in KOTLIN and 'completeReveal()' in ILLUSTRATION,
+      'reduced motion shows the finished drawing')
+check('headlineSweep.progress' in KOTLIN, 'the highlighter sweep is driven once')
+check('animator?.cancel()' in ILLUSTRATION, 'the reveal is interruptible')
+check('ValueAnimator.areAnimatorsEnabled()' in ILLUSTRATION,
+      'stroke reveal respects the system animation scale')
+check('while (true)' not in ILLUSTRATION and 'repeat(' not in ILLUSTRATION,
+      'no continuous decorative motion')
+
+# Insets and IME keep the action reachable.
+check('applyWindowInsets()' in KOTLIN and 'WindowInsetsCompat.Type.ime()' in KOTLIN,
+      'the sheet handles status bar and keyboard insets')
+check('WindowCompat.setDecorFitsSystemWindows(window, false)' in KOTLIN,
+      'edge-to-edge is explicit')
+check('smoothScrollTo' in KOTLIN, 'the field is brought above the keyboard')
+
+# Startup: the permission prompt outlives neither activity by accident.
+notifier = (APP / 'kotlin/astral/NotificationPermissionRequester.kt').read_text()
+check('onSettled' in notifier and 'onPermissionResult()' in SPLASH,
+      'the cover waits for a real permission result instead of a timer')
+check('openLoader()' in SPLASH and 'isFinishing' in SPLASH,
+      'navigation is idempotent and lifecycle-safe')
 
 print('\nSTATIC UI CONTRACT CHECKS PASSED (not an APK runtime test).')

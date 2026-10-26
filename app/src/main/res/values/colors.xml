@@ -4,14 +4,15 @@
     <color name="textColor">#F6EFFF</color>
     <color name="mtrl_textinput_default_box_stroke_color">#7A5A38</color>
 
-    <!-- Concept sheet -->
-    <color name="sketch_paper">#F7F2E7</color>
-    <color name="sketch_grid">#7E9CC4</color>
-    <color name="sketch_highlight">#F5D442</color>
-    <color name="sketch_paper_card">#FDF9F0</color>
-    <color name="sketch_ink">#211C24</color>
-    <color name="sketch_pencil">#6F6270</color>
-    <color name="sketch_draft">#6A4A8C</color>
+    <!-- Concept sheet: the five palette roles, used with restraint. -->
+    <color name="sketch_paper">#FDFCF7</color>
+    <color name="sketch_grid">#C9DAF8</color>
+    <color name="sketch_highlight">#FFF176</color>
+    <color name="sketch_paper_card">#FFFFFF</color>
+    <color name="sketch_ink">#1F2937</color>
+    <color name="sketch_pencil">#777B84</color>
+    <!-- No sixth hue on paper: emphasis is ink weight, not a new colour. -->
+    <color name="sketch_draft">#1F2937</color>
 
     <!-- Violet court -->
     <color name="max_deep">#0A0610</color>

@@ -8,8 +8,9 @@
 
 SHAI Loader ("SHAI / the keykeeper's notebook") is an **Android app** that:
 
-1. Opens with a splash hand-off (`SplashActivity`), detects VPN interfaces and
-   blocks if one is active.
+1. Opens with a notebook cover (`SplashActivity`): wordmark, one drawing, one
+   honest status line. It paints one frame, runs the VPN gate and the one-time
+   notification prompt, then hands off. No timer, no fake percentage.
 2. Asks for a **license key** (paste from the user's panel), redeems it against
    a panel endpoint (`PanelLicenseValidator`).
 3. On success, lets the user pick **one library** from a catalog
@@ -30,7 +31,10 @@ compatibility with the loader core). Native components named above are
 - `compileSdk = 35`, `targetSdk = 35`, **`minSdk = 28`**
 - AGP 8.9.1 / Gradle 8.11.1, Kotlin JVM 17 toolchain
 - Dependencies: AndroidX AppCompat, Material Components
-  (`TextInputLayout` for the key field), coroutines/lifecycle
+  (`TextInputLayout` for the key field), coroutines/lifecycle, Glide
+- Test-only: JUnit 4 + **Robolectric 4.14.1** (native graphics). This project
+  is built on a phone with no emulator, so `PageRenderTest` renders the real
+  layouts on the JVM and writes frames to `app/build/reports/ui/`.
 - **Built on-device in AndroidIDE** (`/storage/emulated/0/AideProjects/loader`)
   — there is no CI. The on-device `:app:assembleDebug` build is the compile
   gate. Always run `qa/verify_ui_contract.py` before pushing.
@@ -39,35 +43,39 @@ compatibility with the loader core). Native components named above are
 
 | Path | Role |
 |---|---|
-| `app/src/main/kotlin/astral/MainActivity.kt` (~1,690 lines) | Main screen + phase system (`updateTheme`, `animateToPhase`), redemption flow, drawer, entrance motion |
+| `app/src/main/kotlin/astral/MainActivity.kt` (~1,720 lines) | Main screen + phase system (`updateTheme`, `animateToPhase`), redemption flow, drawer, entrance motion, window insets |
 | `app/src/main/kotlin/astral/SplashActivity.kt` | Opening sheet (320ms), VPN detection, notification permission |
-| `app/src/main/kotlin/astral/LoaderVisuals.kt` | `ShaiPalette` tokens, `LoaderBackdropView` (phase-aware graph-paper backdrop), `PhaseSurfaceDrawable` (all enclosed surfaces), `OrnamentRuleView` (self-drawing rule) |
+| `app/src/main/kotlin/astral/LoaderVisuals.kt` | `ShaiPalette` tokens, `LoaderBackdropView` (24dp canvas ruling, phase-aware), `PhaseSurfaceDrawable` (all enclosed surfaces), `OrnamentRuleView` (self-drawing rule) |
+| `app/src/main/kotlin/astral/ShaiIllustrationView.kt` | The keykeeper, drawn on Canvas; per-stroke `PathMeasure` reveal; phase re-inking |
+| `app/src/main/kotlin/astral/SketchSurfaces.kt` | `SketchFieldDrawable` (drawn key field) and `HighlightSweepDrawable` (headline marker) |
 | `app/src/main/kotlin/astral/ShaiMotion.kt` | Named motion tokens (PRESS/ENTRANCE/RULE_REVEAL/PHASE_IN 520ms/PHASE_OUT 420ms/CREST) + PathInterpolators |
 | `app/src/main/kotlin/astral/LoaderPreferences.kt` | Remembered key, per-library keys, auto-mode preference |
 | `app/src/main/res/layout/activity_main.xml` (~830 lines) | **One layout for both auth states**; gating is code-driven |
 | `app/src/main/res/layout/activity_splash.xml` | Splash sheet |
-| `app/src/main/res/font/patrick_hand.ttf` | Handwriting voice (OFL; license in `assets/OFL-patrick-hand.txt`) |
+| `app/src/main/res/font/space_grotesk*` | Functional voice: Space Grotesk 400/500/700 (OFL) behind `@font/space_grotesk` |
+| `app/src/main/res/font/caveat.ttf` | Annotation voice only (OFL); licences in `assets/` |
+| `app/src/test/kotlin/astral/PageRenderTest.kt` | JVM render/startup tests → `qa/screenshots/` |
 | `qa/verify_ui_contract.py` | 80 static source checks — the repo's design contract |
 
 ## 4. The phase system (read before touching any view)
 
 The main screen cross-fades between two states on **one shared layout**:
 
-- **Phase 0 — the concept sheet (pre-login / "before login"):** warm paper,
-  faint blue graph ruling, sketch borders, handwriting margin notes, washi
-  tape holding the hero sketch, highlighter-yellow primary action.
+- **Phase 0 — the concept sheet (pre-login):** paper `#FDFCF7`, 24dp
+  `#C9DAF8` ruling, ink `#1F2937` contours, one Caveat margin note, the drawn
+  keykeeper, highlighter `#FFF176` primary action.
 - **Phase 1 — the violet court (signed in):** ink-dark panels
   (`#15111D` family), gold accent `#E9C77E`, desaturated banner.
 
 `updateTheme(progress: Float)` (called per frame of a 520/420ms
 `ValueAnimator`) blends every color via `ShaiPalette.blend` and drives:
 
-- `backdrop.phase`, all `PhaseSurfaceDrawable.phase` fields
+- `backdrop.phase`, all `PhaseSurfaceDrawable.phase` fields,
+  `fieldSurface.phase`, `headlineSweep.phase`, `heroIllustration.phase`
 - Text colors through id lists (`titleIds`, `secondaryIds`, accent ids)
-- `sheet_plate` ("SHAI / 01" ↔ "SHAI / 02"), `sheet_note`
-  ("Not yet verified" ↔ "READY"), hero art swap
-  (`hero_sketch` ↔ `hero_ethereal`, identical pathData — QA-checked), tape
-  alpha (`1 - phase`), hero paper tilt (-1.5° unsigned)
+- `sheet_note` (real state: "Key required" ↔ "Key verified"), the same
+  illustration strokes re-inked, the Remember box (sheet inks ↔ court gold),
+  and the hero's paper tilt (-1.5° unsigned)
 - Banner desaturation: `phaseColorMatrix.setSaturation(progress)`, then
   `appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)`.
   **`ColorMatrixColorFilter` has no `setMatrix()`** — the filter copies the
@@ -75,7 +83,8 @@ The main screen cross-fades between two states on **one shared layout**:
   construction pattern.
 
 Visibility gating lives in `setSignedInControlsVisible()`
-(`library_card`, `operation_section`, `browse_button`) and
+(`library_card`, `operation_section`, `browse_button`,
+`library_menu_button`) and
 `license_section` visibility flips in `resetLoginState`. Views added for the
 pre-login sheet must either live inside a gated section or be made
 phase-aware in `updateTheme`.
@@ -87,21 +96,25 @@ lookups per frame beyond the one `ColorMatrixColorFilter` construction.
 ## 5. Design system — "the keykeeper's notebook"
 
 Genre: **Conceptual Sketch** — a designer's notebook. Committed on every
-screen; do not blend with another style.
+screen; do not blend with another style. The full rationale, palette table and
+reject criteria live in `DESIGN.md`.
 
-- **Palette roles:** paper `#F7F2E7` (background) · graph blue `#7E9CC4`
-  (ruling, low alpha) · card `#FDF9F0` (surface) · ink `#211C24` (text) ·
-  pencil `#6F6270` (muted/border) · **one accent** highlighter `#F5D442`
-  (primary action fill + headline swipe only) · violet court tokens for
-  phase 1 (see `ShaiPalette`).
-- **Type:** sans-serif bold for display, sans-serif body; **handwriting
-  (Patrick Hand) only for margin notes**. No serif anywhere.
-- **Surfaces:** wobbly hand-drawn borders (sketch double-pass stroke in
-  `PhaseSurfaceDrawable`), hatching/texture instead of shadows.
-- **Motion:** sketch lines draw themselves (`OrnamentRuleView.reveal`, arrow
-  AVD `avd_sketch_arrow` trimPathEnd); entrance orchestrated once in
-  `playEntranceMotion()`. Everything respects
-  `ValueAnimator.areAnimatorsEnabled()`.
+- **Palette roles (exact):** paper `#FDFCF7` · grid `#C9DAF8` · ink `#1F2937`
+  · pencil `#777B84` · **one accent** highlighter `#FFF176` (primary fill,
+  headline sweep, the key's wash). No sixth hue on paper — `draft` resolves to
+  ink. Violet court tokens for phase 1 (see `ShaiPalette`).
+- **Type:** **Space Grotesk** for headings, controls, navigation and body,
+  bundled as static 400/500/700 faces and set by the theme. **Caveat only for
+  genuine annotations** (currently one, pointing at the Remember toggle). Body
+  floor 16sp on the sheet. No serif anywhere.
+- **Surfaces:** bowed, overshooting contour strokes (`SketchFieldDrawable`,
+  `PhaseSurfaceDrawable` double pass); hatching instead of shadows; rules
+  separate information instead of cards.
+- **Motion:** the drawing inks itself (`ShaiIllustrationView` + `PathMeasure`,
+  `ILLUSTRATION_MS = 720`), then the headline sweep (`HIGHLIGHT_MS = 300`);
+  rules draw from their centre, the arrow AVD plays once. Every animation is
+  interruptible, starts from the current value, and completes instantly when
+  animations are disabled. Nothing loops.
 - **Never:** gradients, glow blobs, glossy buttons, perfect vector shadows,
   emoji icons, uppercase-tracked eyebrows on every heading, fake
   statistics/testimonials, `transition: all`-style layout-shifting motion.
@@ -114,13 +127,16 @@ screen; do not blend with another style.
 python3 qa/verify_ui_contract.py
 ```
 
-80 static checks, including:
+139 static checks, including:
 - All res XML parses; view IDs unique; required views present in both phases
 - `library_card` / `operation_section` / `browse_button` start `gone`
 - No implicit downloads on redemption (`validateLicense` block audited)
 - Spinner/manual-mode invariants, remembered-key flow invariants
 - hero art pathData identical across auth states
 - No text below 11sp; 48/52/56dp touch targets declared
+- Sheet contract: exact palette values, Space Grotesk theme, Caveat only for
+  the note, 16sp body floor, no invented labels, no bitmap paper, no splash
+  progress bar, no startup timer, drawn field, annotation target, motion tokens
 - Anchored `inside()` slices of MainActivity (e.g. success-reveal block ends
   at `phaseColorMatrix.setSaturation(phaseProgress)`) — moving those anchor
   lines breaks the script; update anchors **deliberately** in the same commit
@@ -134,13 +150,19 @@ scanned). The QA script itself has no false positives.
 
 ```bash
 ./gradlew :app:assembleDebug          # on-device (AndroidIDE) or any SDK 35 setup
+./gradlew :app:testDebugUnitTest      # includes the JVM render tests
 python3 qa/verify_ui_contract.py      # before every commit
 ```
 
+The render tests write `splash.png`, `key-page.png`, `key-page-narrow.png` and
+`court-page.png` to `app/build/reports/ui/`; reviewed copies live in
+`qa/screenshots/`. There is **no emulator in this cloud workspace** (KVM is not
+granted to the sandbox user), so hardware behaviour is still unverified.
+
 History note: the redesign history includes a period where UI commits shipped
-without ever compiling. The 2026-10-25 session fixed the one outstanding
-compile error (`setMatrix`, commit `d72f735`) — keep the discipline of
-build-then-push.
+without ever compiling. Keep the discipline of build-then-push; the JVM render
+tests exist so a missing view id or a broken `onCreate` fails before a device
+does.
 
 ## 8. Git notes
 
@@ -153,7 +175,9 @@ build-then-push.
   - `540e6ab` deslop pass (two-ink discipline, quieter labels, perf-safe phase animation)
   - `d72f735` compile fix (drop `ColorMatrixColorFilter.setMatrix`)
   - `1d7a1c9` Conceptual Sketch pass on the pre-login sheet
-  - this commit adds `context.md`
+  - `22df918` latest: compile fixes after the sketch pass
+  - uncommitted 2026-10-26 pass: cover + key page rebuilt against the exact
+    palette/type/motion brief (see `qa/RELEASE_REPORT.md`)
 
 ## 9. Working agreements for future edits
 
