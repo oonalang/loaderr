@@ -84,8 +84,8 @@ class PageRenderTest {
         assertClay(bitmap)
         val art = activity.findViewById<ShaiIllustrationView>(R.id.hero_art)
         assertEquals("crest is fully sculpted", 1f, art.phase, 0.001f)
-        assertEquals("headline switches with the material", "Access granted.",
-            activity.findViewById<android.widget.TextView>(R.id.hero_headline).text.toString())
+        assertEquals("headline switches with the material", LocalGreeting.message(java.time.ZonedDateTime.now()),
+            activity.findViewById<android.widget.TextView>(R.id.hero_greeting).text.toString())
         val login = activity.findViewById<View>(R.id.login_button)
         val content = activity.findViewById<View>(R.id.main_content)
         assertTrue("primary action clipped", login.right <= content.right)

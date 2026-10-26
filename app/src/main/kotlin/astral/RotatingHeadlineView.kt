@@ -110,7 +110,6 @@ class RotatingHeadlineView @JvmOverloads constructor(
         removeCallbacks(advanceRunnable)
         rotationScheduled = false
         if (clay) {
-            rotationEnabled = false
             setTextColor(ShaiPalette.clayInk)
             typeface = ShaiType.display(context)
             letterSpacing = -0.01f
@@ -119,7 +118,7 @@ class RotatingHeadlineView @JvmOverloads constructor(
             isFocusable = false
             contentDescription = null
             accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_NONE
-            text = "Access granted."
+            text = ""
         } else {
             setTextColor(headlineColors())
             typeface = ShaiType.sheetDisplay(context)

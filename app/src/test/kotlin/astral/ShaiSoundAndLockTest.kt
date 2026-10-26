@@ -103,33 +103,4 @@ class ShaiSoundAndLockTest {
         )
     }
 
-    @Test
-    fun soundPreferenceIsPersistedAndMutingDoesNotThrow() {
-        val context = Robolectric.setupActivity(astral.loader.MainActivity::class.java)
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2))
-        val sounds = ShaiSounds(context)
-        assertTrue("sound starts on", sounds.isEnabled())
-
-        sounds.setEnabled(false)
-        assertFalse("muted persists", sounds.isEnabled())
-        assertEquals(false, ShaiSoundsEnabledProbe(context))
-
-        // Muted play calls are no-ops and must not crash or allocate streams.
-        sounds.play(ShaiSounds.Cue.TAP)
-        sounds.play(ShaiSounds.Cue.SUCCESS)
-
-        sounds.setEnabled(true)
-        assertTrue(sounds.isEnabled())
-        assertEquals(true, ShaiSoundsEnabledProbe(context))
-        // Not yet loaded samples stay silent instead of hitching the frame.
-        sounds.play(ShaiSounds.Cue.TAP)
-        sounds.stop()
-        sounds.play(ShaiSounds.Cue.READY) // rebuilds the pool after release
-        sounds.stop()
-    }
-
-    /** Reads the persisted flag the way the toggle row writes it. */
-    private fun ShaiSoundsEnabledProbe(context: android.content.Context): Boolean =
-        context.getSharedPreferences("loaderPrefs", android.content.Context.MODE_PRIVATE)
-            .getBoolean("ui_sounds_enabled", true)
 }

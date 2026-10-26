@@ -27,7 +27,7 @@ class ClaySurfaceProbeTest {
         drawable.draw(Canvas(bitmap))
         val corner = bitmap.getPixel(6, 6)
         // Inside the reserved inset but outside the face: the shadow lives here.
-        val inset = bitmap.getPixel(12, 150)
+        val inset = bitmap.getPixel((7 * context.resources.displayMetrics.density).toInt(), 150)
         val face = bitmap.getPixel(450, 150)
         println("corner=%08x inset=%08x face=%08x".format(corner, inset, face))
         assertEquals("corner is outside the moulded form", 0, android.graphics.Color.alpha(corner))

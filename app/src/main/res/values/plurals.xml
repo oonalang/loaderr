@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="library_count">
+        <item quantity="one">%d library</item>
+        <item quantity="other">%d libraries</item>
+    </plurals>
+</resources>

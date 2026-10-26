@@ -236,9 +236,9 @@ check('drawableEnd="@drawable/ic_chevron_down"' in spinner_cell,
 check((APP / 'res/drawable/ic_chevron_down.xml').is_file(), 'chevron drawable exists')
 
 # Auto/manual: visible square boxes, exactly one ticked, preference is truth.
-check('<RadioGroup' not in layout_text, 'hidden 1dp radio stub is gone')
-check('@drawable/checkbox_clay' in layout_text,
-      'mode control uses the clay check boxes')
+check(by_id['radioGroup'].tag == 'RadioGroup' and by_id['radioGroup'].get(ns + 'layout_height') == 'wrap_content', 'mode selector is a visible RadioGroup')
+check(by_id['radio_auto'].tag == 'RadioButton' and by_id['radio_manual'].tag == 'RadioButton',
+      'mode segments have native radio semantics')
 check('@+id/radio_auto' in layout_text and '@+id/radio_manual' in layout_text,
       'AUTO and MANUAL boxes keep their ids')
 check('@+id/mode_label' in layout_text, 'mode row is labelled')
@@ -246,8 +246,8 @@ prefs = (APP / 'kotlin/astral/LoaderPreferences.kt').read_text()
 check('fun isAutoMode()' in prefs, 'auto mode has a source of truth')
 check('loaderPreferences.isAutoMode()' in KOTLIN,
       'injection reads the mode preference')
-check('radioManual.isChecked = false' in KOTLIN and 'radioAuto.isChecked = false' in KOTLIN,
-      'exactly one mode box is ticked at a time')
+check('radioGroup.setOnCheckedChangeListener' in KOTLIN,
+      'RadioGroup owns exclusive selection')
 check('setInjectionControlsEnabled' in KOTLIN,
       'control enablement and disabled state have one owner')
 check('setInjectionControlsEnabled(true)' in inside(
@@ -265,7 +265,7 @@ check('android:textSize="17sp"' in BASE.read_text(), 'body copy reads at 17sp, a
 
 # Main controls are comfortable to tap; XML declaration does not assert runtime size.
 text = BASE.read_text()
-for item in ['android:layout_height="68dp"', 'android:layout_height="52dp"',
+for item in ['android:minHeight="64dp"', 'android:layout_height="52dp"',
              'android:layout_height="48dp"']:
     check(item in text, f'touch target declared {item}')
 
@@ -330,8 +330,8 @@ check('saved only if you tick this' in layout_text,
       'the note states a real consequence, not decoration')
 check(by_id['remember_key'].attrib.get(ns + 'layout_height') == '48dp',
       'the toggle keeps a 48dp target')
-check(by_id['login_button'].attrib.get(ns + 'layout_height') == '68dp',
-      'the primary action keeps a 68dp target, with room for its own shadow')
+check(by_id['login_button'].attrib.get(ns + 'minHeight') == '64dp',
+      'the primary action keeps a flexible 64dp minimum target, with room for its own shadow')
 check('android:text="Redeem key"' in layout_text and 'textAllCaps="false"' in layout_text,
       'one primary action in sentence case')
 
@@ -449,13 +449,13 @@ check('class ShaiSounds' in sounds and 'SoundPool' in sounds and
       'R.raw.ui_tap' in sounds and 'R.raw.ui_success' in sounds and
       'R.raw.ui_error' in sounds and 'R.raw.ui_ready' in sounds,
       'the UI sound kit plays four bundled cues through SoundPool')
-check('RINGER_MODE_NORMAL' in sounds and 'KEY_UI_SOUNDS' in sounds,
-      'the sound kit respects silent mode and a persisted toggle')
+check('RINGER_MODE_NORMAL' in sounds and 'STREAM_SYSTEM' in sounds,
+      'the sound kit respects silent mode and system volume')
 check(all(term not in sounds for term in ("setLooping", "LoopPoint")),
       'no cue loops or runs as ambience')
-check('sound_toggle' in layout_text_again and 'sound_toggle' in KOTLIN and
-      'ui_sounds_enabled' in sounds,
-      'the persistent UI sounds toggle is wired to its preference')
+check('sound_toggle' not in layout_text_again and 'sound_toggle' not in KOTLIN and
+      'ui_sounds_enabled' not in sounds,
+      'sound feedback is enabled without a visible or stale preference toggle')
 for raw in ('ui_tap.wav', 'ui_success.wav', 'ui_error.wav', 'ui_ready.wav'):
     check((APP / 'res/raw' / raw).is_file(), f'{raw} ships with the app')
 check('Ink.LOCK' in visuals_illustration and 'arcTo' in visuals_illustration and

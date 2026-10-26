@@ -83,9 +83,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var methodSpinner: Spinner
     private lateinit var loaderPreferences: LoaderPreferences
     private lateinit var progressBar: ProgressBar
-    private lateinit var radioGroup: View
-    private lateinit var radioAuto: CheckBox
-    private lateinit var radioManual: CheckBox
+    private lateinit var radioGroup: android.widget.RadioGroup
+    private lateinit var radioAuto: android.widget.RadioButton
+    private lateinit var radioManual: android.widget.RadioButton
     private lateinit var rootStatusView: TextView
     private lateinit var appBanner: ImageView
     private lateinit var mainScroll: ScrollView
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
     private var phaseAnimator: ValueAnimator? = null
     private var authenticatedLibrary: String? = null
     private var licenseVerified = false
-    private lateinit var soundToggle: CheckBox
+    private val greetingClock by lazy { GreetingClock(this, { tv(R.id.hero_greeting).text = it }) }
     private var redeemedGame: String? = null
     private var redeemedKey: String? = null
     private var isPreparingLibrary = false
@@ -194,11 +194,6 @@ class MainActivity : AppCompatActivity() {
         appBanner = findViewById(R.id.app_banner)
         rememberKeyCheck = findViewById(R.id.remember_key)
         keyFingerprint = findViewById(R.id.key_fingerprint)
-        soundToggle = findViewById(R.id.sound_toggle)
-        // Same discipline as the remember toggle: the material theme wants to
-        // wash the drawn box into a solid plum blob; the drawn states stay.
-        soundToggle.buttonTintList = null
-        
         Glide.with(this)
             .load(R.drawable.shai_mark)
             .centerCrop()
@@ -218,6 +213,15 @@ class MainActivity : AppCompatActivity() {
 
         setupDelaySpinner()
         setupMethodSpinner()
+        if (resources.configuration.fontScale >= 1.3f || resources.configuration.screenWidthDp < 350) {
+            findViewById<LinearLayout>(R.id.options_fields).orientation = LinearLayout.VERTICAL
+            listOf(R.id.method_field, R.id.delay_field).forEach { id ->
+                findViewById<View>(id).layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
+            findViewById<View>(R.id.options_gap).layoutParams = LinearLayout.LayoutParams(1, (12 * resources.displayMetrics.density).toInt())
+        }
+
         
         val savedDelay = loaderPreferences.getDelaySeconds()
         val savedMethod = loaderPreferences.getInjectionMethod()
@@ -251,21 +255,12 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
-        radioAuto.setOnCheckedChangeListener { _, checked ->
-            if (checked) {
-                // Checkbox look, radio behaviour: exactly one mode is ticked.
-                radioManual.isChecked = false
-                loaderPreferences.saveMode("auto")
-                sounds.play(ShaiSounds.Cue.TAP)
-            }
+        radioGroup.setOnCheckedChangeListener { _, checkedId ->
+            loaderPreferences.saveMode(if (checkedId == R.id.radio_auto) "auto" else "manual")
+            updateModeSegments()
+            sounds.play(ShaiSounds.Cue.TAP)
         }
-        radioManual.setOnCheckedChangeListener { _, checked ->
-            if (checked) {
-                radioAuto.isChecked = false
-                loaderPreferences.saveMode("manual")
-                sounds.play(ShaiSounds.Cue.TAP)
-            }
-        }
+        updateModeSegments()
 
         findViewById<View>(R.id.library_card).setOnClickListener {
             sounds.play(ShaiSounds.Cue.TAP)
@@ -304,14 +299,6 @@ class MainActivity : AppCompatActivity() {
             findViewById(R.id.drawer_about),
             findViewById(R.id.hero_headline)
         )
-
-        soundToggle.isChecked = sounds.isEnabled()
-        soundToggle.setOnCheckedChangeListener { _, checked ->
-            sounds.setEnabled(checked)
-            if (checked) sounds.play(ShaiSounds.Cue.TAP)
-            updateSoundCaption()
-        }
-        updateSoundCaption()
 
         loginButton.setOnClickListener {
             if (isReadyToInject) {
@@ -385,8 +372,8 @@ class MainActivity : AppCompatActivity() {
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            content.setPadding(start, top + bars.top, end, bottom + maxOf(bars.bottom, ime))
-            if (ime > 0 && licenseKeyInput.hasFocus()) {
+            content.setPadding(start + bars.left, top + bars.top, end + bars.right, bottom + maxOf(bars.bottom, ime))
+            if (ime > 0 && ::licenseKeyInput.isInitialized && licenseKeyInput.hasFocus()) {
                 val field = findViewById<View>(R.id.key_field)
                 field.post {
                     mainScroll.smoothScrollTo(
@@ -395,6 +382,18 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
             }
+            insets
+        }
+        val drawerContent = findViewById<View>(R.id.drawer_content)
+        val drawerLeft = drawerContent.paddingLeft
+        val drawerRight = drawerContent.paddingRight
+        val drawerTop = drawerContent.paddingTop
+        val drawerBottom = drawerContent.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.library_drawer)) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            drawerContent.setPadding(drawerLeft + bars.left, drawerTop + bars.top,
+                drawerRight + bars.right, drawerBottom + maxOf(bars.bottom, ime))
             insets
         }
         ViewCompat.requestApplyInsets(content)
@@ -507,15 +506,6 @@ class MainActivity : AppCompatActivity() {
         updateRememberCaption()
     }
 
-    /** The sound row's supporting line never promises what muting does not do. */
-    private fun updateSoundCaption() {
-        findViewById<TextView>(R.id.sound_caption).text = if (soundToggle.isChecked) {
-            "Quiet taps and short cues for buttons and results."
-        } else {
-            "Sound is off. The app works exactly the same."
-        }
-    }
-
     private fun updateRememberCaption() {
         findViewById<TextView>(R.id.remember_caption).text = if (rememberKeyCheck.isChecked) {
             "Saved on this device. SHAI tries it when the app opens."
@@ -585,9 +575,9 @@ class MainActivity : AppCompatActivity() {
     private fun keyLabel(key: String): String {
         val clean = key.trim()
         return if (clean.length >= 12) {
-            "KEY  ${clean.take(4)} ···· ${clean.takeLast(4)}"
+            "•••• ${clean.takeLast(4)}"
         } else {
-            "KEY  ···· ${clean.takeLast(2)}"
+            "••••"
         }
     }
 
@@ -706,6 +696,7 @@ class MainActivity : AppCompatActivity() {
         fieldSurface.phase = phaseProgress
         heroIllustration.phase = phaseProgress
         headlineView.setPhase(phaseProgress >= .55f)
+        greetingClock.setEnabled(phaseProgress >= .55f)
         val clay = phaseProgress >= .5f
         val ink = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
         val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayMuted, phaseProgress)
@@ -715,14 +706,14 @@ class MainActivity : AppCompatActivity() {
         val titleIds = intArrayOf(
             R.id.brand_title, R.id.library_name,
             R.id.success_title, R.id.drawer_title, R.id.remember_title,
-            R.id.radio_auto, R.id.radio_manual, R.id.sound_title
+            R.id.radio_auto, R.id.radio_manual
         )
         val secondaryIds = intArrayOf(
             R.id.library_game,
             R.id.library_version, R.id.hero_caption,
             R.id.license_heading, R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
-            R.id.operation_note, R.id.sound_caption
+            R.id.operation_note
         )
         titleIds.forEach { tv(it).setTextColor(ink) }
         secondaryIds.forEach { tv(it).setTextColor(secondary) }
@@ -771,9 +762,6 @@ class MainActivity : AppCompatActivity() {
             // On paper the boxes are inked and ticked by hand; in clay they are beads.
             val box = if (clay) R.drawable.checkbox_clay else R.drawable.checkbox_sheet
             rememberKeyCheck.setButtonDrawable(box)
-            radioAuto.setButtonDrawable(box)
-            radioManual.setButtonDrawable(box)
-            soundToggle.setButtonDrawable(box)
             tv(R.id.success_emblem).setBackgroundResource(
                 if (clay) R.drawable.seal_clay else R.drawable.seal_ring
             )
@@ -787,11 +775,11 @@ class MainActivity : AppCompatActivity() {
             lastHandStyle = handMode
         }
         if (lastDisplayedSignedIn != displaySignedIn) {
-            // The plaque carries the fact, a second "Key verified" would be noise.
-            findViewById<TextView>(R.id.hero_caption).text = if (displaySignedIn) {
-                "Your key is verified. Choose a library to continue."
-            } else {
-                "Redeem your key."
+            headlineView.visibility = if (displaySignedIn) View.GONE else View.VISIBLE
+            tv(R.id.hero_greeting).visibility = if (displaySignedIn) View.VISIBLE else View.GONE
+            tv(R.id.hero_caption).apply {
+                text = "Redeem your key."
+                visibility = if (displaySignedIn) View.GONE else View.VISIBLE
             }
             // Paper tilt keeps the hand-placed quality of a sketch on a page.
             heroIllustration.rotation = if (displaySignedIn) 0f else -1.5f
@@ -913,19 +901,19 @@ class MainActivity : AppCompatActivity() {
         val label = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
         val body = if (clay) ShaiType.body(this) else ShaiType.sheet(this)
         intArrayOf(
-            R.id.brand_title, R.id.library_name, R.id.drawer_title,
+            R.id.brand_title, R.id.hero_greeting, R.id.library_name, R.id.drawer_title,
             R.id.operation_heading
         ).forEach { tv(it).typeface = display }
         intArrayOf(
             R.id.remember_title, R.id.license_heading, R.id.radio_auto,
             R.id.radio_manual, R.id.library_status, R.id.success_title,
-            R.id.method_label, R.id.delay_label, R.id.mode_label, R.id.sound_title
+            R.id.method_label, R.id.delay_label, R.id.mode_label
         ).forEach { tv(it).typeface = label }
         intArrayOf(
             R.id.hero_caption, R.id.library_game, R.id.library_version,
             R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
-            R.id.operation_note, R.id.sound_caption, R.id.change_key_link,
+            R.id.operation_note, R.id.change_key_link,
             R.id.about_button, R.id.drawer_about
         ).forEach { tv(it).typeface = body }
         loginButton.typeface = label
@@ -935,15 +923,28 @@ class MainActivity : AppCompatActivity() {
         tv(R.id.drawer_about).letterSpacing = if (clay) 0f else 0.08f
     }
 
+    private fun updateModeSegments() {
+        listOf(radioAuto, radioManual).forEach { segment ->
+            segment.text = when (segment.id) {
+                R.id.radio_auto -> if (segment.isChecked) "✓  AUTO" else "AUTO"
+                else -> if (segment.isChecked) "✓  MANUAL" else "MANUAL"
+            }
+            segment.background = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SEGMENT).apply {
+                phase = 1f
+                selected = segment.isChecked
+            }
+        }
+    }
+
     private fun setupDelaySpinner() {
-        val delayOptions = arrayOf("NO DELAY", "1S DELAY", "2S DELAY", "3S DELAY", "4S DELAY", "5S DELAY")
+        val delayOptions = arrayOf("None", "1 second", "2 seconds", "3 seconds", "4 seconds", "5 seconds")
         delayAdapter = SimpleSpinnerAdapter(this, delayOptions)
         delaySpinner.adapter = delayAdapter
         delayAdapter.applyPhase(phaseProgress)
     }
 
     private fun setupMethodSpinner() {
-        val methodOptions = arrayOf("METHOD 1", "METHOD 2", "METHOD 3")
+        val methodOptions = arrayOf("Method 1", "Method 2", "Method 3")
         methodAdapter = SimpleSpinnerAdapter(this, methodOptions)
         methodSpinner.adapter = methodAdapter
         methodAdapter.applyPhase(phaseProgress)
@@ -1182,7 +1183,7 @@ class MainActivity : AppCompatActivity() {
         libraryCount.text = when {
             !licenseVerified -> "Redeem a key first"
             allLibraries.isEmpty() -> "No libraries published"
-            else -> "${visibleLibraries.size} libraries"
+            else -> resources.getQuantityString(R.plurals.library_count, visibleLibraries.size, visibleLibraries.size)
         }
 
         if (visibleLibraries.isEmpty()) {
@@ -1353,13 +1354,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val logoUrl = jsonObject.optString("LOGO")
-        if (logoUrl.isNotBlank()) {
-            Glide.with(this)
-                .load(logoUrl)
-                .placeholder(R.drawable.shai_mark)
-                .error(R.drawable.shai_mark)
-                .into(appBanner)
-        }
+        Glide.with(this)
+            .load(logoUrl.ifBlank { null })
+            .placeholder(R.drawable.shai_mark)
+            .error(R.drawable.shai_mark)
+            .centerCrop()
+            .into(appBanner)
         
         refreshLibraryDrawer()
         updateTheme(phaseProgress)
@@ -1369,11 +1369,11 @@ class MainActivity : AppCompatActivity() {
             isReadyToInject = false
             remoteLibrarySize = 0
             File(cacheDir, LIBRARY_FILE_NAME).delete()
-            setSuccessDetail("Selected ${selectedLibrary.name}. Tap Prepare library when you are ready.")
+            hideSuccessDetail()
             loginButton.text = "Prepare library"
             loginButton.isEnabled = true
         } else if (licenseVerified) {
-            setSuccessDetail("Selected ${selectedLibrary.name}. Tap Prepare library when you are ready.")
+            hideSuccessDetail()
             if (!isReadyToInject) {
                 loginButton.text = "Prepare library"
                 loginButton.isEnabled = true
@@ -1544,7 +1544,7 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    /** The plaque's detail line earns its space only when it carries status. */
+    /** Transient operation feedback belongs beside the primary action. */
     private fun setSuccessDetail(message: String) {
         findViewById<TextView>(R.id.success_detail).apply {
             text = message
@@ -1644,7 +1644,7 @@ class MainActivity : AppCompatActivity() {
     /** One place owns enablement and the visual state of the injection controls,
      *  so a disabled spinner and mode row read as disabled instead of inert. */
     private fun setInjectionControlsEnabled(enabled: Boolean) {
-        listOf(delaySpinner, methodSpinner, radioGroup).forEach { view ->
+        listOf(delaySpinner, methodSpinner, radioGroup, radioAuto, radioManual).forEach { view ->
             view.isEnabled = enabled
             view.alpha = if (enabled) 1f else .45f
         }
@@ -1847,7 +1847,17 @@ class MainActivity : AppCompatActivity() {
         LibraryDownloader.cancelNotification(this)
     }
     
+    override fun onStart() {
+        super.onStart()
+        sounds.start()
+        greetingClock.start()
+        if (::headlineView.isInitialized) headlineView.startRotation()
+    }
+
     override fun onStop() {
+        greetingClock.stop()
+        sounds.stop()
+        if (::headlineView.isInitialized) headlineView.stopRotation()
         super.onStop()
         if (isFinishing) {
             cleanUp()
@@ -1857,7 +1867,8 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         phaseAnimator?.cancel()
         if (::headlineView.isInitialized) headlineView.release()
-        if (::soundToggle.isInitialized) sounds.stop()
+        sounds.stop()
+        greetingClock.stop()
         super.onDestroy()
         cleanUp()
     }

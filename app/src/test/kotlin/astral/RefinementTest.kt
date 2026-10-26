@@ -115,13 +115,13 @@ class RefinementTest {
         activity.invoke("setSignedInControlsVisible", true)
         activity.invoke("updateTheme", 1f)
         val headline = activity.findViewById<RotatingHeadlineView>(R.id.hero_headline)
-        assertEquals("Access granted.", headline.text.toString())
+        assertEquals(LocalGreeting.message(java.time.ZonedDateTime.now()), activity.findViewById<TextView>(R.id.hero_greeting).text.toString())
         assertFalse(headline.isClickable)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(5))
         assertEquals(
             "the loop stops as soon as the key is accepted",
-            "Access granted.",
-            headline.text.toString()
+            LocalGreeting.message(java.time.ZonedDateTime.now()),
+            activity.findViewById<TextView>(R.id.hero_greeting).text.toString()
         )
     }
 

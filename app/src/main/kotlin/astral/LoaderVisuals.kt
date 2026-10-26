@@ -118,7 +118,7 @@ internal class PhaseSurfaceDrawable(
     /** Measured in the view's own density, so a 30dp radius is 30dp everywhere. */
     private val density: Float = context.resources.displayMetrics.density
 
-    enum class Kind { CARD, PRIMARY, SECONDARY, SUCCESS, DRAWER, SEARCH, ROW, SELECT, PLAQUE }
+    enum class Kind { CARD, PRIMARY, SECONDARY, SUCCESS, DRAWER, SEARCH, ROW, SELECT, PLAQUE, SEGMENT }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bevelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -255,8 +255,8 @@ internal class PhaseSurfaceDrawable(
     private fun drawStackShadow(
         canvas: Canvas, rect: RectF, radius: Float, dp: Float, clay: Float, pressed: Boolean
     ) {
-        val reach = (if (pressed) 3.4f else 7.6f) * dp * clay
-        val strength = (if (pressed) .10f else .15f) * clay
+        val reach = (if (pressed) 2f else (clayInset() - 1.5f).coerceIn(0f, 6f)) * dp * clay
+        val strength = (if (pressed) .026f else .045f) * clay
         val lift = (if (pressed) .5f else 1.4f) * dp * clay
         paint.style = Paint.Style.FILL
         for (i in SHADOW_RINGS downTo 1) {
@@ -286,10 +286,10 @@ internal class PhaseSurfaceDrawable(
             bevel = LinearGradient(
                 rect.left, rect.top, rect.right, rect.bottom,
                 intArrayOf(
-                    withAlpha(light, if (sunken) .22f else .62f),
+                    withAlpha(light, if (sunken) .08f else .65f),
                     withAlpha(light, 0f),
                     withAlpha(shade, 0f),
-                    withAlpha(shade, if (sunken) .10f else .20f)
+                    withAlpha(shade, if (sunken) .38f else .10f)
                 ),
                 floatArrayOf(0f, .42f, .58f, 1f),
                 Shader.TileMode.CLAMP
@@ -300,7 +300,7 @@ internal class PhaseSurfaceDrawable(
             bevelSunken = sunken
         }
         bevelPaint.shader = bevel
-        bevelPaint.strokeWidth = (if (sunken) 7f else 9f) * dp
+        bevelPaint.strokeWidth = (if (sunken) 3f else 4f) * dp
         bevelPaint.alpha = (255 * clay).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.clipRect(rect)
@@ -315,6 +315,7 @@ internal class PhaseSurfaceDrawable(
 
     private fun clayShadow(): Boolean = when (kind) {
         Kind.SEARCH, Kind.SELECT -> false
+        Kind.SEGMENT -> selected
         else -> true
     }
 
@@ -324,24 +325,27 @@ internal class PhaseSurfaceDrawable(
         Kind.PRIMARY, Kind.SECONDARY -> 8f
         Kind.DRAWER -> 0f
         Kind.SEARCH, Kind.SELECT -> 3f
-        Kind.ROW -> 9f
+        Kind.ROW -> 7f
+        Kind.SEGMENT -> 4f
     }
 
     private fun clayRadius(): Float = when (kind) {
-        Kind.CARD -> 30f
+        Kind.CARD -> 24f
         Kind.PRIMARY -> 22f
         Kind.SECONDARY -> 20f
-        Kind.SUCCESS, Kind.PLAQUE -> 26f
+        Kind.SUCCESS, Kind.PLAQUE -> 20f
         // The panel is a slab now, not a full-bleed sheet: it needs its own corners.
         Kind.DRAWER -> 28f
         Kind.SEARCH, Kind.SELECT -> 16f
         Kind.ROW -> 18f
+        Kind.SEGMENT -> 13f
     }
 
     private fun sketchRadius(): Float = if (kind == Kind.DRAWER) 0f else 3f
 
     private fun clayFace(pressed: Boolean): Int {
         val base = when (kind) {
+            Kind.SEGMENT -> if (selected) ShaiPalette.clayPeri else ShaiPalette.claySunken
             Kind.PRIMARY -> ShaiPalette.clayPink
             Kind.SECONDARY -> ShaiPalette.clayPeri
             Kind.SUCCESS, Kind.PLAQUE -> ShaiPalette.clayMint
