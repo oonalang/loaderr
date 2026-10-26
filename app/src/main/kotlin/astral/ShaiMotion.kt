@@ -14,12 +14,10 @@ internal object ShaiMotion {
     const val PRESS_IN_MS = 100L
     const val PRESS_OUT_MS = 160L
     const val ENTRANCE_MS = 320L
-    const val RULE_REVEAL_MS = 360L
     // The one rare, deliberate moment: long enough to read as material changing,
     // short enough that the user is never waiting on it.
     const val PHASE_IN_MS = 640L
     const val PHASE_OUT_MS = 420L
-    const val CREST_MS = 320L
 
     const val DRAWER_OPEN_MS = 300L
     const val DRAWER_CLOSE_MS = 220L
@@ -33,10 +31,10 @@ internal object ShaiMotion {
     const val ILLUSTRATION_MS = 720L
     const val HIGHLIGHT_MS = 300L
 
-    const val SUCCESS_SCROLL_DELAY_MS = 560L
-    const val DRAWER_REVEAL_DELAY_MS = 880L
-    const val REDUCED_REVEAL_DELAY_MS = 80L
-    const val REDUCED_DRAWER_DELAY_MS = 260L
+    /** The loading-screen tip line: a long read, then a restrained handover. */
+    const val HEADLINE_HOLD_MS = 4000L
+    const val HEADLINE_FADE_OUT_MS = 180L
+    const val HEADLINE_FADE_IN_MS = 220L
 
     /** Strong ease-out for entrances, replies and press feedback. */
     val easeOut: TimeInterpolator = PathInterpolator(0.23f, 1f, 0.32f, 1f)

@@ -141,8 +141,10 @@ check(all(term not in visuals for term in ('RadialGradient', 'drawCornerScroll',
       'notebook removes halos, ornamental frames and shimmer')
 check('if (ruled)' in visuals and 'state_pressed' in visuals and 'state_focused' in visuals,
       'ruled surfaces preserve pressed and focus rendering')
-check('class OrnamentRuleView' in visuals and 'OrnamentRuleView' in KOTLIN,
-      'ornament rule is phase-aware')
+check('hero_rule' not in KOTLIN and 'hero_rule' not in BASE.read_text(),
+      'the decorative rule under the wordmark is gone')
+check('OrnamentRuleView' not in KOTLIN and 'OrnamentRuleView' not in visuals,
+      'the retired ornament rule is not referenced or shipped')
 check('heroIllustration.phase = phaseProgress' in KOTLIN,
       'the crest is the same drawing re-inked by the phase blend')
 check('hero_sketch' not in KOTLIN and 'hero_ethereal' not in KOTLIN,
@@ -178,9 +180,14 @@ success_reveal = inside('        val successSection = cv(R.id.success_section)',
 check('successSection.alpha = reveal' in success_reveal and
       'translationY' in success_reveal,
       'signed-in plaque is revealed by the phase timeline')
-check('schedulePostAuthReveal(openDrawer = true)' in KOTLIN and
-      'DRAWER_REVEAL_DELAY_MS' in KOTLIN,
-      'drawer waits for the crest and plaque reveal')
+check('browse_button' not in KOTLIN and 'library_menu_button' not in KOTLIN,
+      'the removed list button and menu control have no surviving handlers')
+check('browse_button' not in BASE.read_text() and 'library_menu_button' not in BASE.read_text(),
+      'the removed list button and menu control have no layout space')
+check('setLibraryDrawerOpen(true)' not in inside(
+          '                    // The verified state never opens or selects anything.',
+          '                }\n            }'),
+      'authentication never opens the library drawer by itself')
 check('HapticFeedbackConstants.CONFIRM' in KOTLIN,
       'verified state gives a confirmation haptic')
 check('revealKeyEntry()' in KOTLIN and 'requestFocus()' in KOTLIN,
@@ -196,22 +203,25 @@ check('R.id.splash_brand' in SPLASH and 'R.id.splash_art' in SPLASH,
 check('postDelayed' not in SPLASH and 'Choreographer' in SPLASH,
       'the cover leaves when its launch checks settle, not on a timer')
 about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
-check('playbackEntrance' in about and 'R.id.about_logo' in about,
-      'about sheet has a staged entrance')
+check('playbackEntrance' in about and 'R.id.about_art' in about,
+      'about sheet has a staged entrance on the real illustration')
+check('R.id.about_logo' not in about and 'R.id.about_info_card' not in about,
+      'the dark logo square and duplicate info card are gone')
 
-# Signed-in gating: the library selector, mode/delay controls and browse
-# action belong to the court and never appear on the unauthenticated sheet.
+# Signed-in gating: the working card and settings belong to the clay state
+# and never appear on the unauthenticated sheet.
 gating = inside('    private fun setSignedInControlsVisible(',
                 '    /** One place owns enablement')
-check('R.id.library_card' in gating and 'R.id.operation_section' in gating and
-      'R.id.browse_button' in gating and 'R.id.library_menu_button' in gating,
+check('R.id.library_card' in gating and 'R.id.operation_section' in gating,
       'signed-in controls are gated together')
+check('browse_button' not in gating and 'library_menu_button' not in gating,
+      'no duplicate library-list controls remain')
 check('setSignedInControlsVisible(true)' in KOTLIN,
       'signed-in controls revealed after redemption')
 clear_phase = inside('    private fun clearAuthenticatedPhase()', '    private fun animateToPhase')
 check('setSignedInControlsVisible(false)' in clear_phase,
       'leaving the signed-in phase hides them again')
-for gated in ('library_card', 'operation_section', 'browse_button', 'library_menu_button'):
+for gated in ('library_card', 'operation_section'):
     node = by_id.get(gated)
     check(node is not None, f'{gated} exists')
     check(node.attrib.get(ns + 'visibility') == 'gone',
@@ -255,7 +265,7 @@ check('android:textSize="17sp"' in BASE.read_text(), 'body copy reads at 17sp, a
 
 # Main controls are comfortable to tap; XML declaration does not assert runtime size.
 text = BASE.read_text()
-for item in ['android:layout_height="68dp"', 'android:layout_height="64dp"',
+for item in ['android:layout_height="68dp"', 'android:layout_height="52dp"',
              'android:layout_height="48dp"']:
     check(item in text, f'touch target declared {item}')
 
@@ -331,7 +341,24 @@ check('ILLUSTRATION_MS' in motion and 'HIGHLIGHT_MS' in motion,
       'illustration and sweep timings are tokens')
 check('completeReveal()' in KOTLIN and 'completeReveal()' in ILLUSTRATION,
       'reduced motion shows the finished drawing')
-check('headlineSweep.progress' in KOTLIN, 'the highlighter sweep is driven once')
+headline = (APP / 'kotlin/astral/RotatingHeadlineView.kt').read_text()
+check('RotatingHeadlineView' in KOTLIN and 'headlineView.setPhase' in KOTLIN,
+      'the headline rotates through one TextView and stops in clay')
+check('postDelayed(advanceRunnable, HOLD_MS)' in headline and 'shouldRotate()' in headline,
+      'the tip timer is owned by the visible view')
+check('onDetachedFromWindow' in headline and 'removeCallbacks(advanceRunnable)' in headline,
+      'rotation callbacks are cancelled with the view')
+check('ValueAnimator.areAnimatorsEnabled()' in headline,
+      'the rotating tip respects reduced motion')
+for message in ('Shai Premium is better.', 'Shai updates every week!', 'Buy now!',
+                'Suggest more feats!', 'Hey did you know?', 'Promo drops every week too!'):
+    check(message in headline, f'exact rotating tip present: {message}')
+check('shaistore.vercel.app' in headline and 'SHAI store' in headline,
+      'Buy now points at the SHAI store')
+check('isClickable = buyNow' in headline and 'messageIndex == BUY_NOW_INDEX' in headline,
+      'only Buy now is actionable')
+check('HL_FADE' not in headline and 'FADE_OUT_MS' in headline and 'FADE_IN_MS' in headline,
+      'the tip handover is a fade, not a typing animation')
 check('animator?.cancel()' in ILLUSTRATION, 'the reveal is interruptible')
 check('ValueAnimator.areAnimatorsEnabled()' in ILLUSTRATION,
       'stroke reveal respects the system animation scale')
@@ -389,15 +416,15 @@ for font in ('fredoka_semibold.ttf', 'nunito_regular.ttf', 'nunito_semibold.ttf'
     check((APP / 'res/font' / font).is_file(), f'{font} ships with the app')
 check('object ShaiType' in type_file, 'typefaces resolve through one place')
 check('applyTypefaces(displaySignedIn)' in KOTLIN, 'the material change swaps the type voice')
-check('R.id.hero_headline).letterSpacing' in KOTLIN,
-      'display tracking is set per material')
+check('letterSpacing = -0.015f' in headline and 'letterSpacing = -0.01f' in headline,
+      'display tracking is set per material in the headline view')
 
 # The transformation is state-driven and staged.
 check('animateToPhase(1f)' in KOTLIN, 'only an accepted key starts the material change')
 check('ValueAnimator.areAnimatorsEnabled()' in KOTLIN,
       'with animations off the finished object is shown directly')
-reveal_delay = int(re.search(r'DRAWER_REVEAL_DELAY_MS = (\d+)L', motion).group(1))
-check(reveal_delay > phase_ms, 'the drawer waits for the material change to finish')
+check('DRAWER_REVEAL_DELAY_MS' not in motion,
+      'the removed automatic drawer reveal has no timing token')
 
 # Every authenticated surface belongs to the same system.
 check('settingsSurface' in KOTLIN, 'the injection panel is a moulded surface too')
@@ -407,7 +434,23 @@ check('pill_mint' in KOTLIN and 'pill_pink' in KOTLIN,
 check('applyPill' in KOTLIN and 'clay_pill' in KOTLIN,
       'chips are restyled once per material, not per frame')
 about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
+about_layout = (APP / 'res/layout/activity_about.xml').read_text()
 check('ShaiPalette.clayBg' in about and 'ShaiType.display' in about,
       'the about sheet belongs to the clay system')
+check('about_art' in about_layout and 'about_details_card' in about_layout,
+      'about uses the keykeeper illustration and a real details card')
+check('about_credit' in about_layout and 'Powered by @Shaiaintshyy' in about_layout,
+      'creator attribution is part of the page')
+check('about_logo' not in about_layout and 'about_pill' not in about_layout and
+      'about_info_card' not in about_layout,
+      'the dark square and duplicated about cards are gone')
+check('@color/loader_background' not in about_layout and
+      '@drawable/about_card' not in about_layout,
+      'about does not use the retired dark surfaces')
+check('MaterialButton' not in about and 'backgroundTintList' not in about,
+      'the Telegram action is a clay surface, not a dark Material button')
+check('Creator channel' in about_layout and '@Shaimainch' in about_layout and
+      't.me/Shaimainch' in about,
+      'creator channel copy and destination are preserved')
 
 print('\nSTATIC UI CONTRACT CHECKS PASSED (not an APK runtime test).')

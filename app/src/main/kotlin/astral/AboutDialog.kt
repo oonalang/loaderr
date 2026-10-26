@@ -3,12 +3,8 @@ package astral.loader
 import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
-import android.content.res.ColorStateList
-import android.graphics.Typeface
-import android.view.ViewGroup
-import android.widget.Button
-import com.google.android.material.button.MaterialButton
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
@@ -16,17 +12,29 @@ import android.os.Bundle
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 
+/**
+ * About is part of the product, not a legacy settings sheet. When it is opened
+ * after redemption it is the same clay page; opened from the sheet it is still
+ * a notebook page. Both states share one layout and one set of surfaces.
+ */
 class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dialog(context) {
+
+    private val phase: Float get() = if (signedIn) 1f else 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_about)
+        window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
+        applyInsets()
 
         val back = findViewById<View>(R.id.about_back)
         back.setOnClickListener { dismiss() }
@@ -34,9 +42,22 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
         val telegram = findViewById<View>(R.id.about_telegram)
         telegram.setOnClickListener { openTelegram() }
         installPress(telegram)
+
         bindDetails()
         applyPhaseStyle()
         playbackEntrance()
+    }
+
+    private fun applyInsets() {
+        val scroll = findViewById<View>(R.id.about_scroll)
+        ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(0, bars.top, 0, bars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(scroll)
     }
 
     /** Same short press language as the main screen, adapted to a dialog. */
@@ -71,11 +92,11 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
         val density = context.resources.displayMetrics.density
         val ids = intArrayOf(
             R.id.about_back,
-            R.id.about_logo,
-            R.id.about_pill,
+            R.id.about_title,
+            R.id.about_art,
             R.id.about_details_card,
-            R.id.about_info_card,
-            R.id.about_telegram
+            R.id.about_telegram,
+            R.id.about_credit
         )
         ids.forEachIndexed { index, id ->
             val view = findViewById<View>(id)
@@ -85,8 +106,8 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
             view.animate()
                 .alpha(1f)
                 .translationY(0f)
-                .setStartDelay(40L + index * 45L)
-                .setDuration(280L)
+                .setStartDelay(40L + index * 40L)
+                .setDuration(260L)
                 .setInterpolator(ShaiMotion.easeOut)
                 .start()
         }
@@ -112,21 +133,23 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
     }
 
     private fun bindDetails() {
+        val iconTint = if (signedIn) ShaiPalette.clayMuted else ShaiPalette.pencil
         val details = listOf(
             Detail(R.id.detail_developer, R.drawable.ic_user, "Application", "SHAI LOADER"),
             Detail(R.id.detail_username, R.drawable.ic_about, "Username", "@Shaiaintshyy"),
-            Detail(R.id.detail_channel, R.drawable.ic_telegram, "Channel", "t.me/Shaimainch"),
-            Detail(R.id.detail_version, R.drawable.ic_package, "App Version", appVersion())
+            Detail(R.id.detail_version, R.drawable.ic_package, "App version", appVersion())
         )
 
         details.forEach { detail ->
             val row = findViewById<View>(detail.id)
-            row.findViewById<ImageView>(R.id.about_detail_icon).setImageResource(detail.icon)
+            row.findViewById<ImageView>(R.id.about_detail_icon).apply {
+                setImageResource(detail.icon)
+                imageTintList = ColorStateList.valueOf(iconTint)
+            }
             row.findViewById<TextView>(R.id.about_detail_label).text = detail.label
             row.findViewById<TextView>(R.id.about_detail_value).text = detail.value
         }
     }
-
 
     private fun appVersion(): String = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
@@ -135,50 +158,72 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
     }
 
     private fun applyPhaseStyle() {
-        val base = if (signedIn) ShaiPalette.clayBg else ShaiPalette.paper
-        val foreground = if (signedIn) ShaiPalette.clayInk else ShaiPalette.ink
-        val secondary = if (signedIn) ShaiPalette.clayMuted else ShaiPalette.pencil
-        val accent = if (signedIn) ShaiPalette.clayInk else ShaiPalette.ink
-        findViewById<View>(R.id.about_scroll).setBackgroundColor(base)
-        listOf(R.id.about_details_card, R.id.about_info_card).forEach { id ->
-            findViewById<View>(id).background = PhaseSurfaceDrawable(
-                context, PhaseSurfaceDrawable.Kind.CARD).apply { phase = if (signedIn) 1f else 0f }
+        val clay = signedIn
+        val ink = if (clay) ShaiPalette.clayInk else ShaiPalette.ink
+        val muted = if (clay) ShaiPalette.clayMuted else ShaiPalette.pencil
+        val background = if (clay) ShaiPalette.clayBg else ShaiPalette.paper
+
+        findViewById<View>(R.id.about_root).setBackgroundColor(background)
+        findViewById<View>(R.id.about_scroll).setBackgroundColor(background)
+        surface(R.id.about_back, PhaseSurfaceDrawable.Kind.SECONDARY, phase)
+        surface(R.id.about_details_card, PhaseSurfaceDrawable.Kind.CARD, phase)
+        surface(R.id.about_telegram, PhaseSurfaceDrawable.Kind.SECONDARY, phase)
+
+        findViewById<ShaiIllustrationView>(R.id.about_art).apply {
+            this.phase = this@AboutDialog.phase
+            completeReveal()
+            rotation = if (clay) 0f else -1.5f
         }
-        fun visit(view: View) {
-            when (view) {
-                is TextView -> {
-                    val sp = view.textSize / context.resources.displayMetrics.scaledDensity
-                    view.setTextColor(if (sp >= 13f) foreground else secondary)
-                    if (signedIn) {
-                        // Fredoka heads this page, Nunito reads it; no serif fallback.
-                        view.typeface = when {
-                            sp >= 20f -> ShaiType.display(context)
-                            sp >= 14f -> ShaiType.label(context)
-                            else -> ShaiType.body(context)
-                        }
-                        view.letterSpacing = 0f
-                    }
-                    view.setBackgroundColor(Color.TRANSPARENT)
-                }
-                is ImageView -> if (view.id != View.NO_ID) view.setColorFilter(accent)
+
+        findViewById<ImageButton>(R.id.about_back).imageTintList = ColorStateList.valueOf(ink)
+        findViewById<ImageView>(R.id.about_channel_icon).imageTintList = ColorStateList.valueOf(ink)
+        findViewById<ImageView>(R.id.about_channel_arrow).imageTintList = ColorStateList.valueOf(muted)
+
+        val display = if (clay) ShaiType.display(context) else ShaiType.sheetDisplay(context)
+        val body = if (clay) ShaiType.body(context) else ShaiType.sheet(context)
+        val label = if (clay) ShaiType.label(context) else ShaiType.sheetDisplay(context)
+
+        findViewById<TextView>(R.id.about_title).apply {
+            typeface = display
+            setTextColor(ink)
+            letterSpacing = if (clay) -0.008f else -0.015f
+        }
+        val detailRows = intArrayOf(R.id.detail_developer, R.id.detail_username, R.id.detail_version)
+        detailRows.forEach { id ->
+            val row = findViewById<View>(id)
+            row.findViewById<TextView>(R.id.about_detail_label).apply {
+                typeface = body
+                setTextColor(muted)
             }
-            if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
+            row.findViewById<TextView>(R.id.about_detail_value).apply {
+                typeface = label
+                setTextColor(ink)
+            }
         }
-        visit(findViewById(R.id.about_scroll))
-        // Keep the Telegram button consistent with the channel shown above.
-        findViewById<MaterialButton>(R.id.about_telegram).apply {
-            backgroundTintList = ColorStateList.valueOf(
-                if (signedIn) ShaiPalette.clayPink else ShaiPalette.paperCard)
-            setTextColor(foreground)
-            strokeWidth = if (signedIn) 0 else (1.2f * context.resources.displayMetrics.density).toInt()
-            strokeColor = ColorStateList.valueOf(if (signedIn) ShaiPalette.clayPinkDeep else ShaiPalette.ink)
-            cornerRadius = ((if (signedIn) 22f else 4f) * context.resources.displayMetrics.density).toInt()
-            typeface = if (signedIn) ShaiType.label(context) else Typeface.DEFAULT
+        findViewById<TextView>(R.id.about_channel_title).apply {
+            typeface = label
+            setTextColor(ink)
+        }
+        findViewById<TextView>(R.id.about_channel_value).apply {
+            typeface = body
+            setTextColor(muted)
+        }
+        findViewById<TextView>(R.id.about_credit).apply {
+            typeface = body
+            setTextColor(muted)
+        }
+    }
+
+    private fun surface(id: Int, kind: PhaseSurfaceDrawable.Kind, phase: Float) {
+        findViewById<View>(id).background = PhaseSurfaceDrawable(context, kind).apply {
+            this.phase = phase
         }
     }
 
     private fun openTelegram() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Shaimainch"))
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Shaimainch")).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+        }
         runCatching { context.startActivity(intent) }
             .onFailure {
                 Toast.makeText(context, "Unable to open Telegram", Toast.LENGTH_SHORT).show()

@@ -1,16 +1,19 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Functional voice: Space Grotesk. Caveat is used only by annotations. -->
+        <!-- Both materials are light pages. The window must never flash the
+             retired violet court while the activity is inflating. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="fontFamily">@font/space_grotesk</item>
-        <item name="android:navigationBarColor">@color/background_color_dark</item>
-        <item name="android:windowBackground">@color/background_color_dark</item>
-        <item name="android:textColor">@color/textColor</item>
-        <item name="android:statusBarColor">@color/background_color_dark</item>
-        <item name="android:colorAccent">@color/max_gold</item>
-        <item name="colorPrimary">@color/max_gold</item>
-        <item name="colorSecondary">@color/max_orchid</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/sketch_paper</item>
+        <item name="android:windowBackground">@color/sketch_paper</item>
+        <item name="android:textColor">@color/sketch_ink</item>
+        <item name="android:statusBarColor">@color/sketch_paper</item>
+        <item name="android:colorAccent">@color/clay_ink</item>
+        <item name="colorPrimary">@color/clay_ink</item>
+        <item name="colorSecondary">@color/clay_pink</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 
     <!-- Light window surface so the paper splash never flashes the dark theme. -->

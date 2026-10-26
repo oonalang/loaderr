@@ -65,11 +65,14 @@ class MainActivity : AppCompatActivity() {
         const val SERVER_LIST_URL = "https://shaii.x10.mx/loader/catalog"
         const val PANEL_URL = "https://shaii.x10.mx/connect"
         const val STORE_URL = "https://ethnir-storefront.vercel.app/#home"
+        const val SHOP_URL = "https://shaistore.vercel.app"
         const val LIBRARY_FILE_NAME = "libexternal.so"
     }
 
     init {
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        // The product is a light sheet in both phases; forcing night on the
+        // window made Material dialogs and popups disagree with the page.
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     }
 
     private lateinit var licenseKeyInput: TextInputEditText
@@ -112,7 +115,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var backdrop: LoaderBackdropView
     private lateinit var libraryCardSurface: PhaseSurfaceDrawable
     private lateinit var primarySurface: PhaseSurfaceDrawable
-    private lateinit var secondarySurface: PhaseSurfaceDrawable
     private lateinit var successSurface: PhaseSurfaceDrawable
     private lateinit var settingsSurface: PhaseSurfaceDrawable
     private lateinit var drawerSurface: PhaseSurfaceDrawable
@@ -120,13 +122,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var delaySurface: PhaseSurfaceDrawable
     private lateinit var methodSurface: PhaseSurfaceDrawable
     private lateinit var fieldSurface: SketchFieldDrawable
-    private lateinit var headlineSweep: HighlightSweepDrawable
+    private lateinit var modeSurface: PhaseSurfaceDrawable
     private lateinit var heroIllustration: ShaiIllustrationView
+    private lateinit var headlineView: RotatingHeadlineView
     private var phaseProgress = 0f
     private var phaseTarget = 0f
     private var phaseAnimator: ValueAnimator? = null
-    private var entranceAnimator: ValueAnimator? = null
-    private var pendingReveal: Runnable? = null
     private var authenticatedLibrary: String? = null
     private var licenseVerified = false
     private var redeemedGame: String? = null
@@ -259,7 +260,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.library_card).setOnClickListener { setLibraryDrawerOpen(true) }
-        findViewById<View>(R.id.browse_button).setOnClickListener { setLibraryDrawerOpen(true) }
         findViewById<View>(R.id.about_button).setOnClickListener { AboutDialog(this, licenseVerified).show() }
         findViewById<View>(R.id.change_key_link).setOnClickListener {
             if (isPreparingLibrary) {
@@ -284,7 +284,6 @@ class MainActivity : AppCompatActivity() {
         }
         installPressFeedback(
             findViewById(R.id.login_button),
-            findViewById(R.id.browse_button),
             findViewById(R.id.library_card)
         )
 
@@ -299,12 +298,12 @@ class MainActivity : AppCompatActivity() {
                     showToast("Preparing your library…")
                 } else if (selectedLibrary.name.isBlank() || selectedLibrary.type != redeemedGame) {
                     showToast("Choose a library for your redeemed key")
-                    findViewById<TextView>(R.id.success_detail).text = "Choose a library from the list, then tap Prepare library."
+                    setSuccessDetail("Choose a library from the list, then tap Prepare library.")
                     loginButton.text = "Choose library"
                     loginButton.isEnabled = true
                     setLibraryDrawerOpen(true)
                 } else {
-                    findViewById<TextView>(R.id.success_detail).text = "Verifying ${selectedLibrary.name}…"
+                    setSuccessDetail("Verifying ${selectedLibrary.name}…")
                     verifySelectedLibraryAndDownload()
                 }
             } else {
@@ -377,46 +376,25 @@ class MainActivity : AppCompatActivity() {
 
     private fun playEntranceMotion() {
         val content = findViewById<View>(R.id.main_content)
-        val rule = findViewById<OrnamentRuleView>(R.id.hero_rule)
         val keyNote = findViewById<View>(R.id.key_note)
         val keyArrow = findViewById<ImageView>(R.id.key_note_arrow)
-        entranceAnimator?.cancel()
         if (!ValueAnimator.areAnimatorsEnabled()) {
             content.alpha = 1f
             content.translationY = 0f
-            rule.reveal = 1f
             keyNote.alpha = 1f
             keyArrow.alpha = 1f
-            headlineSweep.progress = 1f
             heroIllustration.completeReveal()
             return
         }
-        // The drawing inks itself first; everything else waits for its linework.
+        // The drawing inks itself first; the page settles with it.
         heroIllustration.playReveal(80L)
-        headlineSweep.progress = 0f
-        ValueAnimator.ofFloat(0f, 1f).apply {
-            startDelay = ShaiMotion.ILLUSTRATION_MS - 140L
-            duration = ShaiMotion.HIGHLIGHT_MS
-            interpolator = ShaiMotion.easeOut
-            addUpdateListener { headlineSweep.progress = it.animatedValue as Float }
-            start()
-        }
-        // One orchestrated sheet settle, not a fade-up on every section.
         content.alpha = 0f
         content.translationY = 14f * resources.displayMetrics.density
-        rule.reveal = 0f
         content.animate().alpha(1f).translationY(0f)
             .setDuration(ShaiMotion.ENTRANCE_MS)
             .setInterpolator(ShaiMotion.easeOut)
             .start()
-        entranceAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            startDelay = 80L
-            duration = ShaiMotion.RULE_REVEAL_MS
-            interpolator = ShaiMotion.easeOut
-            addUpdateListener { rule.reveal = it.animatedValue as Float }
-            start()
-        }
-        // Margin note and arrow ink themselves once the rule is drawn.
+        // The margin note should arrive after the figure it comments on.
         keyNote.alpha = 0f
         keyArrow.alpha = 0f
         keyNote.animate().alpha(1f)
@@ -578,23 +556,23 @@ class MainActivity : AppCompatActivity() {
         backdrop = findViewById(R.id.phase_backdrop)
         libraryCardSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.CARD)
         primarySurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.PRIMARY)
-        secondarySurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SECONDARY)
         successSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SUCCESS)
         settingsSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.CARD)
         drawerSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.DRAWER)
         drawerSearchSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SEARCH)
         delaySurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SELECT)
         methodSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SELECT)
+        modeSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SELECT)
         delaySpinner.background = delaySurface
         methodSpinner.background = methodSurface
+        findViewById<View>(R.id.radioGroup).background = modeSurface
         fieldSurface = SketchFieldDrawable(resources.displayMetrics.density)
         findViewById<View>(R.id.key_field).background = fieldSurface
-        headlineSweep = HighlightSweepDrawable()
-        tv(R.id.hero_headline).background = headlineSweep
         heroIllustration = findViewById(R.id.hero_art)
+        headlineView = findViewById(R.id.hero_headline)
+        headlineView.onBuyNowClick = { openStorefront() }
         findViewById<View>(R.id.library_card).background = libraryCardSurface
         loginButton.background = primarySurface
-        findViewById<View>(R.id.browse_button).background = secondarySurface
         findViewById<View>(R.id.success_section).background = successSurface
         findViewById<View>(R.id.operation_section).background = settingsSurface
         libraryDrawer.background = drawerSurface
@@ -605,8 +583,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearAuthenticatedPhase() {
-        pendingReveal?.let { mainScroll.removeCallbacks(it) }
-        pendingReveal = null
         setSignedInControlsVisible(false)
         setInjectionControlsEnabled(true)
         licenseVerified = false
@@ -620,8 +596,15 @@ class MainActivity : AppCompatActivity() {
         appBanner.setImageResource(R.drawable.shai_mark)
         findViewById<TextView>(R.id.library_name).text = "No library selected"
         findViewById<TextView>(R.id.library_game).text = "Redeem your key to continue"
+        findViewById<View>(R.id.library_card).contentDescription = "Choose your library"
         findViewById<TextView>(R.id.library_version).visibility = View.GONE
-        findViewById<TextView>(R.id.library_package).visibility = View.GONE
+        findViewById<TextView>(R.id.library_status).apply {
+            text = "KEY REQUIRED"
+            visibility = View.GONE
+            background = null
+        }
+        lastPillKey = null
+        libraryCardSurface.selected = false
         keyFingerprint.text = ""
         keyFingerprint.visibility = View.GONE
         allLibraries.clear()
@@ -631,8 +614,8 @@ class MainActivity : AppCompatActivity() {
         isReadyToInject = false
         findViewById<View>(R.id.license_section).visibility = View.VISIBLE
         findViewById<View>(R.id.success_section).visibility = View.GONE
-        findViewById<TextView>(R.id.hero_caption).text =
-            "Paste a key from your panel. Nothing opens until it is checked."
+        hideSuccessDetail()
+        findViewById<TextView>(R.id.hero_caption).text = "Redeem your key."
         appBanner.isEnabled = true
         licenseKeyInput.isEnabled = true
         librarySpinner.isEnabled = true
@@ -672,34 +655,30 @@ class MainActivity : AppCompatActivity() {
         backdrop.phase = phaseProgress
         libraryCardSurface.phase = phaseProgress
         primarySurface.phase = phaseProgress
-        secondarySurface.phase = phaseProgress
         successSurface.phase = phaseProgress
         settingsSurface.phase = phaseProgress
         drawerSurface.phase = phaseProgress
         drawerSearchSurface.phase = phaseProgress
         delaySurface.phase = phaseProgress
         methodSurface.phase = phaseProgress
+        modeSurface.phase = phaseProgress
         fieldSurface.phase = phaseProgress
-        headlineSweep.phase = phaseProgress
         heroIllustration.phase = phaseProgress
-        (cv(R.id.hero_rule) as OrnamentRuleView).phase = phaseProgress
-        (cv(R.id.drawer_rule) as OrnamentRuleView).phase = phaseProgress
+        headlineView.setPhase(phaseProgress >= .55f)
         val clay = phaseProgress >= .5f
         val ink = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
         val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayMuted, phaseProgress)
         val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.clayInk, phaseProgress)
-        val line = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayPinkDeep, phaseProgress)
-        val heroHeadline = tv(R.id.hero_headline)
         val displaySignedIn = phaseProgress >= .55f
         val density = resources.displayMetrics.density
         val titleIds = intArrayOf(
-            R.id.brand_title, R.id.library_name, R.id.hero_headline,
+            R.id.brand_title, R.id.library_name,
             R.id.success_title, R.id.drawer_title, R.id.remember_title,
             R.id.radio_auto, R.id.radio_manual
         )
         val secondaryIds = intArrayOf(
             R.id.library_game,
-            R.id.library_version, R.id.library_package, R.id.hero_caption,
+            R.id.library_version, R.id.hero_caption,
             R.id.license_heading, R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
             R.id.operation_note, R.id.sheet_note
@@ -707,7 +686,7 @@ class MainActivity : AppCompatActivity() {
         titleIds.forEach { tv(it).setTextColor(ink) }
         secondaryIds.forEach { tv(it).setTextColor(secondary) }
         intArrayOf(
-            R.id.library_arrow, R.id.about_button, R.id.drawer_about,
+            R.id.about_button, R.id.drawer_about,
             R.id.change_key_link, R.id.operation_heading,
             R.id.method_label, R.id.delay_label, R.id.mode_label, R.id.key_fingerprint
         ).forEach { tv(it).setTextColor(accent) }
@@ -715,11 +694,13 @@ class MainActivity : AppCompatActivity() {
         tv(R.id.success_emblem).setTextColor(
             ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.clayInk, phaseProgress)
         )
-        tv(R.id.browse_button).setTextColor(
-            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
-        )
+        findViewById<ImageView>(R.id.library_arrow).setColorFilter(secondary)
         loginButton.setTextColor(
-            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
+            if (loginButton.isEnabled) {
+                ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
+            } else {
+                secondary
+            }
         )
         licenseKeyInput.setTextColor(ink)
         licenseKeyInput.setHintTextColor(secondary)
@@ -727,16 +708,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<EditText>(R.id.library_search).apply {
             setTextColor(ink)
             setHintTextColor(secondary)
-        }
-        // Hairline rules are drafting marks; clay separates by space, not by rules.
-        val ruleAlpha = (1f - phaseProgress * 1.4f).coerceIn(0f, 1f)
-        findViewById<View>(R.id.library_divider).apply {
-            backgroundTintList = ColorStateList.valueOf(line)
-            alpha = ruleAlpha
-        }
-        findViewById<View>(R.id.success_rule).apply {
-            backgroundTintList = ColorStateList.valueOf(line)
-            alpha = ruleAlpha
         }
         progressBar.progressTintList = ColorStateList.valueOf(
             ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayPinkDeep, phaseProgress)
@@ -764,10 +735,6 @@ class MainActivity : AppCompatActivity() {
             tv(R.id.success_emblem).setBackgroundResource(
                 if (clay) R.drawable.seal_clay else R.drawable.seal_ring
             )
-            // The drafting rule has no place in the finished object, so it also
-            // gives up its space instead of leaving a gap in the composition.
-            cv(R.id.hero_rule).visibility = if (clay) View.GONE else View.VISIBLE
-            cv(R.id.drawer_rule).visibility = if (clay) View.GONE else View.VISIBLE
             lastCourtToggle = clay
         }
         applyStatusChrome(clay)
@@ -778,34 +745,31 @@ class MainActivity : AppCompatActivity() {
             lastHandStyle = handMode
         }
         if (lastDisplayedSignedIn != displaySignedIn) {
-    
-            tv(R.id.operation_heading).text =
-                if (displaySignedIn) "Injection" else "Operations"
-            tv(R.id.operation_note).text =
-                if (displaySignedIn) "Set before prepare" else "Applies after access"
-            tv(R.id.sheet_note).text =
-                if (displaySignedIn) "Key verified" else "Key required"
-            heroHeadline.text =
-                if (displaySignedIn) "Access granted." else "Your key comes first."
+            // The state chip is an authentication cue on the sheet. Once the
+            // plaque carries the fact, a second "Key verified" would be noise.
+            tv(R.id.sheet_note).visibility = if (displaySignedIn) View.GONE else View.VISIBLE
             findViewById<TextView>(R.id.hero_caption).text = if (displaySignedIn) {
-                "Choose one library. Nothing downloads until you confirm."
+                "Your key is verified. Choose a library to continue."
             } else {
-                "Paste a key from your panel. Nothing opens until it is checked."
+                "Redeem your key."
             }
             // Paper tilt keeps the hand-placed quality of a sketch on a page.
             heroIllustration.rotation = if (displaySignedIn) 0f else -1.5f
             applyTypefaces(displaySignedIn)
-            findViewById<TextView>(R.id.library_status).text = when {
-                selectedLibrary.name.isBlank() && !licenseVerified -> "KEY REQUIRED"
-                selectedLibrary.name.isBlank() && licenseVerified -> "CHOOSE LIBRARY"
-                isReadyToInject -> "READY"
-                isPreparingLibrary -> "PREPARING"
-                licenseVerified -> "SELECTED"
-                else -> "AVAILABLE"
+            findViewById<TextView>(R.id.library_status).apply {
+                text = when {
+                    selectedLibrary.name.isBlank() && !licenseVerified -> "KEY REQUIRED"
+                    selectedLibrary.name.isBlank() -> "CHOOSE LIBRARY"
+                    isReadyToInject -> "READY"
+                    isPreparingLibrary -> "PREPARING"
+                    else -> "SELECTED"
+                }
+                visibility = View.GONE
+                background = null
             }
+            lastPillKey = null
             lastDisplayedSignedIn = displaySignedIn
         }
-        findViewById<ImageButton>(R.id.library_menu_button).setColorFilter(accent)
         findViewById<ImageButton>(R.id.drawer_close).setColorFilter(accent)
         // The drawer scrim is ink on paper and soft plum in clay.
         drawerScrim.setBackgroundColor(
@@ -866,25 +830,38 @@ class MainActivity : AppCompatActivity() {
         pill.typeface = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
     }
 
-    /** The card's own status chip follows the same logic, keyed on what it says. */
+    /**
+     * The card's status is only shown when it adds a machine state the title
+     * does not already express: ready, preparing, or offline. "Selected" and
+     * "Choose library" were duplicates, so they stay quiet.
+     */
     private fun applyStatusChrome(clay: Boolean) {
         val pill = tv(R.id.library_status)
         val label = pill.text?.toString().orEmpty()
+        val meaningful = label == "READY" || label == "PREPARING" || label == "OFFLINE"
+        val visible = clay && meaningful
         val key = "$clay/$label"
         if (lastPillKey == key) return
         lastPillKey = key
+        val dp = resources.displayMetrics.density
+        pill.visibility = if (visible) View.VISIBLE else View.GONE
+        if (!visible) {
+            pill.background = null
+            pill.setPadding(0, 0, 0, 0)
+            return
+        }
         pill.setBackgroundResource(
-            when {
-                clay && label == "READY" -> R.drawable.pill_mint
-                clay && label.isNotEmpty() -> R.drawable.pill_peri
-                else -> 0
+            when (label) {
+                "READY" -> R.drawable.pill_mint
+                "OFFLINE" -> R.drawable.pill_pink
+                else -> R.drawable.pill_peri
             }
         )
-        val dp = resources.displayMetrics.density
         val padH = (9 * dp).toInt()
-        val padV = if (clay) (5 * dp).toInt() else 0
+        val padV = (4 * dp).toInt()
         pill.setPadding(padH, padV, padH, padV)
-        pill.typeface = if (clay) ShaiType.label(this) else ShaiType.sheet(this)
+        pill.setTextColor(ShaiPalette.clayInk)
+        pill.typeface = ShaiType.label(this)
     }
 
     /**
@@ -896,29 +873,25 @@ class MainActivity : AppCompatActivity() {
         val label = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
         val body = if (clay) ShaiType.body(this) else ShaiType.sheet(this)
         intArrayOf(
-            R.id.brand_title, R.id.hero_headline, R.id.library_name,
-            R.id.success_title, R.id.drawer_title
+            R.id.brand_title, R.id.library_name, R.id.drawer_title,
+            R.id.operation_heading
         ).forEach { tv(it).typeface = display }
         intArrayOf(
             R.id.remember_title, R.id.license_heading, R.id.radio_auto,
-            R.id.radio_manual, R.id.library_status
+            R.id.radio_manual, R.id.library_status, R.id.success_title,
+            R.id.method_label, R.id.delay_label, R.id.mode_label
         ).forEach { tv(it).typeface = label }
         intArrayOf(
             R.id.hero_caption, R.id.library_game, R.id.library_version,
-            R.id.library_package, R.id.footer_text, R.id.library_count,
+            R.id.footer_text, R.id.library_count,
             R.id.success_detail, R.id.remember_caption, R.id.control_hint,
             R.id.operation_note, R.id.sheet_note, R.id.change_key_link,
-            R.id.about_button, R.id.operation_heading, R.id.method_label,
-            R.id.delay_label, R.id.mode_label, R.id.drawer_about
+            R.id.about_button, R.id.drawer_about
         ).forEach { tv(it).typeface = body }
         loginButton.typeface = label
-        tv(R.id.browse_button).typeface = label
         // Display tracking belongs to the drafting sheet; clay sets it tight and round.
         tv(R.id.brand_title).letterSpacing = if (clay) -0.01f else -0.015f
-        tv(R.id.hero_headline).letterSpacing = if (clay) -0.01f else -0.015f
-        tv(R.id.browse_button).letterSpacing = if (clay) 0.02f else 0.10f
-        intArrayOf(R.id.operation_heading, R.id.operation_note, R.id.method_label, R.id.delay_label, R.id.mode_label)
-            .forEach { tv(it).letterSpacing = if (clay) 0f else 0.02f }
+        tv(R.id.operation_heading).letterSpacing = if (clay) -0.005f else 0f
         tv(R.id.drawer_about).letterSpacing = if (clay) 0f else 0.08f
     }
 
@@ -983,14 +956,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** The rotating Buy now tip is the only path to the SHAI shop. */
+    private fun openStorefront() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(SHOP_URL)).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+        }
+        try {
+            startActivity(intent)
+        } catch (error: Exception) {
+            Log.w("SHAI_LOADER", "Unable to open the SHAI storefront", error)
+            showToast("Unable to open the store")
+        }
+    }
+
+    /** Keeps the card's small machine-state chip in step with preparation. */
+    private fun refreshLibraryCardStatus() {
+        if (!::libraryCardSurface.isInitialized) return
+        val label = when {
+            !licenseVerified -> "KEY REQUIRED"
+            selectedLibrary.name.isBlank() -> "CHOOSE LIBRARY"
+            isReadyToInject -> "READY"
+            isPreparingLibrary -> "PREPARING"
+            else -> "SELECTED"
+        }
+        tv(R.id.library_status).text = label
+        lastPillKey = null
+        applyStatusChrome(phaseProgress >= .5f)
+    }
+
     private fun setupLibraryDrawer() {
         libraryDrawer.post {
             libraryDrawer.translationX = drawerClosedX()
         }
 
-        findViewById<View>(R.id.library_menu_button).setOnClickListener {
-            setLibraryDrawerOpen(!isDrawerOpen)
-        }
         findViewById<View>(R.id.drawer_close).setOnClickListener {
             setLibraryDrawerOpen(false)
         }
@@ -1032,9 +1030,6 @@ class MainActivity : AppCompatActivity() {
     private fun setLibraryDrawerOpen(open: Boolean) {
         if (isDrawerOpen == open) return
         isDrawerOpen = open
-        // Any explicit open or close supersedes the post-auth auto-reveal.
-        pendingReveal?.let { mainScroll.removeCallbacks(it) }
-        pendingReveal = null
         libraryDrawer.animate().cancel()
         drawerScrim.animate().cancel()
         if (!ValueAnimator.areAnimatorsEnabled()) {
@@ -1280,15 +1275,14 @@ class MainActivity : AppCompatActivity() {
         selectedLibrary = nextLibrary
         val maintenance = !LibraryMetadata.isActive(jsonObject)
         findViewById<TextView>(R.id.library_name).text = selectedLibrary.name
+        findViewById<View>(R.id.library_card).contentDescription =
+            "Change library. ${selectedLibrary.name}"
         findViewById<TextView>(R.id.library_game).text = LibraryMetadata.gameLabel(jsonObject)
         findViewById<TextView>(R.id.library_version).apply {
             text = LibraryMetadata.versionLabel(jsonObject)
             visibility = if (text.isNullOrBlank()) View.GONE else View.VISIBLE
         }
-        findViewById<TextView>(R.id.library_package).apply {
-            text = selectedLibrary.gamePackage
-            visibility = if (selectedLibrary.gamePackage.isBlank()) View.GONE else View.VISIBLE
-        }
+        libraryCardSurface.selected = selectedLibrary.name.isNotBlank()
         findViewById<TextView>(R.id.library_status).apply {
             text = when {
                 maintenance -> "OFFLINE"
@@ -1312,7 +1306,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             loginButton.isEnabled = true
             if (licenseVerified) {
-                loginButton.text = if (isReadyToInject) "INJECT" else "PREPARE LIBRARY"
+                loginButton.text = if (isReadyToInject) "Inject" else "Prepare library"
             } else if (!isReadyToInject) {
                 loginButton.text = "Redeem key"
             }
@@ -1334,16 +1328,17 @@ class MainActivity : AppCompatActivity() {
             isReadyToInject = false
             remoteLibrarySize = 0
             File(cacheDir, LIBRARY_FILE_NAME).delete()
-            findViewById<TextView>(R.id.success_detail).text = "Selected ${selectedLibrary.name}. Tap Prepare library when you are ready."
+            setSuccessDetail("Selected ${selectedLibrary.name}. Tap Prepare library when you are ready.")
             loginButton.text = "Prepare library"
             loginButton.isEnabled = true
         } else if (licenseVerified) {
-            findViewById<TextView>(R.id.success_detail).text = "Selected ${selectedLibrary.name}. Tap Prepare library when you are ready."
+            setSuccessDetail("Selected ${selectedLibrary.name}. Tap Prepare library when you are ready.")
             if (!isReadyToInject) {
                 loginButton.text = "Prepare library"
                 loginButton.isEnabled = true
             }
         }
+        applyStatusChrome(phaseProgress >= .5f)
     }
 
     private fun verifySelectedLibraryAndDownload() {
@@ -1351,6 +1346,7 @@ class MainActivity : AppCompatActivity() {
         val game = redeemedGame ?: return
         val targetName = selectedLibrary.name
         isPreparingLibrary = true
+        refreshLibraryCardStatus()
         loginButton.text = "Verifying…"
         loginButton.isEnabled = false
         librarySpinner.isEnabled = false
@@ -1362,7 +1358,7 @@ class MainActivity : AppCompatActivity() {
                     resetLoginState(result)
                 } else {
                     authenticatedLibrary = targetName
-                    findViewById<TextView>(R.id.success_detail).text = "Preparing $targetName…"
+                    setSuccessDetail("Preparing $targetName…")
                     proceedWithDownload()
                 }
             }
@@ -1456,7 +1452,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 findViewById<TextView>(R.id.hero_caption).text =
                     "Choose one library. Nothing downloads until you confirm."
-                findViewById<TextView>(R.id.success_title).text = "Key verified."
+                findViewById<TextView>(R.id.success_title).text = "License key"
                 if (rememberKeyCheck.isChecked) {
                     loaderPreferences.saveRememberedKey(licenseKey)
                     pendingRememberedKey = null
@@ -1470,28 +1466,31 @@ class MainActivity : AppCompatActivity() {
                 setSignedInControlsVisible(true)
                 setInjectionControlsEnabled(true)
                 if (filteredLibraries.isEmpty()) {
-                    findViewById<TextView>(R.id.success_detail).text =
+                    setSuccessDetail(
                         "No active libraries are currently published for ${redemption.optString("game_label", game)}."
+                    )
                     loginButton.text = "No libraries available"
                     loginButton.isEnabled = false
                     refreshLibraryDrawer()
                     showToast("No available libraries for this key")
-                    schedulePostAuthReveal(openDrawer = false)
                 } else {
                     selectedLibrary = SelectedLibrary()
+                    libraryCardSurface.selected = false
                     findViewById<TextView>(R.id.library_name).text = "Choose your library"
+                    findViewById<View>(R.id.library_card).contentDescription = "Choose your library"
                     findViewById<TextView>(R.id.library_game).text = redemption.optString("game_label", game)
                     findViewById<TextView>(R.id.library_version).visibility = View.GONE
-                    findViewById<TextView>(R.id.library_package).visibility = View.GONE
-                    findViewById<TextView>(R.id.library_status).text = "CHOOSE LIBRARY"
-                    findViewById<TextView>(R.id.success_detail).text = "Choose one library to continue."
+                    findViewById<TextView>(R.id.library_status).apply {
+                        text = "CHOOSE LIBRARY"
+                        visibility = View.GONE
+                    }
+                    hideSuccessDetail()
                     loginButton.text = "Choose library"
                     loginButton.isEnabled = true
                     appBanner.isEnabled = true
                     refreshLibraryDrawer()
-                    // Selection is explicit. The drawer opens only after the
-                    // signed-in plaque has had time to land.
-                    schedulePostAuthReveal(openDrawer = true)
+                    // The verified state never opens or selects anything. The user
+                    // taps the card or the primary action when they are ready.
                 }
             }
         }
@@ -1499,6 +1498,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    /** The plaque's detail line earns its space only when it carries status. */
+    private fun setSuccessDetail(message: String) {
+        findViewById<TextView>(R.id.success_detail).apply {
+            text = message
+            visibility = View.VISIBLE
+        }
+    }
+
+    private fun hideSuccessDetail() {
+        findViewById<TextView>(R.id.success_detail).apply {
+            text = ""
+            visibility = View.GONE
+        }
     }
     
     private fun saveSelectedLibrary(libraryName: String) {
@@ -1544,36 +1558,12 @@ class MainActivity : AppCompatActivity() {
         manager.hideSoftInputFromWindow(licenseKeyInput.windowToken, 0)
     }
 
-    /** Hold the drawer until the success plaque and crest are legible. The
-     *  reveal is cancelled when the user leaves the signed-in phase. */
-    private fun schedulePostAuthReveal(openDrawer: Boolean) {
-        pendingReveal?.let { mainScroll.removeCallbacks(it) }
-        val delay = if (ValueAnimator.areAnimatorsEnabled()) {
-            ShaiMotion.DRAWER_REVEAL_DELAY_MS
-        } else {
-            ShaiMotion.REDUCED_DRAWER_DELAY_MS
-        }
-        val action = Runnable {
-            pendingReveal = null
-            if (!licenseVerified || isFinishing) return@Runnable
-            if (openDrawer) {
-                setLibraryDrawerOpen(true)
-            } else {
-                mainScroll.smoothScrollTo(0, findViewById<View>(R.id.success_section).top)
-            }
-        }
-        pendingReveal = action
-        mainScroll.postDelayed(action, delay)
-    }
-
     /** The library selector, mode/delay controls and browse action belong to the
      *  signed-in court; the unauthenticated sheet shows only the key form. */
     private fun setSignedInControlsVisible(visible: Boolean) {
         val views = listOf(
             findViewById<View>(R.id.library_card),
-            findViewById<View>(R.id.operation_section),
-            findViewById<View>(R.id.browse_button),
-            findViewById<View>(R.id.library_menu_button)
+            findViewById<View>(R.id.operation_section)
         )
         if (visible) {
             val density = resources.displayMetrics.density
@@ -1617,6 +1607,7 @@ class MainActivity : AppCompatActivity() {
     private fun proceedWithDownload() {
         val currentLibrary = selectedLibrary.name
         isPreparingLibrary = true
+        refreshLibraryCardStatus()
         librarySpinner.isEnabled = false
         if (selectedLibrary.type != redeemedGame) {
             resetLoginState("This library is not assigned to your key", focusKey = false)
@@ -1638,18 +1629,20 @@ class MainActivity : AppCompatActivity() {
                         resetLoginState("FAILED TO LOAD RUNTIME LIBRARY", focusKey = false)
                         isReadyToInject = false
                         isPreparingLibrary = false
+                        refreshLibraryCardStatus()
                     } else {
                         lifecycleScope.launch(Dispatchers.Main) {
                             delay(2500)
                             if (currentLibrary != selectedLibrary.name || !licenseVerified) return@launch
                             loginButton.text = "Inject"
-                            findViewById<TextView>(R.id.success_detail).text = "$currentLibrary is ready. Tap Inject when you are ready."
+                            setSuccessDetail("$currentLibrary is ready. Tap Inject when you are ready.")
                             showToast("Ready to inject")
                             loginButton.isEnabled = true
                             setInjectionControlsEnabled(true)
                             isReadyToInject = true
                             isPreparingLibrary = false
                             librarySpinner.isEnabled = true
+                            refreshLibraryCardStatus()
                         }
                     }
                 } else {
@@ -1808,8 +1801,6 @@ class MainActivity : AppCompatActivity() {
     
     override fun onStop() {
         super.onStop()
-        pendingReveal?.let { mainScroll.removeCallbacks(it) }
-        pendingReveal = null
         if (isFinishing) {
             cleanUp()
         }
@@ -1817,9 +1808,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         phaseAnimator?.cancel()
-        entranceAnimator?.cancel()
-        pendingReveal?.let { mainScroll.removeCallbacks(it) }
-        pendingReveal = null
+        if (::headlineView.isInitialized) headlineView.release()
         super.onDestroy()
         cleanUp()
     }

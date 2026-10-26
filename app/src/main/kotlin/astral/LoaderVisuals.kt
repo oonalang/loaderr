@@ -347,6 +347,11 @@ internal class PhaseSurfaceDrawable(
             Kind.SUCCESS, Kind.PLAQUE -> ShaiPalette.clayMint
             Kind.SEARCH, Kind.SELECT -> ShaiPalette.claySunken
             Kind.ROW -> if (selected) ShaiPalette.clayPeri else ShaiPalette.clayRaised
+            Kind.CARD -> if (selected) {
+                ShaiPalette.blend(ShaiPalette.clayRaised, ShaiPalette.clayPeri, .24f)
+            } else {
+                ShaiPalette.clayRaised
+            }
             else -> ShaiPalette.clayRaised
         }
         if (!pressed) return base
@@ -409,93 +414,5 @@ internal class PhaseSurfaceDrawable(
 
     private companion object {
         const val SHADOW_RINGS = 10
-    }
-}
-
-/**
- * A horizontal rule that is structural, not trim: centre mark plus end ticks.
- * It is a drafting mark, so it is drawn out of the page as the clay arrives.
- */
-class OrnamentRuleView @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null
-) : View(context, attrs) {
-
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val path = Path()
-    private val density = resources.displayMetrics.density
-
-    var phase: Float = 0f
-        set(value) {
-            field = value.coerceIn(0f, 1f)
-            invalidate()
-        }
-
-    /** 0 draws the rule from its centre; 1 is the complete rule. */
-    var reveal: Float = 1f
-        set(value) {
-            field = value.coerceIn(0f, 1f)
-            invalidate()
-        }
-
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        // No ornament belongs to the finished object; the rule leaves with the grid.
-        val paper = (1f - phase * 1.8f).coerceIn(0f, 1f)
-        val w = width.toFloat()
-        val h = height.toFloat()
-        if (w <= 0f || h <= 0f || paper <= 0f) return
-        val dp = density
-        val y = h * .5f
-        val cx = w * .5f
-        val gap = (h * .9f) + 12f * dp
-        val amount = reveal * paper
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 0.8f * dp
-        paint.color = ShaiPalette.pencil
-        paint.alpha = (255 * .7f * paper).toInt()
-
-        path.reset()
-        path.moveTo(dp, y)
-        path.cubicTo(w * .26f, y - 1.1f * dp, w * .30f, y + 1.2f * dp, cx - gap, y)
-        path.moveTo(cx + gap, y)
-        path.cubicTo(w * .70f, y + 1.1f * dp, w * .76f, y - 1.2f * dp, w - dp, y)
-        canvas.save()
-        canvas.clipRect(
-            cx - (cx - dp) * amount,
-            0f,
-            cx + (w - dp - cx) * amount,
-            h
-        )
-        canvas.drawPath(path, paint)
-        canvas.restore()
-
-        paint.style = Paint.Style.FILL
-        paint.alpha = (255 * paper).toInt()
-        paint.color = ShaiPalette.ink
-        val r = 2.2f * dp * amount
-        path.reset()
-        path.moveTo(cx, y - r)
-        path.lineTo(cx + r, y)
-        path.lineTo(cx, y + r)
-        path.lineTo(cx - r, y)
-        path.close()
-        canvas.drawPath(path, paint)
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 0.9f * dp
-        paint.color = ShaiPalette.pencil
-        paint.alpha = (230 * .5f * paper * amount).toInt()
-        if (amount > .75f) {
-            canvas.drawCircle(cx - gap, y, 1.1f * dp, paint)
-            canvas.drawCircle(cx + gap, y, 1.1f * dp, paint)
-        }
-
-        // End ticks give the rule a measured, drafted quality.
-        if (amount > .94f) {
-            canvas.drawLine(dp, y - 3f * dp, dp, y + 3f * dp, paint)
-            canvas.drawLine(w - dp, y - 3f * dp, w - dp, y + 3f * dp, paint)
-        }
-        paint.alpha = 255
     }
 }

@@ -25,7 +25,7 @@ import java.net.NetworkInterface
 class SplashActivity : AppCompatActivity() {
 
     init {
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     }
 
     private lateinit var notificationPermissionRequester: NotificationPermissionRequester
