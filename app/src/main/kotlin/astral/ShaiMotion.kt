@@ -15,7 +15,9 @@ internal object ShaiMotion {
     const val PRESS_OUT_MS = 160L
     const val ENTRANCE_MS = 320L
     const val RULE_REVEAL_MS = 360L
-    const val PHASE_IN_MS = 520L
+    // The one rare, deliberate moment: long enough to read as material changing,
+    // short enough that the user is never waiting on it.
+    const val PHASE_IN_MS = 640L
     const val PHASE_OUT_MS = 420L
     const val CREST_MS = 320L
 
@@ -32,7 +34,7 @@ internal object ShaiMotion {
     const val HIGHLIGHT_MS = 300L
 
     const val SUCCESS_SCROLL_DELAY_MS = 560L
-    const val DRAWER_REVEAL_DELAY_MS = 760L
+    const val DRAWER_REVEAL_DELAY_MS = 880L
     const val REDUCED_REVEAL_DELAY_MS = 80L
     const val REDUCED_DRAWER_DELAY_MS = 260L
 

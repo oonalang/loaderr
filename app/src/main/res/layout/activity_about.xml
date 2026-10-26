@@ -139,7 +139,7 @@
                         android:layout_marginTop="5dp"
                         android:text="Redeem your key, choose a library, then prepare it when you are ready."
                         android:textColor="@color/loader_text_secondary"
-                        android:textSize="11sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -151,7 +151,7 @@
                 android:letterSpacing="0.28"
                 android:text="CREATOR CHANNEL"
                 android:textColor="@color/loader_text_muted"
-                android:textSize="11sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
@@ -161,7 +161,7 @@
                 android:layout_marginTop="10dp"
                 android:text="JOIN CREATOR TELEGRAM"
                 android:textColor="@color/loader_text_primary"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 app:backgroundTint="@color/loader_surface"
                 app:cornerRadius="3dp"
@@ -186,6 +186,6 @@
         android:paddingBottom="4dp"
         android:text="Powered by: @Shaiaintshyy"
         android:textColor="@color/loader_text_muted"
-        android:textSize="11sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 </FrameLayout>

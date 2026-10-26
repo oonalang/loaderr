@@ -90,9 +90,17 @@ check('saveRememberedKey(licenseKey)' in redeem, 'accepted key is persisted for 
 
 # The redesign deliberately shares composition across paper and night inks.
 visuals = (APP / 'kotlin/astral/LoaderVisuals.kt').read_text()
-check('ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.void, phase)' in visuals,
-      'paper and night backgrounds remain phase-aware')
-check('gold = Color.rgb(233, 199, 126)' in visuals, 'night accent token retained')
+visuals_illustration = (APP / 'kotlin/astral/ShaiIllustrationView.kt').read_text()
+type_file = (APP / 'kotlin/astral/ShaiType.kt').read_text()
+check('ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.clayBg, phase)' in visuals,
+      'paper and clay backgrounds remain phase-aware')
+for token, rgb in (('clayBg', '244, 238, 255'), ('clayInk', '43, 35, 64'),
+                   ('clayPink', '255, 184, 217'), ('clayMint', '168, 230, 207'),
+                   ('clayPeri', '181, 199, 255'), ('clayRaised', '250, 247, 255'),
+                   ('clayMuted', '95, 83, 111')):
+    check(f'{token} = Color.rgb({rgb})' in visuals, f'clay token {token} matches the palette')
+check(all(f'ShaiPalette.{old}' not in KOTLIN for old in ('void', 'gold', 'orchid', 'darkPanel')),
+      'the violet court is no longer referenced by the screen')
 check(all(term not in visuals for term in ('RadialGradient', 'drawCornerScroll', 'guilloche', 'sheen')),
       'notebook removes halos, ornamental frames and shimmer')
 check('if (ruled)' in visuals and 'state_pressed' in visuals and 'state_focused' in visuals,
@@ -117,8 +125,9 @@ motion_path = APP / 'kotlin/astral/ShaiMotion.kt'
 check(motion_path.is_file(), 'motion tokens live in one file')
 motion = motion_path.read_text()
 check('PathInterpolator' in motion, 'motion uses explicit easing curves')
-check('PRESS_IN_MS = 100L' in motion and 'PHASE_IN_MS = 520L' in motion,
-      'press and phase durations are intentional tokens')
+check('PRESS_IN_MS = 100L' in motion, 'press duration is an intentional token')
+phase_ms = int(re.search(r'PHASE_IN_MS = (\d+)L', motion).group(1))
+check(500 <= phase_ms <= 750, f'the material change sits in the 500-750ms window ({phase_ms}ms)')
 check('DRAWER_OPEN_MS' in motion and 'ROW_STAGGER_MS' in motion,
       'drawer and row staging are tokenised')
 check('AccelerateDecelerateInterpolator' not in KOTLIN and
@@ -182,8 +191,8 @@ check((APP / 'res/drawable/ic_chevron_down.xml').is_file(), 'chevron drawable ex
 
 # Auto/manual: visible square boxes, exactly one ticked, preference is truth.
 check('<RadioGroup' not in layout_text, 'hidden 1dp radio stub is gone')
-check('@drawable/checkbox_court' in layout_text,
-      'mode control uses the court checkbox boxes')
+check('@drawable/checkbox_clay' in layout_text,
+      'mode control uses the clay check boxes')
 check('@+id/radio_auto' in layout_text and '@+id/radio_manual' in layout_text,
       'AUTO and MANUAL boxes keep their ids')
 check('@+id/mode_label' in layout_text, 'mode row is labelled')
@@ -199,17 +208,18 @@ check('setInjectionControlsEnabled(true)' in inside(
           '                animateToPhase(1f)', '                if (filteredLibraries.isEmpty())'),
       'controls are re-enabled when the key is accepted')
 
-# Legibility floor: no text below the 11sp floor flagged by the deslop audit.
+# Legibility floor: 16sp body, 14sp supporting, 13sp labels, 12sp chips.
 under_floor = []
 for path in (APP / 'res/layout').glob('*.xml'):
     for match in re.finditer(r'android:textSize="(\d+)sp"', path.read_text()):
-        if int(match.group(1)) < 11:
+        if int(match.group(1)) < 12:
             under_floor.append(f'{path.name}:{match.group(1)}sp')
-check(not under_floor, f'no text below 11sp ({under_floor})')
+check(not under_floor, f'no text below 12sp ({under_floor})')
+check('android:textSize="17sp"' in BASE.read_text(), 'body copy reads at 17sp, above the 16sp floor')
 
 # Main controls are comfortable to tap; XML declaration does not assert runtime size.
 text = BASE.read_text()
-for item in ['android:layout_height="56dp"', 'android:layout_height="52dp"',
+for item in ['android:layout_height="68dp"', 'android:layout_height="64dp"',
              'android:layout_height="48dp"']:
     check(item in text, f'touch target declared {item}')
 
@@ -274,8 +284,8 @@ check('saved only if you tick this' in layout_text,
       'the note states a real consequence, not decoration')
 check(by_id['remember_key'].attrib.get(ns + 'layout_height') == '48dp',
       'the toggle keeps a 48dp target')
-check(by_id['login_button'].attrib.get(ns + 'layout_height') == '56dp',
-      'the primary action keeps a 56dp target')
+check(by_id['login_button'].attrib.get(ns + 'layout_height') == '68dp',
+      'the primary action keeps a 68dp target, with room for its own shadow')
 check('android:text="Redeem key"' in layout_text and 'textAllCaps="false"' in layout_text,
       'one primary action in sentence case')
 
@@ -305,5 +315,63 @@ check('onSettled' in notifier and 'onPermissionResult()' in SPLASH,
       'the cover waits for a real permission result instead of a timer')
 check('openLoader()' in SPLASH and 'isFinishing' in SPLASH,
       'navigation is idempotent and lifecycle-safe')
+
+
+# --- Clay contract (2026-10 pass) ---------------------------------------------
+colors_text = (APP / 'res/values/colors.xml').read_text()
+for role, hex_value in (('bg', '#F4EEFF'), ('ink', '#2B2340'), ('muted', '#5F536F'),
+                        ('raised', '#FAF7FF'), ('pink', '#FFB8D9'), ('mint', '#A8E6CF'),
+                        ('peri', '#B5C7FF')):
+    check(f'name="clay_{role}">{hex_value}<' in colors_text, f'clay colour {role} is the specified value')
+
+# Depth is drawn, not faked with a border or a flat drop shadow.
+check('drawStackShadow' in visuals and 'SHADOW_RINGS' in visuals,
+      'raised surfaces cast a drawn stack shadow')
+check('drawBevel' in visuals and 'LinearGradient' in visuals,
+      'surfaces are lit from one upper-left source')
+check('clipRect(rect)' in visuals, 'the bevel is clipped to the moulded form')
+check('clayShadow(): Boolean' in visuals and 'Kind.SEARCH, Kind.SELECT -> false' in visuals,
+      'recessed controls take an inner light instead of casting a shadow')
+check('clayInset()' in visuals and 'at least the shadow reach' in visuals,
+      'every raised surface reserves room for its own shadow')
+check('state.any { it == android.R.attr.state_pressed }' in visuals,
+      'press feedback comes from the surface state, not a tint')
+check('override fun getOutline' in visuals,
+      'elevation shadows follow the moulded radius')
+
+# The crest is the same geometry, sculpted.
+check('drawClayForm' in visuals_illustration, 'the crest has a clay form pass')
+check('cloak' in visuals_illustration and 'FACE_OVAL' in visuals_illustration,
+      'the sculpted silhouette is authored geometry, not a bitmap')
+check('Ink.HATCH' in visuals_illustration and 'Ink.GROUND' in visuals_illustration,
+      'construction marks are named so they can leave the page')
+check('1f - clay' in visuals_illustration or 'clay * 1.9f' in visuals_illustration,
+      'hatching and the ground line fade out as clay arrives')
+
+# Typography switches with the material.
+for font in ('fredoka_semibold.ttf', 'nunito_regular.ttf', 'nunito_semibold.ttf'):
+    check((APP / 'res/font' / font).is_file(), f'{font} ships with the app')
+check('object ShaiType' in type_file, 'typefaces resolve through one place')
+check('applyTypefaces(displaySignedIn)' in KOTLIN, 'the material change swaps the type voice')
+check('R.id.hero_headline).letterSpacing' in KOTLIN,
+      'display tracking is set per material')
+
+# The transformation is state-driven and staged.
+check('animateToPhase(1f)' in KOTLIN, 'only an accepted key starts the material change')
+check('ValueAnimator.areAnimatorsEnabled()' in KOTLIN,
+      'with animations off the finished object is shown directly')
+reveal_delay = int(re.search(r'DRAWER_REVEAL_DELAY_MS = (\d+)L', motion).group(1))
+check(reveal_delay > phase_ms, 'the drawer waits for the material change to finish')
+
+# Every authenticated surface belongs to the same system.
+check('settingsSurface' in KOTLIN, 'the injection panel is a moulded surface too')
+check('seal_clay' in KOTLIN, 'the verified mark is a clay bead, not the old dark ring')
+check('pill_mint' in KOTLIN and 'pill_pink' in KOTLIN,
+      'status chips carry the pastel material')
+check('applyPill' in KOTLIN and 'clay_pill' in KOTLIN,
+      'chips are restyled once per material, not per frame')
+about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
+check('ShaiPalette.clayBg' in about and 'ShaiType.display' in about,
+      'the about sheet belongs to the clay system')
 
 print('\nSTATIC UI CONTRACT CHECKS PASSED (not an APK runtime test).')

@@ -20,7 +20,7 @@
         android:layout_weight="1"
         android:text="App information"
         android:textColor="@color/loader_text_secondary"
-        android:textSize="12sp" />
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/about_detail_value"
@@ -29,6 +29,6 @@
         android:gravity="end"
         android:text="SHAI LOADER"
         android:textColor="@color/loader_accent"
-        android:textSize="11sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 </LinearLayout>

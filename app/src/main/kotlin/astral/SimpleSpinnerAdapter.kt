@@ -1,6 +1,7 @@
 package astral.loader
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,7 +29,16 @@ class SimpleSpinnerAdapter(
             ?: LayoutInflater.from(context).inflate(R.layout.spinner_item_simple, parent, false)
         view.findViewById<TextView>(R.id.spinnerText).apply {
             text = values[position]
-            setTextColor(ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.orchid, phase))
+            setTextColor(ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phase))
+            typeface = if (phase >= .5f) {
+                ShaiType.label(context)
+            } else {
+                ShaiType.sheetDisplay(context)
+            }
+            // The chevron is drawn in clay ink so it belongs to the same object.
+            compoundDrawableTintList = ColorStateList.valueOf(
+                ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayMuted, phase)
+            )
         }
         return view
     }
@@ -36,7 +46,10 @@ class SimpleSpinnerAdapter(
     override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
         val view = convertView
             ?: LayoutInflater.from(context).inflate(R.layout.spinner_dropdown_item, parent, false)
-        view.findViewById<TextView>(R.id.spinnerDropDownText).text = values[position]
+        view.findViewById<TextView>(R.id.spinnerDropDownText).apply {
+            text = values[position]
+            typeface = ShaiType.body(context)
+        }
         return view
     }
 }

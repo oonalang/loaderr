@@ -16,7 +16,9 @@ import androidx.annotation.ColorInt
  * second, lighter pass at a different offset. Bounds stay exactly where the
  * layout put them, so the control is still geometrically honest for touch.
  */
-internal class SketchFieldDrawable : Drawable() {
+internal class SketchFieldDrawable(
+    private val density: Float = android.content.res.Resources.getSystem().displayMetrics.density
+) : Drawable() {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -42,7 +44,7 @@ internal class SketchFieldDrawable : Drawable() {
 
     override fun draw(canvas: Canvas) {
         val b = bounds
-        val dp = density()
+        val dp = density
         val left = b.left + 3f * dp
         val top = b.top + 3f * dp
         val right = b.right - 3f * dp
@@ -52,22 +54,41 @@ internal class SketchFieldDrawable : Drawable() {
         val enabled = state.any { it == android.R.attr.state_enabled } || state.isEmpty()
         val focused = state.any { it == android.R.attr.state_focused }
         val alpha = if (enabled) globalAlpha else (globalAlpha * .45f).toInt()
+        val clay = phase.coerceIn(0f, 1f)
+        val paperOnly = 1f - clay
+        val radius = (4f + 14f * clay) * dp
 
-        // A fresh sheet sits inside the drawn edge so ruling never runs through the key.
+        // A fresh sheet sits inside the drawn edge so ruling never runs through the key;
+        // in clay the field becomes a shallow well pressed into the page.
         paint.style = Paint.Style.FILL
-        paint.color = withAlpha(ShaiPalette.blend(ShaiPalette.paperCard, Color.rgb(28, 24, 38), phase), alpha)
+        paint.color = withAlpha(ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.claySunken, clay), alpha)
         fillRect.set(left - 1f * dp, top - 1f * dp, right + 1f * dp, bottom + 1f * dp)
-        canvas.drawRoundRect(fillRect, 4f * dp, 4f * dp, paint)
+        canvas.drawRoundRect(fillRect, radius, radius, paint)
+
+        if (clay > 0.01f) {
+            canvas.save()
+            canvas.clipRect(fillRect)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 5f * dp
+            paint.color = withAlpha(ShaiPalette.clayInk, (alpha * .16f * clay).toInt())
+            canvas.drawRoundRect(
+                fillRect.left + 1.4f * dp, fillRect.top + 1.4f * dp,
+                fillRect.right + 1.4f * dp, fillRect.bottom + 1.4f * dp, radius, radius, paint
+            )
+            paint.color = withAlpha(Color.WHITE, (alpha * .55f * clay).toInt())
+            canvas.drawRoundRect(
+                fillRect.left - 1.4f * dp, fillRect.top - 1.4f * dp,
+                fillRect.right - 1.4f * dp, fillRect.bottom - 1.4f * dp, radius, radius, paint
+            )
+            canvas.restore()
+        }
+        if (paperOnly <= 0f) return
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = (if (focused) 2.1f else 1.5f) * dp
         paint.color = withAlpha(
-            if (focused) {
-                ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.gold, phase)
-            } else {
-                ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phase)
-            },
-            alpha
+            if (focused) ShaiPalette.ink else ShaiPalette.pencil,
+            (alpha * paperOnly).toInt()
         )
         buildOutline(left, top, right, bottom, dp, focused)
         canvas.drawPath(path, paint)
@@ -75,8 +96,8 @@ internal class SketchFieldDrawable : Drawable() {
         // Second pass: a lighter re-ink one pixel off, so the line reads as drawn twice.
         paint.strokeWidth = (if (focused) 1.1f else 0.9f) * dp
         paint.color = withAlpha(
-            ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phase),
-            (alpha * (if (focused) .40f else .30f)).toInt()
+            ShaiPalette.pencil,
+            (alpha * (if (focused) .40f else .30f) * paperOnly).toInt()
         )
         buildOutline(left + 1.1f * dp, top - 0.9f * dp, right + 0.8f * dp, bottom - 1.2f * dp, dp, false)
         canvas.drawPath(path, paint)
@@ -106,8 +127,6 @@ internal class SketchFieldDrawable : Drawable() {
         val a = (Color.alpha(color) * alpha.coerceIn(0, 255) / 255f).toInt().coerceIn(0, 255)
         return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color))
     }
-
-    private fun density() = android.content.res.Resources.getSystem().displayMetrics.density
 
     override fun setAlpha(alpha: Int) {
         globalAlpha = alpha.coerceIn(0, 255)
@@ -155,9 +174,9 @@ internal class HighlightSweepDrawable : Drawable() {
         path.lineTo(w * .996f, h * .88f)
         path.cubicTo(w * .62f, h * .98f, w * .28f, h * .86f, w * .008f, h * .94f)
         path.close()
-        paint.color = ShaiPalette.blend(ShaiPalette.highlight, ShaiPalette.gold, phase)
-        // Paper keeps the marker; the court keeps only a quiet gold trace.
-        paint.alpha = (190f - 158f * phase).toInt().coerceIn(0, 255)
+        paint.color = ShaiPalette.highlight
+        // The marker belongs to the sheet; clay sets its headline without one.
+        paint.alpha = (190f * (1f - phase * 1.6f)).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.clipRect(0f, 0f, w * progress, h)
         canvas.drawPath(path, paint)

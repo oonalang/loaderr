@@ -64,18 +64,22 @@ The main screen cross-fades between two states on **one shared layout**:
 - **Phase 0 — the concept sheet (pre-login):** paper `#FDFCF7`, 24dp
   `#C9DAF8` ruling, ink `#1F2937` contours, one Caveat margin note, the drawn
   keykeeper, highlighter `#FFF176` primary action.
-- **Phase 1 — the violet court (signed in):** ink-dark panels
-  (`#15111D` family), gold accent `#E9C77E`, desaturated banner.
+- **Phase 1 — clay (signed in):** lavender `#F4EEFF`, moulded pastel surfaces
+  (pink `#FFB8D9`, mint `#A8E6CF`, periwinkle `#B5C7FF`), one upper-left light,
+  Fredoka + Nunito. The violet court is retired — no court token survives.
 
-`updateTheme(progress: Float)` (called per frame of a 520/420ms
+`updateTheme(progress: Float)` (called per frame of a 640/420ms
 `ValueAnimator`) blends every color via `ShaiPalette.blend` and drives:
 
 - `backdrop.phase`, all `PhaseSurfaceDrawable.phase` fields,
   `fieldSurface.phase`, `headlineSweep.phase`, `heroIllustration.phase`
 - Text colors through id lists (`titleIds`, `secondaryIds`, accent ids)
 - `sheet_note` (real state: "Key required" ↔ "Key verified"), the same
-  illustration strokes re-inked, the Remember box (sheet inks ↔ court gold),
-  and the hero's paper tilt (-1.5° unsigned)
+  illustration geometry sculpted rather than re-inked, the Remember/mode boxes
+  (ink on paper ↔ clay beads), the verified emblem (ring ↔ mint bead), the
+  drafting rule (drawn ↔ `GONE`), and the hero's paper tilt (-1.5° unsigned)
+- Type voices through one call, `applyTypefaces(clay)` (Space Grotesk ↔
+  Fredoka + Nunito); never set a typeface anywhere else
 - Banner desaturation: `phaseColorMatrix.setSaturation(progress)`, then
   `appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)`.
   **`ColorMatrixColorFilter` has no `setMatrix()`** — the filter copies the
@@ -102,11 +106,19 @@ reject criteria live in `DESIGN.md`.
 - **Palette roles (exact):** paper `#FDFCF7` · grid `#C9DAF8` · ink `#1F2937`
   · pencil `#777B84` · **one accent** highlighter `#FFF176` (primary fill,
   headline sweep, the key's wash). No sixth hue on paper — `draft` resolves to
-  ink. Violet court tokens for phase 1 (see `ShaiPalette`).
-- **Type:** **Space Grotesk** for headings, controls, navigation and body,
-  bundled as static 400/500/700 faces and set by the theme. **Caveat only for
-  genuine annotations** (currently one, pointing at the Remember toggle). Body
-  floor 16sp on the sheet. No serif anywhere.
+  ink. Clay tokens for phase 1 (see `ShaiPalette` and `DESIGN.md`).
+- **Type:** **Space Grotesk** on the sheet, **Fredoka SemiBold** (display) and
+  **Nunito** (body/controls) in clay, all resolved through `ShaiType`.
+  **Caveat only for genuine annotations** (currently one, pointing at the
+  Remember toggle) and never in clay. Body floor 16sp, supporting 14sp, labels
+  13sp, chips 12sp. No serif anywhere.
+- **Clay (phase 1):** every functional surface is `PhaseSurfaceDrawable`, which
+  morphs a ruled paper edge into a moulded form: stack shadow inside a reserved
+  inset, matte face, one 135° bevel gradient clipped to the face. Recessed
+  controls (`SEARCH`, `SELECT`) invert the light and cast no shadow.
+  **The inset must stay ≥ the shadow's reach** or the falloff is clipped flat.
+  Radii: card/panel 30dp, plaque 26dp, primary 22dp, secondary/row 18–20dp,
+  wells 16dp. See `DESIGN.md` § *The lighting recipe*.
 - **Surfaces:** bowed, overshooting contour strokes (`SketchFieldDrawable`,
   `PhaseSurfaceDrawable` double pass); hatching instead of shadows; rules
   separate information instead of cards.

@@ -19,10 +19,15 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
+    <!-- Errors and confirmations belong to the same light material as the app.
+         The old near-black sheet made every dialog look like a different product. -->
     <style name="DarkAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-        <item name="colorPrimary">@color/max_gold</item>
-        <item name="android:background">@color/max_panel</item>
-        <item name="android:textColorPrimary">@color/textColor</item>
-        <item name="android:textColorSecondary">@color/max_orchid</item>
+        <item name="colorPrimary">@color/clay_ink</item>
+        <item name="colorSurface">@color/clay_raised</item>
+        <item name="colorOnSurface">@color/clay_ink</item>
+        <item name="android:background">@color/clay_raised</item>
+        <item name="android:textColorPrimary">@color/clay_ink</item>
+        <item name="android:textColorSecondary">@color/clay_muted</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

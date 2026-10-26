@@ -1,3 +1,9 @@
+> **Superseded (2026-10 clay pass).** The signed-in "violet court" described
+> below no longer exists: it was replaced by the Claymorphism system. See
+> `qa/CLAY_REPORT.md` for the current delivery and `DESIGN.md` for the design
+> system of record. The unauthenticated sheet and the cover described here are
+> still current.
+
 # SHAI Loader — opening and key page
 
 Pass: Conceptual Sketch, second iteration (2026-10-26).
@@ -5,7 +11,7 @@ Scope: the cover (`SplashActivity`) and the unauthenticated page, plus the
 continuity of that drawing into the signed-in court. Licensing, catalog,
 selection, preparation and injection behaviour are unchanged.
 
-Rendered frames: `qa/screenshots/` (390dp sheet, 360dp sheet, cover, court).
+Rendered frames: `qa/screenshots/` (390dp sheet, 360dp sheet, cover).
 
 ## What changed
 
@@ -115,7 +121,7 @@ AGP 8.9.1, Kotlin 2.0.21, Robolectric 4.14.1 (test only).
 | Rendered cover, 390dp | **PASSED** | `qa/screenshots/splash-390dp.png` |
 | Rendered key page, 390dp | **PASSED** | `qa/screenshots/key-page-390dp.png` |
 | Rendered key page, 360dp, no clipping | **PASSED** | `qa/screenshots/key-page-360dp.png` |
-| Court re-ink (`updateTheme(1f)`) | **PASSED** | `qa/screenshots/court-phase-390dp.png` |
+| Court re-ink (`updateTheme(1f)`) | superseded | replaced by the clay renders in `qa/CLAY_REPORT.md` |
 | Reduced motion (animator scale 0) | **PASSED** (source + contract) | illustration completes, sweep full |
 | Startup on a hardware device | **BLOCKED** | KVM denied, no device attached |
 | Frame pacing / haptics / IME on hardware | **UNVERIFIED** | requires a device |

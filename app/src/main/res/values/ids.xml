@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Marks which material a status chip was last styled for, so the phase
+         blend does not rebuild its background on every frame. -->
+    <item name="clay_pill" type="id" />
+</resources>

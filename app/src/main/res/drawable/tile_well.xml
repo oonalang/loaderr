@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A shallow well for a library mark inside a clay row. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#E9E1F7" />
+    <corners android:radius="14dp" />
+</shape>

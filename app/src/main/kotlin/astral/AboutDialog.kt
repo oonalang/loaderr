@@ -98,12 +98,12 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
             dialogWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             dialogWindow.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-            val background = if (signedIn) ShaiPalette.void else ShaiPalette.paper
+            val background = if (signedIn) ShaiPalette.clayBg else ShaiPalette.paper
             dialogWindow.statusBarColor = background
             dialogWindow.navigationBarColor = background
             @Suppress("DEPRECATION")
-            dialogWindow.decorView.systemUiVisibility = if (signedIn) 0 else (
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+            dialogWindow.decorView.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
             dialogWindow.setLayout(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT
@@ -135,23 +135,28 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
     }
 
     private fun applyPhaseStyle() {
-        val base = if (signedIn) ShaiPalette.void else ShaiPalette.paper
-        val foreground = if (signedIn) Color.rgb(246, 239, 255) else ShaiPalette.ink
-        val secondary = if (signedIn) ShaiPalette.muted else ShaiPalette.pencil
-        val accent = if (signedIn) ShaiPalette.gold else ShaiPalette.ink
+        val base = if (signedIn) ShaiPalette.clayBg else ShaiPalette.paper
+        val foreground = if (signedIn) ShaiPalette.clayInk else ShaiPalette.ink
+        val secondary = if (signedIn) ShaiPalette.clayMuted else ShaiPalette.pencil
+        val accent = if (signedIn) ShaiPalette.clayInk else ShaiPalette.ink
         findViewById<View>(R.id.about_scroll).setBackgroundColor(base)
         listOf(R.id.about_details_card, R.id.about_info_card).forEach { id ->
             findViewById<View>(id).background = PhaseSurfaceDrawable(
-                PhaseSurfaceDrawable.Kind.CARD).apply { phase = if (signedIn) 1f else 0f }
+                context, PhaseSurfaceDrawable.Kind.CARD).apply { phase = if (signedIn) 1f else 0f }
         }
         fun visit(view: View) {
             when (view) {
                 is TextView -> {
-                    val normalText = view.textSize / context.resources.displayMetrics.scaledDensity >= 13f
-                    view.setTextColor(if (normalText) foreground else secondary)
-                    // Body keeps its XML weight; display faces are reserved for large headings.
-                    if (view.textSize / context.resources.displayMetrics.scaledDensity >= 24f) {
-                        view.typeface = Typeface.create("serif", Typeface.BOLD)
+                    val sp = view.textSize / context.resources.displayMetrics.scaledDensity
+                    view.setTextColor(if (sp >= 13f) foreground else secondary)
+                    if (signedIn) {
+                        // Fredoka heads this page, Nunito reads it; no serif fallback.
+                        view.typeface = when {
+                            sp >= 20f -> ShaiType.display(context)
+                            sp >= 14f -> ShaiType.label(context)
+                            else -> ShaiType.body(context)
+                        }
+                        view.letterSpacing = 0f
                     }
                     view.setBackgroundColor(Color.TRANSPARENT)
                 }
@@ -163,9 +168,12 @@ class AboutDialog(context: Context, private val signedIn: Boolean = false) : Dia
         // Keep the Telegram button consistent with the channel shown above.
         findViewById<MaterialButton>(R.id.about_telegram).apply {
             backgroundTintList = ColorStateList.valueOf(
-                if (signedIn) ShaiPalette.darkPanel else ShaiPalette.paperCard)
+                if (signedIn) ShaiPalette.clayPink else ShaiPalette.paperCard)
             setTextColor(foreground)
-            strokeColor = ColorStateList.valueOf(if (signedIn) ShaiPalette.gold else ShaiPalette.ink)
+            strokeWidth = if (signedIn) 0 else (1.2f * context.resources.displayMetrics.density).toInt()
+            strokeColor = ColorStateList.valueOf(if (signedIn) ShaiPalette.clayPinkDeep else ShaiPalette.ink)
+            cornerRadius = ((if (signedIn) 22f else 4f) * context.resources.displayMetrics.density).toInt()
+            typeface = if (signedIn) ShaiType.label(context) else Typeface.DEFAULT
         }
     }
 

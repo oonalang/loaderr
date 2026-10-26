@@ -2,27 +2,29 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    android:gravity="center_vertical"
-    android:minHeight="92dp"
+    android:layout_marginBottom="10dp"
+    android:gravity="top"
+    android:minHeight="104dp"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="12dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="12dp">
+    android:paddingStart="14dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="14dp">
 
     <ImageView
         android:id="@+id/drawer_logo"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:background="@drawable/circle"
+        android:layout_width="54dp"
+        android:layout_height="54dp"
+        android:background="@drawable/tile_well"
+        android:clipToOutline="true"
         android:contentDescription="Library logo"
+        android:padding="3dp"
         android:scaleType="centerCrop" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="14dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -32,45 +34,44 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/loader_text_primary"
-            android:textSize="15sp"
+            android:textColor="@color/clay_ink"
+            android:textSize="17sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/drawer_meta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/loader_text_secondary"
-            android:textSize="11sp" />
+            android:textColor="@color/clay_muted"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/drawer_package"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:maxLines="1"
-            android:textColor="@color/loader_text_muted"
-            android:textSize="11sp" />
-    </LinearLayout>
+            android:textColor="@color/clay_muted"
+            android:textSize="13sp" />
 
-    <TextView
-        android:id="@+id/drawer_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="2dp"
-        android:letterSpacing="0.08"
-        android:paddingStart="7dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="7dp"
-        android:paddingBottom="4dp"
-        android:text="ACTIVE"
-        android:textColor="@color/loader_status_active"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        <TextView
+            android:id="@+id/drawer_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:letterSpacing="0.04"
+            android:paddingStart="8dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="3dp"
+            android:text="ACTIVE"
+            android:textColor="@color/clay_ink"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </LinearLayout>

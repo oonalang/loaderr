@@ -114,6 +114,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var primarySurface: PhaseSurfaceDrawable
     private lateinit var secondarySurface: PhaseSurfaceDrawable
     private lateinit var successSurface: PhaseSurfaceDrawable
+    private lateinit var settingsSurface: PhaseSurfaceDrawable
     private lateinit var drawerSurface: PhaseSurfaceDrawable
     private lateinit var drawerSearchSurface: PhaseSurfaceDrawable
     private lateinit var delaySurface: PhaseSurfaceDrawable
@@ -134,6 +135,7 @@ class MainActivity : AppCompatActivity() {
     private var lastDisplayedSignedIn: Boolean? = null
     private var lastHandStyle: Boolean? = null
     private var lastCourtToggle: Boolean? = null
+    private var lastPillKey: String? = null
     private var pendingRememberedKey: String? = null
     private var autoLoginStarted = false
     private var restoredFromState = false
@@ -574,17 +576,18 @@ class MainActivity : AppCompatActivity() {
     // accepts the entered license. A saved text value does not restore this state.
     private fun setupVisuals() {
         backdrop = findViewById(R.id.phase_backdrop)
-        libraryCardSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.CARD)
-        primarySurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.PRIMARY)
-        secondarySurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SECONDARY)
-        successSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SUCCESS)
-        drawerSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.DRAWER)
-        drawerSearchSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SEARCH)
-        delaySurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SELECT)
-        methodSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.SELECT)
+        libraryCardSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.CARD)
+        primarySurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.PRIMARY)
+        secondarySurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SECONDARY)
+        successSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SUCCESS)
+        settingsSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.CARD)
+        drawerSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.DRAWER)
+        drawerSearchSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SEARCH)
+        delaySurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SELECT)
+        methodSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.SELECT)
         delaySpinner.background = delaySurface
         methodSpinner.background = methodSurface
-        fieldSurface = SketchFieldDrawable()
+        fieldSurface = SketchFieldDrawable(resources.displayMetrics.density)
         findViewById<View>(R.id.key_field).background = fieldSurface
         headlineSweep = HighlightSweepDrawable()
         tv(R.id.hero_headline).background = headlineSweep
@@ -593,6 +596,7 @@ class MainActivity : AppCompatActivity() {
         loginButton.background = primarySurface
         findViewById<View>(R.id.browse_button).background = secondarySurface
         findViewById<View>(R.id.success_section).background = successSurface
+        findViewById<View>(R.id.operation_section).background = settingsSurface
         libraryDrawer.background = drawerSurface
         librarySearch.background = drawerSearchSurface
         loginButton.text = "Redeem key"
@@ -670,6 +674,7 @@ class MainActivity : AppCompatActivity() {
         primarySurface.phase = phaseProgress
         secondarySurface.phase = phaseProgress
         successSurface.phase = phaseProgress
+        settingsSurface.phase = phaseProgress
         drawerSurface.phase = phaseProgress
         drawerSearchSurface.phase = phaseProgress
         delaySurface.phase = phaseProgress
@@ -679,10 +684,11 @@ class MainActivity : AppCompatActivity() {
         heroIllustration.phase = phaseProgress
         (cv(R.id.hero_rule) as OrnamentRuleView).phase = phaseProgress
         (cv(R.id.drawer_rule) as OrnamentRuleView).phase = phaseProgress
-        val ink = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
-        val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
-        val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
-        val line = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.goldDeep, phaseProgress)
+        val clay = phaseProgress >= .5f
+        val ink = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
+        val secondary = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayMuted, phaseProgress)
+        val accent = ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.clayInk, phaseProgress)
+        val line = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayPinkDeep, phaseProgress)
         val heroHeadline = tv(R.id.hero_headline)
         val displaySignedIn = phaseProgress >= .55f
         val density = resources.displayMetrics.density
@@ -707,13 +713,13 @@ class MainActivity : AppCompatActivity() {
         ).forEach { tv(it).setTextColor(accent) }
         tv(R.id.library_status).setTextColor(accent)
         tv(R.id.success_emblem).setTextColor(
-            ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.gold, phaseProgress)
+            ShaiPalette.blend(ShaiPalette.draft, ShaiPalette.clayInk, phaseProgress)
         )
         tv(R.id.browse_button).setTextColor(
-            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.orchid, phaseProgress)
+            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
         )
         loginButton.setTextColor(
-            ShaiPalette.blend(ShaiPalette.ink, Color.rgb(32, 20, 6), phaseProgress)
+            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
         )
         licenseKeyInput.setTextColor(ink)
         licenseKeyInput.setHintTextColor(secondary)
@@ -722,11 +728,21 @@ class MainActivity : AppCompatActivity() {
             setTextColor(ink)
             setHintTextColor(secondary)
         }
-        findViewById<View>(R.id.library_divider).backgroundTintList = ColorStateList.valueOf(line)
-        findViewById<View>(R.id.success_rule).backgroundTintList = ColorStateList.valueOf(line)
-        progressBar.progressTintList = ColorStateList.valueOf(accent)
+        // Hairline rules are drafting marks; clay separates by space, not by rules.
+        val ruleAlpha = (1f - phaseProgress * 1.4f).coerceIn(0f, 1f)
+        findViewById<View>(R.id.library_divider).apply {
+            backgroundTintList = ColorStateList.valueOf(line)
+            alpha = ruleAlpha
+        }
+        findViewById<View>(R.id.success_rule).apply {
+            backgroundTintList = ColorStateList.valueOf(line)
+            alpha = ruleAlpha
+        }
+        progressBar.progressTintList = ColorStateList.valueOf(
+            ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayPinkDeep, phaseProgress)
+        )
         progressBar.progressBackgroundTintList = ColorStateList.valueOf(
-            ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.plum, phaseProgress)
+            ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.claySunken, phaseProgress)
         )
         val successSection = cv(R.id.success_section)
         if (successSection.visibility == View.VISIBLE) {
@@ -739,14 +755,22 @@ class MainActivity : AppCompatActivity() {
         }
         phaseColorMatrix.setSaturation(phaseProgress)
         appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)
-        val courtToggle = phaseProgress >= .5f
-        if (lastCourtToggle != courtToggle) {
-            // The remember box is drawn in ink on paper and in gold in the court.
-            rememberKeyCheck.setButtonDrawable(
-                if (courtToggle) R.drawable.checkbox_court else R.drawable.checkbox_sheet
+        if (lastCourtToggle != clay) {
+            // On paper the boxes are inked and ticked by hand; in clay they are beads.
+            val box = if (clay) R.drawable.checkbox_clay else R.drawable.checkbox_sheet
+            rememberKeyCheck.setButtonDrawable(box)
+            radioAuto.setButtonDrawable(box)
+            radioManual.setButtonDrawable(box)
+            tv(R.id.success_emblem).setBackgroundResource(
+                if (clay) R.drawable.seal_clay else R.drawable.seal_ring
             )
-            lastCourtToggle = courtToggle
+            // The drafting rule has no place in the finished object, so it also
+            // gives up its space instead of leaving a gap in the composition.
+            cv(R.id.hero_rule).visibility = if (clay) View.GONE else View.VISIBLE
+            cv(R.id.drawer_rule).visibility = if (clay) View.GONE else View.VISIBLE
+            lastCourtToggle = clay
         }
+        applyStatusChrome(clay)
         val handMode = !displaySignedIn
         if (lastHandStyle != handMode) {
             if (::delayAdapter.isInitialized) delayAdapter.applyPhase(phaseProgress)
@@ -770,6 +794,7 @@ class MainActivity : AppCompatActivity() {
             }
             // Paper tilt keeps the hand-placed quality of a sketch on a page.
             heroIllustration.rotation = if (displaySignedIn) 0f else -1.5f
+            applyTypefaces(displaySignedIn)
             findViewById<TextView>(R.id.library_status).text = when {
                 selectedLibrary.name.isBlank() && !licenseVerified -> "KEY REQUIRED"
                 selectedLibrary.name.isBlank() && licenseVerified -> "CHOOSE LIBRARY"
@@ -782,13 +807,17 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<ImageButton>(R.id.library_menu_button).setColorFilter(accent)
         findViewById<ImageButton>(R.id.drawer_close).setColorFilter(accent)
-        val systemBar = ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.void, phaseProgress)
+        // The drawer scrim is ink on paper and soft plum in clay.
+        drawerScrim.setBackgroundColor(
+            ShaiPalette.blend(Color.argb(185, 0, 0, 0), Color.argb(82, 43, 35, 64), phaseProgress)
+        )
+        val systemBar = ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.clayBg, phaseProgress)
         window.statusBarColor = systemBar
         window.navigationBarColor = systemBar
+        // Both materials are light surfaces, so the bars always take dark icons.
         @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = if (!displaySignedIn) {
+        window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        } else { 0 }
         // Rows are created asynchronously when the catalog arrives.
         for (i in 0 until libraryList.childCount) {
             styleDrawerRow(libraryList.getChildAt(i))
@@ -797,13 +826,100 @@ class MainActivity : AppCompatActivity() {
 
     private fun styleDrawerRow(row: View) {
         val surface = row.background as? PhaseSurfaceDrawable
-            ?: PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.ROW).also { row.background = it }
+            ?: PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.ROW).also { row.background = it }
         surface.phase = phaseProgress
-        val main = ShaiPalette.blend(ShaiPalette.ink, Color.rgb(246, 239, 255), phaseProgress)
-        val sub = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.muted, phaseProgress)
+        val clay = phaseProgress >= .5f
+        val main = ShaiPalette.blend(ShaiPalette.ink, ShaiPalette.clayInk, phaseProgress)
+        val sub = ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayMuted, phaseProgress)
         intArrayOf(R.id.drawer_name, R.id.drawer_meta, R.id.drawer_package).forEachIndexed { index, id ->
-            row.findViewById<TextView>(id)?.setTextColor(if (index == 0) main else sub)
+            val cell = row.findViewById<TextView>(id) ?: return@forEachIndexed
+            cell.setTextColor(if (index == 0) main else sub)
+            cell.typeface = when (index) {
+                0 -> if (clay) ShaiType.display(this) else ShaiType.sheetDisplay(this)
+                else -> if (clay) ShaiType.body(this) else ShaiType.sheet(this)
+            }
         }
+        val status = row.findViewById<TextView>(R.id.drawer_status) ?: return
+        if (status.getTag(R.id.clay_pill) != clay) {
+            status.setTag(R.id.clay_pill, clay)
+            applyPill(status, row.isEnabled, clay)
+        }
+    }
+
+    /** Status chips carry the pastel material: mint when available, pink when not. */
+    private fun applyPill(pill: TextView, available: Boolean, clay: Boolean) {
+        pill.setBackgroundResource(
+            when {
+                clay && available -> R.drawable.pill_mint
+                clay -> R.drawable.pill_pink
+                available -> R.drawable.status_pill
+                else -> R.drawable.maintenance_pill
+            }
+        )
+        pill.setTextColor(
+            when {
+                clay -> ShaiPalette.clayInk
+                available -> ContextCompat.getColor(this, R.color.loader_status_active)
+                else -> ContextCompat.getColor(this, R.color.loader_status_maintenance)
+            }
+        )
+        pill.typeface = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
+    }
+
+    /** The card's own status chip follows the same logic, keyed on what it says. */
+    private fun applyStatusChrome(clay: Boolean) {
+        val pill = tv(R.id.library_status)
+        val label = pill.text?.toString().orEmpty()
+        val key = "$clay/$label"
+        if (lastPillKey == key) return
+        lastPillKey = key
+        pill.setBackgroundResource(
+            when {
+                clay && label == "READY" -> R.drawable.pill_mint
+                clay && label.isNotEmpty() -> R.drawable.pill_peri
+                else -> 0
+            }
+        )
+        val dp = resources.displayMetrics.density
+        val padH = (9 * dp).toInt()
+        val padV = if (clay) (5 * dp).toInt() else 0
+        pill.setPadding(padH, padV, padH, padV)
+        pill.typeface = if (clay) ShaiType.label(this) else ShaiType.sheet(this)
+    }
+
+    /**
+     * Two voices, swapped at the single point where the material changes.
+     * Space Grotesk drafts the sheet; Fredoka and Nunito finish the object.
+     */
+    private fun applyTypefaces(clay: Boolean) {
+        val display = if (clay) ShaiType.display(this) else ShaiType.sheetDisplay(this)
+        val label = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
+        val body = if (clay) ShaiType.body(this) else ShaiType.sheet(this)
+        intArrayOf(
+            R.id.brand_title, R.id.hero_headline, R.id.library_name,
+            R.id.success_title, R.id.drawer_title
+        ).forEach { tv(it).typeface = display }
+        intArrayOf(
+            R.id.remember_title, R.id.license_heading, R.id.radio_auto,
+            R.id.radio_manual, R.id.library_status
+        ).forEach { tv(it).typeface = label }
+        intArrayOf(
+            R.id.hero_caption, R.id.library_game, R.id.library_version,
+            R.id.library_package, R.id.footer_text, R.id.library_count,
+            R.id.success_detail, R.id.remember_caption, R.id.control_hint,
+            R.id.operation_note, R.id.sheet_note, R.id.change_key_link,
+            R.id.about_button, R.id.operation_heading, R.id.method_label,
+            R.id.delay_label, R.id.mode_label, R.id.drawer_about
+        ).forEach { tv(it).typeface = body }
+        loginButton.typeface = label
+        tv(R.id.browse_button).typeface = label
+        // Display tracking belongs to the drafting sheet; clay sets it tight and round.
+        tv(R.id.brand_title).letterSpacing = if (clay) -0.01f else -0.015f
+        tv(R.id.hero_headline).letterSpacing = if (clay) -0.01f else -0.015f
+        tv(R.id.browse_button).letterSpacing = if (clay) 0.02f else 0.10f
+        intArrayOf(R.id.operation_heading, R.id.operation_note, R.id.method_label, R.id.delay_label, R.id.mode_label)
+            .forEach { tv(it).letterSpacing = if (clay) 0f else 0.02f }
+        tv(R.id.drawer_about).letterSpacing = if (clay) 0f else 0.08f
     }
 
     private fun setupDelaySpinner() {
@@ -869,7 +985,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupLibraryDrawer() {
         libraryDrawer.post {
-            libraryDrawer.translationX = -libraryDrawer.width.toFloat()
+            libraryDrawer.translationX = drawerClosedX()
         }
 
         findViewById<View>(R.id.library_menu_button).setOnClickListener {
@@ -907,6 +1023,12 @@ class MainActivity : AppCompatActivity() {
         refreshLibraryDrawer()
     }
 
+    /** The panel is inset by its own margin, so "closed" has to clear that too. */
+    private fun drawerClosedX(): Float {
+        val margin = (libraryDrawer.layoutParams as? ViewGroup.MarginLayoutParams)?.marginStart ?: 0
+        return -(libraryDrawer.width + margin).toFloat()
+    }
+
     private fun setLibraryDrawerOpen(open: Boolean) {
         if (isDrawerOpen == open) return
         isDrawerOpen = open
@@ -919,7 +1041,7 @@ class MainActivity : AppCompatActivity() {
             libraryDrawer.visibility = if (open) View.VISIBLE else View.GONE
             drawerScrim.visibility = if (open) View.VISIBLE else View.GONE
             drawerScrim.alpha = if (open) 1f else 0f
-            libraryDrawer.translationX = if (open) 0f else -libraryDrawer.width.toFloat()
+            libraryDrawer.translationX = if (open) 0f else drawerClosedX()
             setMainContentBlur(open)
             return
         }
@@ -934,7 +1056,7 @@ class MainActivity : AppCompatActivity() {
                 .start()
 
             if (libraryDrawer.width > 0) {
-                libraryDrawer.translationX = -libraryDrawer.width.toFloat()
+                libraryDrawer.translationX = drawerClosedX()
             }
             libraryDrawer.visibility = View.VISIBLE
             libraryDrawer.animate()
@@ -946,7 +1068,7 @@ class MainActivity : AppCompatActivity() {
             animateDrawerRows()
         } else if (libraryDrawer.width > 0) {
             libraryDrawer.animate()
-                .translationX(-libraryDrawer.width.toFloat())
+                .translationX(drawerClosedX())
                 .setDuration(ShaiMotion.DRAWER_CLOSE_MS)
                 .setInterpolator(ShaiMotion.easeDrawer)
                 .withEndAction { libraryDrawer.visibility = View.GONE }
@@ -1023,9 +1145,9 @@ class MainActivity : AppCompatActivity() {
 
         libraryList.removeAllViews()
         libraryCount.text = when {
-            !licenseVerified -> "REDEEM A KEY FIRST"
-            allLibraries.isEmpty() -> "NO LIBRARIES PUBLISHED"
-            else -> "${visibleLibraries.size} LIBRARIES"
+            !licenseVerified -> "Redeem a key first"
+            allLibraries.isEmpty() -> "No libraries published"
+            else -> "${visibleLibraries.size} libraries"
         }
 
         if (visibleLibraries.isEmpty()) {
@@ -1035,8 +1157,10 @@ class MainActivity : AppCompatActivity() {
                     allLibraries.isEmpty() -> "No libraries are available for this key."
                     else -> "No results. Try another search."
                 }
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.loader_text_muted))
-                textSize = 14f
+                // The drawer is clay-only, so its empty state speaks clay too.
+                setTextColor(ShaiPalette.clayMuted)
+                typeface = ShaiType.body(this@MainActivity)
+                textSize = 15f
                 setPadding(16, 24, 16, 24)
             }
             libraryList.addView(emptyState)
@@ -1062,20 +1186,11 @@ class MainActivity : AppCompatActivity() {
             }
             row.findViewById<TextView>(R.id.drawer_status).apply {
                 text = status
-                setTextColor(
-                    ContextCompat.getColor(
-                        this@MainActivity,
-                        if (available) R.color.loader_status_active else R.color.loader_status_maintenance
-                    )
-                )
-                background = ContextCompat.getDrawable(
-                    this@MainActivity,
-                    if (available) R.drawable.status_pill else R.drawable.maintenance_pill
-                )
+                applyPill(this, available, phaseProgress >= .5f)
             }
             // A consistent drawable that adapts to the sketch and ethereal phases.
             val selected = available && name == selectedLibrary.name
-            val rowSurface = PhaseSurfaceDrawable(PhaseSurfaceDrawable.Kind.ROW)
+            val rowSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.ROW)
             rowSurface.phase = phaseProgress
             rowSurface.selected = selected
             row.background = rowSurface
