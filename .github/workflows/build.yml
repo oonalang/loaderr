@@ -7,6 +7,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# The build job stays read-only; only the release job is granted write.
 permissions:
   contents: read
 
@@ -43,3 +44,50 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Publish release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: apk
+    # Only main publishes. Pull requests and forks never get the write token.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: write
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: shai-loader-debug
+          path: apk
+
+      - name: Publish rolling "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          APK="$(find apk -name '*.apk' -print -quit)"
+          if [ -z "$APK" ]; then
+            echo "No APK was produced by the build job" >&2
+            exit 1
+          fi
+          # Stable asset name, so the download URL never changes between builds.
+          mv "$APK" shai-loader-debug.apk
+
+          # Recreate the release so the `latest` tag points at the commit this
+          # APK was actually built from, instead of at an older one.
+          gh release delete latest --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/latest" >/dev/null 2>&1 || true
+
+          gh release create latest \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Latest build" \
+            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%dT%H:%M:%SZ).
+
+          Debug build, installable directly. Signed release builds need the keystore properties described in app/build.gradle.kts." \
+            shai-loader-debug.apk
+
+          echo "Published:"
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/latest/shai-loader-debug.apk"
