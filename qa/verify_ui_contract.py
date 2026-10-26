@@ -24,6 +24,42 @@ def check(condition: bool, label: str):
 for path in APP.rglob('*.xml'):
     ET.parse(path)
 print('PASS: all Android XML files parse')
+
+# AAPT accepts missing animation target names and properties unsupported by a
+# vector path. Android resolves these only when the animation starts. Validate
+# the resource relationship here, before the hardware-rendered launch check.
+animatable_properties = {
+    'vector': {'alpha'},
+    'group': {'rotation', 'pivotX', 'pivotY', 'scaleX', 'scaleY', 'translateX', 'translateY'},
+    'path': {'pathData', 'fillColor', 'strokeColor', 'strokeWidth', 'strokeAlpha',
+             'fillAlpha', 'trimPathStart', 'trimPathEnd', 'trimPathOffset'},
+    'clip-path': {'pathData'},
+}
+android = '{http://schemas.android.com/apk/res/android}'
+for path in sorted((APP / 'res/drawable').glob('*.xml')):
+    animated = ET.parse(path).getroot()
+    if animated.tag != 'animated-vector':
+        continue
+    vector_ref = animated.get(android + 'drawable', '')
+    check(vector_ref.startswith('@drawable/'), f'{path.name}: vector reference resolves locally')
+    vector = ET.parse(APP / 'res/drawable' / (vector_ref.split('/')[-1] + '.xml')).getroot()
+    targets = {node.get(android + 'name'): node.tag for node in vector.iter()
+               if node.get(android + 'name')}
+    for target in animated.findall('target'):
+        name = target.get(android + 'name')
+        check(name in targets, f'{path.name}: target {name} has a matching android:name')
+        animators = list(target.iter('objectAnimator'))
+        animation_ref = target.get(android + 'animation')
+        if animation_ref:
+            resource_type, resource_name = animation_ref.removeprefix('@').split('/')
+            animation = ET.parse(APP / 'res' / resource_type / (resource_name + '.xml')).getroot()
+            animators.extend(animation.iter('objectAnimator'))
+        check(bool(animators), f'{path.name}: target {name} has an animator to validate')
+        for animator in animators:
+            prop = animator.get(android + 'propertyName')
+            check(prop in animatable_properties.get(targets[name], set()),
+                  f'{path.name}: {prop} is supported by {targets[name]} target {name}')
+
 tree = ET.parse(BASE)
 ns = '{http://schemas.android.com/apk/res/android}'
 ids = [node.attrib[ns + 'id'] for node in tree.iter() if ns + 'id' in node.attrib]
