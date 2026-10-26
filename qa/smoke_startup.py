@@ -31,6 +31,9 @@ def capture(label):
     (REPORTS / f"{label}.png").write_bytes(
         adb("exec-out", "screencap", "-p", binary=True)
     )
+    crashes = adb("logcat", "-b", "crash", "-d")
+    if f"Process: {PACKAGE}" in crashes or f">>> {PACKAGE} <<<" in crashes:
+        print(crashes, flush=True)
 
 
 def launch(label, scale):
