@@ -7,7 +7,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 
-/** Breathing placeholders only while a real request is pending and the view is visible. */
+
 class SkeletonView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context,attrs) {
     private val paint=Paint(Paint.ANTI_ALIAS_FLAG)
     private var pulse=0f

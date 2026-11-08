@@ -15,8 +15,7 @@ class LoaderPreferences(context: Context) {
 
     fun getMode(): String = preferences.getString(KEY_MODE, MODE_AUTO) ?: MODE_AUTO
 
-    /** Auto is the source of truth at injection time; the visible mode boxes
-     *  and this preference are kept in sync when the user ticks one. */
+
     fun isAutoMode(): Boolean = getMode() == MODE_AUTO
 
     fun saveMode(mode: String) {
@@ -35,11 +34,7 @@ class LoaderPreferences(context: Context) {
         preferences.edit().putString(KEY_METHOD, method).apply()
     }
 
-    /*
-     * Explicit opt-in only. The key is kept in app-private preferences, the same
-     * store the per-library license map already uses; it is never sent anywhere
-     * except the panel that issued it. Turning the toggle off deletes it.
-     */
+
     fun isRememberKeyEnabled(): Boolean = preferences.getBoolean(KEY_REMEMBER_ENABLED, false)
 
     fun setRememberKeyEnabled(enabled: Boolean) {

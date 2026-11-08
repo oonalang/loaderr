@@ -19,11 +19,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.Duration
 import kotlin.math.min
 
-/**
- * Interruption behaviour: cancelled animations settle on their destination,
- * theme crossfades land on the saved selection, the drawer opens the same way
- * on its first pass, and navigation taps keep their audio cue.
- */
+
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -62,8 +58,8 @@ class InterruptionTest {
         val (_, activity) = start()
         val animated = activity.findViewById<View>(R.id.brand_title)
         InteractionMotion.reveal(animated)
-        // Freeze an interruption in mid-flight directly (Robolectric's animator
-        // clock is not a real clock), owning the registration is what matters.
+
+
         animated.alpha = .3f
         animated.translationY = 12f
 
@@ -75,10 +71,10 @@ class InterruptionTest {
         assertEquals(0f, animated.translationY, 0.001f)
         assertEquals(1f, animated.scaleX, 0.001f)
         assertEquals(1f, animated.scaleY, 0.001f)
-        // Views that were never animated are not rewritten: a deliberately dim
-        // control stays dim after every cancellation.
+
+
         assertEquals(.5f, dimmed.alpha, 0.0001f)
-        // Repeated cancellation stays idempotent.
+
         InteractionMotion.cancelTree(activity.findViewById<View>(R.id.main_content))
         assertEquals(1f, animated.alpha)
     }
@@ -107,7 +103,7 @@ class InterruptionTest {
         assertEquals(1f, ShaiPalette.night)
         assertEquals(0f, notebookFractionOf(activity), 0.001f)
 
-        // Reentering replays no transition.
+
         val settled = ShaiPalette.night
         controller.start()
         assertEquals(settled, ShaiPalette.night)
@@ -131,18 +127,18 @@ class InterruptionTest {
         shadowOf(Looper.getMainLooper()).idle()
         val drawer = activity.findViewById<View>(R.id.library_drawer)
         val closed = closedOffset(activity)
-        // Parked before the first opening, even though the drawer was never laid out.
+
         assertEquals(closed, drawer.translationX, 1f)
         assertEquals(View.GONE, drawer.visibility)
 
         activity.findViewById<View>(R.id.library_card).performClick()
         assertEquals(View.VISIBLE, drawer.visibility)
-        // The slide starts from the park position, not from ≈0 (native first-opening bug).
+
         assertEquals(closed, drawer.translationX, 1.5f)
         idleMillis(400)
         assertEquals(0f, drawer.translationX, 1.5f)
 
-        // Rapid close then open keeps the panel coherent.
+
         activity.findViewById<View>(R.id.drawer_close).performClick()
         idleMillis(40)
         activity.findViewById<View>(R.id.library_card).performClick()
@@ -192,8 +188,8 @@ class InterruptionTest {
             shadow.clearPlayed()
             action()
             assertTrue("expected a tap cue", shadow.wasResourcePlayed(R.raw.ui_tap))
-            // The kit deliberately de-dupes taps inside 110ms; keep subsequent
-            // actions out of that window.
+
+
             idleMillis(150)
         }
 
@@ -205,7 +201,7 @@ class InterruptionTest {
         playsTap { activity.findViewById<View>(R.id.drawer_close).performClick() }
         playsTap { activity.findViewById<View>(R.id.drawer_about).performClick() }
 
-        // Reinitialisation: leaving and returning rebuilds the pool and keeps cues.
+
         shadow.clearPlayed()
         controller.pause(); controller.stop()
         audio.ringerMode = AudioManager.RINGER_MODE_SILENT

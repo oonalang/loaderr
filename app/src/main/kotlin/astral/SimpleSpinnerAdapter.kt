@@ -8,10 +8,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.TextView
 
-/**
- * Spinner cell colors follow the sheet → court transition, while the popup
- * stays dark so the option list is readable on paper and on violet alike.
- */
+
 class SimpleSpinnerAdapter(
     context: Context,
     private val values: Array<String>
@@ -35,7 +32,7 @@ class SimpleSpinnerAdapter(
             } else {
                 ShaiType.sheetDisplay(context)
             }
-            // The chevron is drawn in clay ink so it belongs to the same object.
+
             compoundDrawableTintList = ColorStateList.valueOf(
                 ShaiPalette.blend(ShaiPalette.pencil, ShaiPalette.clayMuted, phase)
             )

@@ -15,9 +15,6 @@ import time
 PACKAGE = "astral.loader"
 REPORTS = Path("build/startup")
 
-# The CI emulator's adb link drops intermittently (adb exits 255/1 with
-# "device offline") right after the launch assertions pass. Retry those
-# transient drops instead of failing a run that actually succeeded.
 ADB_ATTEMPTS = 4
 
 
@@ -53,13 +50,10 @@ def _capture_or_warn(label, suffix, args, binary=False):
         else:
             path.write_text(payload)
     except Exception as exc:
-        # Broad on purpose: nothing in diagnostics may mask a launch result.
         _warn(f"could not capture {label}{suffix}: {exc}")
 
 
 def capture(label):
-    # Diagnostics only: the launch assertions already ran in launch(). A dropped
-    # adb link here must not turn a passing startup check into a failed job.
     _capture_or_warn(label, "-logcat.txt", ("logcat", "-d"))
     _capture_or_warn(
         label, "-activities.txt",
@@ -84,8 +78,6 @@ def launch(label, scale):
         result = adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/.SplashActivity")
         if "Status: ok" not in result:
             raise AssertionError(f"Launcher did not start: {result}")
-        # Keep drawing through the delayed arrow animation and catalog timeout.
-        # A single am start success only proves that SplashActivity was requested.
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             time.sleep(1)
@@ -110,7 +102,6 @@ def main():
         raise SystemExit("Usage: python3 qa/smoke_startup.py path/to/app-debug.apk")
     REPORTS.mkdir(parents=True, exist_ok=True)
     adb("install", "-r", sys.argv[1])
-    # Only run this destructive reset against the disposable CI emulator.
     adb("shell", "pm", "clear", PACKAGE)
     sdk = int(adb("shell", "getprop", "ro.build.version.sdk").strip())
     if sdk >= 33:
@@ -119,8 +110,6 @@ def main():
         launch("animated", "1")
         launch("reduced-motion", "0")
     finally:
-        # Hygiene on a disposable emulator: a failed restore must not mask the
-        # launch result or fail the job after every assertion passed.
         for setting in ("window_animation_scale", "transition_animation_scale", "animator_duration_scale"):
             try:
                 adb("shell", "settings", "put", "global", setting, "1")

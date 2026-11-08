@@ -26,7 +26,7 @@ class ClaySurfaceProbeTest {
         val bitmap = Bitmap.createBitmap(900, 300, Bitmap.Config.ARGB_8888)
         drawable.draw(Canvas(bitmap))
         val corner = bitmap.getPixel(6, 6)
-        // Inside the reserved inset but outside the face: the shadow lives here.
+
         val inset = bitmap.getPixel((7 * context.resources.displayMetrics.density).toInt(), 150)
         val face = bitmap.getPixel(450, 150)
         println("corner=%08x inset=%08x face=%08x".format(corner, inset, face))

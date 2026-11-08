@@ -23,8 +23,7 @@ android {
         jvmTarget = "17"
     }
 
-    // Signing secrets belong in user-local Gradle properties or CI secrets.
-    // An unsigned release build is available without release credentials.
+
     val releaseKeyPath = providers.gradleProperty("astral.signing.file").orNull
     val releaseKeyPassword = providers.gradleProperty("astral.signing.storePassword").orNull
     val releaseAlias = providers.gradleProperty("astral.signing.keyAlias").orNull
@@ -66,8 +65,7 @@ android {
         buildConfig = true
     }
 
-    // Robolectric renders the real layouts on the JVM so the notebook page can be
-    // checked without a device (this project is built on-device, with no emulator).
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }

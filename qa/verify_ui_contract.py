@@ -20,14 +20,10 @@ def check(condition: bool, label: str):
     print('PASS:', label)
 
 
-# Both states use the same layout. All referenced IDs are unique.
 for path in APP.rglob('*.xml'):
     ET.parse(path)
 print('PASS: all Android XML files parse')
 
-# AAPT accepts missing animation target names and properties unsupported by a
-# vector path. Android resolves these only when the animation starts. Validate
-# the resource relationship here, before the hardware-rendered launch check.
 animatable_properties = {
     'vector': {'alpha'},
     'group': {'rotation', 'pivotX', 'pivotY', 'scaleX', 'scaleY', 'translateX', 'translateY'},
@@ -67,8 +63,6 @@ check(len(ids) == len(set(ids)), 'view IDs unique')
 required = {'hero_block','hero_art','license_section','success_section','library_card','login_button','library_drawer', 'change_key_link'}
 check(required <= {item.split('/')[-1] for item in ids}, 'both phases retain essential views')
 
-# Explicit selection: no hidden Spinner selection callback and no automatic
-# library fetch inside redemption or catalog population.
 spinner = inside('    private fun updateSpinnerWithFilteredData()', '    fun handleSelectedJsonData')
 check('onItemSelectedListener = null' in spinner, 'hidden spinner callbacks disabled')
 check('applyLibrarySelection' not in KOTLIN, 'no implicit spinner selection')
@@ -83,7 +77,6 @@ check('verifySelectedLibraryAndDownload()' in primary and 'licenseVerified' in p
       'explicit preparation follows the primary action')
 check('selectedLibrary.name.isBlank()' in primary, 'preparation checks explicit library selection')
 
-# Visual phases and reduced motion are represented in the implementation.
 ILLUSTRATION = (APP / 'kotlin/astral/ShaiIllustrationView.kt').read_text()
 check('class ShaiIllustrationView' in ILLUSTRATION and 'PathMeasure' in ILLUSTRATION and
       'getSegment' in ILLUSTRATION,
@@ -93,8 +86,6 @@ check('ValueAnimator.areAnimatorsEnabled()' in KOTLIN,
 check('startFakeLoading()' not in SPLASH, 'removed simulated splash percentage')
 check('R.id.change_key_link' in KOTLIN, 'authenticated state includes key-switch recovery')
 
-# Restored controls: method and delay must be real, visible selectors, not
-# 1dp compatibility stubs.
 by_id = {}
 for node in tree.iter():
     key = node.attrib.get(ns + 'id')
@@ -107,7 +98,6 @@ for control in ('delay_spinner', 'method_spinner'):
     check(node.attrib.get(ns + 'layout_height') not in ('1dp', '1px'),
           f'{control} has a real touch height')
 
-# Opt-in remember-key autofills and runs the ordinary redemption flow.
 prefs = (APP / 'kotlin/astral/LoaderPreferences.kt').read_text()
 check(all(name in prefs for name in ('getRememberedKey', 'saveRememberedKey', 'clearRememberedKey')),
       'remembered key is stored in preferences')
@@ -125,7 +115,6 @@ change = inside('findViewById<View>(R.id.change_key_link).setOnClickListener {',
 check('forgetRememberedKey()' in change, 'switching keys clears the remembered key')
 check('saveRememberedKey(licenseKey)' in redeem, 'accepted key is persisted for the next launch')
 
-# The redesign deliberately shares composition across paper and night inks.
 visuals = (APP / 'kotlin/astral/LoaderVisuals.kt').read_text()
 visuals_illustration = (APP / 'kotlin/astral/ShaiIllustrationView.kt').read_text()
 type_file = (APP / 'kotlin/astral/ShaiType.kt').read_text()
@@ -167,7 +156,6 @@ check('android:textSize="30sp"' in BASE.read_text() and 'TypedValue' not in KOTL
 check(by_id['drawer_close'].attrib.get(ns + 'layout_height') == '48dp',
       'drawer close has a 48dp touch target')
 
-# Motion is a named system with short feedback and one deliberate phase change.
 motion_path = APP / 'kotlin/astral/ShaiMotion.kt'
 check(motion_path.is_file(), 'motion tokens live in one file')
 motion = motion_path.read_text()
@@ -219,8 +207,6 @@ check('playbackEntrance' in about and 'R.id.about_art' in about,
 check('R.id.about_logo' not in about and 'R.id.about_info_card' not in about,
       'the dark logo square and duplicate info card are gone')
 
-# Signed-in gating: the working card and settings belong to the clay state
-# and never appear on the unauthenticated sheet.
 gating = inside('    private fun setSignedInControlsVisible(',
                 '    /** One place owns enablement')
 check('R.id.library_card' in gating and 'R.id.operation_section' in gating,
@@ -238,7 +224,6 @@ for gated in ('library_card', 'operation_section'):
     check(node.attrib.get(ns + 'visibility') == 'gone',
           f'{gated} starts hidden before login')
 
-# Method and delay are real dropdowns with a drawn affordance.
 layout_text = BASE.read_text()
 check('spinnerMode="dropdown"' in layout_text, 'spinners open as dropdowns')
 spinner_code = (APP / 'kotlin/astral/ClaySpinner.kt').read_text()
@@ -246,7 +231,6 @@ check("canvas.drawPath(path,paint)" in spinner_code and 'chevron' in spinner_cod
       'dropdown cells draw a chevron affordance')
 check((APP / 'res/drawable/ic_chevron_down.xml').is_file(), 'chevron drawable exists')
 
-# Auto/manual: visible square boxes, exactly one ticked, preference is truth.
 mode_group = (APP / 'kotlin/astral/LiquidModeGroup.kt').read_text()
 check(by_id['radioGroup'].tag == 'astral.loader.LiquidModeGroup' and
       'class LiquidModeGroup' in mode_group and ': RadioGroup' in mode_group and
@@ -269,7 +253,6 @@ check('setInjectionControlsEnabled(true)' in inside(
           '                animateToPhase(1f)', '                if (filteredLibraries.isEmpty())'),
       'controls are re-enabled when the key is accepted')
 
-# Legibility floor: 16sp body, 14sp supporting, 13sp labels, 12sp chips.
 under_floor = []
 for path in (APP / 'res/layout').glob('*.xml'):
     for match in re.finditer(r'android:textSize="(\d+)sp"', path.read_text()):
@@ -278,13 +261,11 @@ for path in (APP / 'res/layout').glob('*.xml'):
 check(not under_floor, f'no text below 12sp ({under_floor})')
 check('android:textSize="17sp"' in BASE.read_text(), 'body copy reads at 17sp, above the 16sp floor')
 
-# Main controls are comfortable to tap; XML declaration does not assert runtime size.
 text = BASE.read_text()
 for item in ['android:minHeight="64dp"', 'android:layout_height="52dp"',
              'android:layout_height="48dp"']:
     check(item in text, f'touch target declared {item}')
 
-# --- Conceptual sketch contract (2026-10 pass) ---------------------------------
 colors = (APP / 'res/values/colors.xml').read_text()
 for role, hex_value in (('paper', '#FDFCF7'), ('grid', '#C9DAF8'), ('ink', '#1F2937'),
                         ('pencil', '#777B84'), ('highlight', '#FFF176')):
@@ -294,7 +275,6 @@ check('paper = Color.rgb(253, 252, 247)' in visuals and 'gridBlue = Color.rgb(20
 check('highlight = Color.rgb(255, 241, 118)' in visuals, 'one accent, highlighter yellow')
 check('draft = ink' in visuals, 'paper has no sixth hue')
 
-# Typography: Space Grotesk for everything functional, Caveat only for notes.
 theme = (APP / 'res/values/themes.xml').read_text()
 check('android:fontFamily">@font/space_grotesk<' in theme, 'theme sets Space Grotesk')
 check((APP / 'res/font/space_grotesk.xml').is_file() and (APP / 'res/font/caveat.ttf').is_file(),
@@ -312,7 +292,6 @@ for view in pre_auth_text:
 check('android:textSize="16sp"' in (APP / 'res/layout/activity_splash.xml').read_text(),
       'cover status is set at body size')
 
-# No fake editorial metadata, no image paper, no duplicated splash card.
 layout_text = BASE.read_text()
 for label in ('SHAI / 01', 'SHAI / 02', 'Not yet verified', 'The keykeeper’s notebook',
               'Library access', 'sheet_plate', 'chapter_label', 'brand_subtitle'):
@@ -330,7 +309,6 @@ check('ProgressBar' not in splash_layout and 'progressBarSplash' not in SPLASH,
 for phrase in ('opens right here', 'SHEET 01', 'SHAI / 01'):
     check(phrase not in (APP / 'res/layout/activity_splash.xml').read_text(), f'no fake copy: {phrase}')
 
-# The drawn field and the annotated toggle.
 check('android:id="@+id/key_field"' in layout_text, 'the key field is a drawn surface')
 check('boxBackgroundMode="none"' in layout_text, 'no Material box behind the drawn field')
 check('SketchFieldDrawable' in KOTLIN and 'class SketchFieldDrawable' in
@@ -345,7 +323,6 @@ check(by_id['login_button'].attrib.get(ns + 'minHeight') == '64dp',
 check('android:text="Redeem key"' in layout_text and 'textAllCaps="false"' in layout_text,
       'one primary action in sentence case')
 
-# Motion: strokes first, then the annotation, and nothing loops.
 motion = (APP / 'kotlin/astral/ShaiMotion.kt').read_text()
 check('ILLUSTRATION_MS' in motion and 'HIGHLIGHT_MS' in motion,
       'illustration and sweep timings are tokens')
@@ -375,14 +352,12 @@ check('ValueAnimator.areAnimatorsEnabled()' in ILLUSTRATION,
 check('while (true)' not in ILLUSTRATION and 'repeat(' not in ILLUSTRATION,
       'no continuous decorative motion')
 
-# Insets and IME keep the action reachable.
 check('applyWindowInsets()' in KOTLIN and 'WindowInsetsCompat.Type.ime()' in KOTLIN,
       'the sheet handles status bar and keyboard insets')
 check('WindowCompat.setDecorFitsSystemWindows(window, false)' in KOTLIN,
       'edge-to-edge is explicit')
 check('smoothScrollTo' in KOTLIN, 'the field is brought above the keyboard')
 
-# Startup: the permission prompt outlives neither activity by accident.
 notifier = (APP / 'kotlin/astral/NotificationPermissionRequester.kt').read_text()
 check('onSettled' in notifier and 'onPermissionResult()' in SPLASH,
       'the cover waits for a real permission result instead of a timer')
@@ -390,14 +365,12 @@ check('openLoader()' in SPLASH and 'isFinishing' in SPLASH,
       'navigation is idempotent and lifecycle-safe')
 
 
-# --- Clay contract (2026-10 pass) ---------------------------------------------
 colors_text = (APP / 'res/values/colors.xml').read_text()
 for role, hex_value in (('bg', '#F4EEFF'), ('ink', '#2B2340'), ('muted', '#5F536F'),
                         ('raised', '#FAF7FF'), ('pink', '#FFB8D9'), ('mint', '#A8E6CF'),
                         ('peri', '#B5C7FF')):
     check(f'name="clay_{role}">{hex_value}<' in colors_text, f'clay colour {role} is the specified value')
 
-# Depth is drawn, not faked with a border or a flat drop shadow.
 check('drawStackShadow' in visuals and 'SHADOW_RINGS' in visuals,
       'raised surfaces cast a drawn stack shadow')
 check('drawBevel' in visuals and 'LinearGradient' in visuals,
@@ -412,7 +385,6 @@ check('state.any { it == android.R.attr.state_pressed }' in visuals,
 check('override fun getOutline' in visuals,
       'elevation shadows follow the moulded radius')
 
-# The crest is the same geometry, sculpted.
 check('drawClayForm' in visuals_illustration, 'the crest has a clay form pass')
 check('cloak' in visuals_illustration and 'FACE_OVAL' in visuals_illustration,
       'the sculpted silhouette is authored geometry, not a bitmap')
@@ -421,7 +393,6 @@ check('Ink.HATCH' in visuals_illustration and 'Ink.GROUND' in visuals_illustrati
 check('1f - clay' in visuals_illustration or 'clay * 1.9f' in visuals_illustration,
       'hatching and the ground line fade out as clay arrives')
 
-# Typography switches with the material.
 for font in ('fredoka_semibold.ttf', 'nunito_regular.ttf', 'nunito_semibold.ttf'):
     check((APP / 'res/font' / font).is_file(), f'{font} ships with the app')
 check('object ShaiType' in type_file, 'typefaces resolve through one place')
@@ -429,14 +400,12 @@ check('applyTypefaces(clay)' in KOTLIN, 'the material change swaps the type voic
 check('letterSpacing = -0.015f' in headline and 'letterSpacing = -0.01f' in headline,
       'display tracking is set per material in the headline view')
 
-# The transformation is state-driven and staged.
 check('animateToPhase(1f)' in KOTLIN, 'only an accepted key starts the material change')
 check('ValueAnimator.areAnimatorsEnabled()' in KOTLIN,
       'with animations off the finished object is shown directly')
 check('DRAWER_REVEAL_DELAY_MS' not in motion,
       'the removed automatic drawer reveal has no timing token')
 
-# Every authenticated surface belongs to the same system.
 check('settingsSurface' in KOTLIN, 'the injection panel is a moulded surface too')
 check('seal_clay' in KOTLIN, 'the verified mark is a clay bead, not the old dark ring')
 check('pill_mint' in KOTLIN and 'pill_pink' in KOTLIN,
@@ -446,8 +415,6 @@ check('applyPill' in KOTLIN and 'clay_pill' in KOTLIN,
 about = (APP / 'kotlin/astral/AboutDialog.kt').read_text()
 about_layout = (APP / 'res/layout/activity_about.xml').read_text()
 
-# 2026-10-26 brief: the "Key required" badge is gone; the near-black version
-# row is gone from About; the padlock identity and the UI sound kit exist.
 layout_text_again = BASE.read_text()
 check('sheet_note' not in layout_text_again and 'sheet_note' not in KOTLIN,
       'the Key required header note is fully removed')

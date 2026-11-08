@@ -152,7 +152,7 @@ class RotatingHeadlineView @JvmOverloads constructor(
         isClickable = buyNow
         isFocusable = buyNow
         contentDescription = if (buyNow) {
-            "Open store. Opens the SHAI store"
+            "Open the SHAI store"
         } else {
             message
         }

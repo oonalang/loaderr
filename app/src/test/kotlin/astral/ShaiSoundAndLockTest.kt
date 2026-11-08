@@ -17,19 +17,13 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.time.Duration
 
-/**
- * Renders the two padlock states with the real native graphics path and
- * exercises the persisted sound preference. The geometric assertions sample
- * the drawn pixels, so a regression that only exists in the canvas work (an
- * alpha that never reaches 255, a shackle that lifts at the wrong pivot) fails
- * here instead of shipping.
- */
+
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w390dp-h844dp-xxhdpi")
 class ShaiSoundAndLockTest {
 
-    private val scale = 2 // study space 320x184 drawn at 640x368
+    private val scale = 2 
 
     private fun rendered(phase: Float): Bitmap {
         val context = Robolectric.setupActivity(astral.loader.MainActivity::class.java)
@@ -74,16 +68,16 @@ class ShaiSoundAndLockTest {
         val paper = rendered(0f)
         val clay = rendered(1f)
 
-        // Body face: ink outline only on paper, moulded mint in clay.
+
         val paperFace = sample(paper, 258f, 133f)
         assertFalse("the paper lock is a drawing, not a fill", isMint(paperFace))
         val clayFace = sample(clay, 258f, 133f)
         assertTrue("the clay lock body is mint", isMint(clayFace))
 
-        // The shackle's right leg is seated while locked…
+
         assertTrue("locked: shackle leg seated on the body",
             isDark(sample(paper, 262f, 114f)))
-        // …and swung open once the key is verified, leaving that column clear.
+
         val opened = sample(clay, 262f, 114f)
         assertFalse("open: the shackle leg has left the body edge", isDark(opened))
         assertFalse("open: the lifted leg is not parked on the body", isMint(opened))
@@ -92,9 +86,8 @@ class ShaiSoundAndLockTest {
     @Test
     fun theSameLockedGeometryRelaxesRatherThanSwapping() {
         val mid = rendered(0.5f)
-        // Halfway, the shackle has partially lifted: it is neither the closed
-        // paper ink (still fading) nor yet fully mint. The lifted region must
-        // already be partially clear, proving a rotation, not a swap.
+
+
         val lifting = sample(mid, 262f, 114f)
         val redMid = Color.red(lifting)
         assertTrue(

@@ -7,10 +7,7 @@ import android.os.Build
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 
-/**
- * Asks for notification permission at most once per launch and always reports
- * back, so the caller never has to guess whether a system dialog is on screen.
- */
+
 class NotificationPermissionRequester(
     private val activity: Activity,
     private val permissionLauncher: ActivityResultLauncher<String>
@@ -29,7 +26,7 @@ class NotificationPermissionRequester(
         permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
-    /** Called from the activity's permission result. */
+
     fun onPermissionResult() {
         val callback = pendingResult
         pendingResult = null

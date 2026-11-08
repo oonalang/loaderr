@@ -18,11 +18,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 import java.time.Duration
 
-/**
- * Renders the pages on the JVM. This project is built on a phone, with no
- * emulator available, so these frames are the only real rendering of the
- * layouts during development: they also prove `onCreate` completes.
- */
+
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w390dp-h844dp-xxhdpi")
@@ -33,20 +29,20 @@ class PageRenderTest {
     @Test
     fun splashPageRendersOnTheJvm() {
         val controller = Robolectric.buildActivity(SplashActivity::class.java).create()
-        // The cover is already finished here; the app itself leaves as soon as
-        // the launch checks settle, so this frame is the intended composition.
+
+
         controller.get().findViewById<ShaiIllustrationView>(R.id.splash_art).completeReveal()
         (controller.get().findViewById<android.widget.TextView>(R.id.splash_brand).background
             as HighlightSweepDrawable).progress = 1f
         val bitmap = capture(controller.get(), "splash.png")
-        // Paper, not the dark window background: one frame is already the sheet.
+
         assertPaper(bitmap)
     }
 
     @Test
     fun keyPageRendersAndStartupCompletes() {
         val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
-        // Let the entrance animators and the illustration reveal settle.
+
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(3))
         val bitmap = capture(controller.get(), "key-page.png")
         assertPaper(bitmap)
@@ -71,10 +67,10 @@ class PageRenderTest {
     fun clayPageRendersTheFinishedObject() {
         val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(3))
-        // A real redemption cannot happen offline, so the authenticated state is
-        // entered the way the activity itself enters it: the flag, then the phase.
+
+
         activity.setPrivate("licenseVerified", true)
-        // The redemption path hides the key form; the test enters that state too.
+
         activity.findViewById<View>(R.id.license_section).visibility = View.GONE
         activity.findViewById<View>(R.id.success_section).visibility = View.VISIBLE
         activity.invoke("setSignedInControlsVisible", true)
@@ -123,7 +119,7 @@ class PageRenderTest {
         activity.invoke("updateTheme", 0.5f)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
         val bitmap = capture(activity, "clay-mid.png")
-        // Halfway is neither paper nor clay: the page is between the two fills.
+
         val px = bitmap.getPixel(4, bitmap.height / 2)
         val red = android.graphics.Color.red(px)
         assertTrue("midpoint is between paper and clay, was $red", red in 245..252)
@@ -142,7 +138,7 @@ class PageRenderTest {
         (field.get(this) as MutableList<JSONObject>).add(JSONObject(json))
     }
 
-    /** Reflection is deliberate: this test drives the real state transition, not a copy of it. */
+
     private fun MainActivity.invoke(name: String, vararg args: Any?) {
         val method = MainActivity::class.java.declaredMethods.first {
             it.name == name && it.parameterTypes.size == args.size

@@ -7,7 +7,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# The build job stays read-only; only the release job is granted write.
 permissions:
   contents: read
 
@@ -30,7 +29,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # The wrapper is committed without the exec bit to keep Windows checkouts clean.
       - name: Make the wrapper executable
         run: chmod +x gradlew
 
@@ -82,7 +80,6 @@ jobs:
           api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
-          # The entrance animation is the regression trigger. Do not disable it.
           disable-animations: false
           script: python3 qa/smoke_startup.py apk/app-debug.apk
 
@@ -100,7 +97,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [apk, startup]
-    # Only main publishes. Pull requests and forks never get the write token.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: write
@@ -122,11 +118,8 @@ jobs:
             echo "No APK was produced by the build job" >&2
             exit 1
           fi
-          # Stable asset name, so the download URL never changes between builds.
           mv "$APK" shai-loader-debug.apk
 
-          # Recreate the release so the `latest` tag points at the commit this
-          # APK was actually built from, instead of at an older one.
           gh release delete latest --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
           gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/latest" >/dev/null 2>&1 || true
 
