@@ -7,12 +7,6 @@ class LoaderPreferences(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     val licenses = LicenseStore(preferences)
 
-    fun getTheme(): String = preferences.getString("appearance", "pastel")?.takeIf { it in setOf("pastel", "midnight", "notebook") } ?: "pastel"
-    fun saveTheme(theme: String) {
-        require(theme in setOf("pastel", "midnight", "notebook"))
-        preferences.edit().putString("appearance", theme).apply()
-    }
-
     fun getMode(): String = preferences.getString(KEY_MODE, MODE_AUTO) ?: MODE_AUTO
 
 

@@ -144,21 +144,12 @@ class MainActivity : AppCompatActivity() {
     private var restoredFromState = false
     private var redemptionInFlight = false
     private var catalogLoading = false
-    private var notebookFraction = 0f
-    private var themeAnimator: ValueAnimator? = null
-    private var themeDialog: ClayChoiceDialog? = null
-    private val materialProgress: Float get() = phaseProgress * (1f - notebookFraction)
+    private val materialProgress: Float get() = phaseProgress
     private lateinit var errorMotion: MotionValue
 
 
     private fun playTap() {
-        val cue = when {
-            !licenseVerified -> ShaiSounds.Cue.TAP
-            loaderPreferences.getTheme() == "notebook" -> ShaiSounds.Cue.WRITE
-            loaderPreferences.getTheme() == "midnight" -> ShaiSounds.Cue.DIGITAL
-            else -> ShaiSounds.Cue.CLAY_TAP
-        }
-        sounds.play(cue)
+        sounds.play(if (licenseVerified) ShaiSounds.Cue.CLAY_TAP else ShaiSounds.Cue.TAP)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -217,16 +208,11 @@ class MainActivity : AppCompatActivity() {
             .into(appBanner)
 
         loaderPreferences = LoaderPreferences(this)
-        ShaiPalette.night = if (loaderPreferences.getTheme() == "midnight") 1f else 0f
-        notebookFraction = if (loaderPreferences.getTheme() == "notebook") 1f else 0f
+        ShaiPalette.night = 0f
         setupRememberedKey()
         setupVisuals()
         setupLibraryDrawer()
         errorMotion = MotionValue(findViewById(R.id.key_field), 0f) { fieldSurface.errorProgress = it }
-        findViewById<View>(R.id.theme_button).setOnClickListener {
-            playTap()
-            showThemePicker()
-        }
         heroIllustration.setOnClickListener {
             val reaction = if (licenseVerified) ShaiIllustrationView.Reaction.HAPPY else ShaiIllustrationView.Reaction.CRY
             heroIllustration.react(reaction)
@@ -673,7 +659,7 @@ class MainActivity : AppCompatActivity() {
         val displaySignedIn = phaseProgress >= .55f
         val density = resources.displayMetrics.density
         val titleIds = intArrayOf(
-            R.id.brand_title, R.id.hero_greeting, R.id.theme_button, R.id.library_name,
+            R.id.brand_title, R.id.hero_greeting, R.id.library_name,
             R.id.success_title, R.id.drawer_title, R.id.remember_title,
             R.id.radio_auto, R.id.radio_manual
         )
@@ -893,35 +879,6 @@ class MainActivity : AppCompatActivity() {
             it.typeface = if (it.isChecked) ShaiType.label(this) else ShaiType.body(this)
         }
         (radioGroup as LiquidModeGroup).select(radioGroup.checkedRadioButtonId, radioGroup.isLaidOut)
-    }
-
-    private fun showThemePicker() {
-        val values = listOf("pastel", "midnight", "notebook")
-        themeDialog = ClayChoiceDialog(this, "Appearance", listOf("Default Pastel Clay", "Midnight Clay", "Conceptual Sketch"),
-            values.indexOf(loaderPreferences.getTheme()), materialProgress) { index ->
-            loaderPreferences.saveTheme(values[index])
-            animateTheme()
-            playTap()
-        }.apply { show() }
-    }
-
-    private fun animateTheme() {
-        themeAnimator?.cancel()
-        val night = if (loaderPreferences.getTheme() == "midnight") 1f else 0f
-        val notebook = if (loaderPreferences.getTheme() == "notebook") 1f else 0f
-        val oldNight = ShaiPalette.night; val oldNotebook = notebookFraction
-        fun apply(t: Float) {
-            ShaiPalette.night = oldNight + (night-oldNight)*t
-            notebookFraction = oldNotebook + (notebook-oldNotebook)*t
-            lastHandStyle = null; lastDisplayedSignedIn = null
-            updateTheme(phaseProgress)
-            delayAdapter.applyPhase(materialProgress); methodAdapter.applyPhase(materialProgress)
-        }
-        if (!ValueAnimator.areAnimatorsEnabled()) { apply(1f); return }
-        themeAnimator = ValueAnimator.ofFloat(0f,1f).apply {
-            duration=InteractionMotion.CHANGE_MS;interpolator=ShaiMotion.easeOut
-            addUpdateListener { apply(it.animatedValue as Float) };start()
-        }
     }
 
     private fun clearKeyError() {
@@ -1896,10 +1853,8 @@ class MainActivity : AppCompatActivity() {
         greetingClock.stop()
         sounds.stop()
         if (::headlineView.isInitialized) headlineView.stopRotation()
-        themeDialog?.closeImmediately(); themeDialog = null
         (delaySpinner as? ClaySpinner)?.closeChoices()
         (methodSpinner as? ClaySpinner)?.closeChoices()
-        themeAnimator?.cancel()
         phaseAnimator?.cancel()
         heroIllustration.settleReaction()
         (radioGroup as LiquidModeGroup).settle()
@@ -1908,9 +1863,7 @@ class MainActivity : AppCompatActivity() {
         if (::errorMotion.isInitialized) errorMotion.finish()
 
 
-        val keptTheme = loaderPreferences.getTheme()
-        ShaiPalette.night = if (keptTheme == "midnight") 1f else 0f
-        notebookFraction = if (keptTheme == "notebook") 1f else 0f
+        ShaiPalette.night = 0f
         lastHandStyle = null
         lastDisplayedSignedIn = null
         updateTheme(if (licenseVerified) 1f else 0f)

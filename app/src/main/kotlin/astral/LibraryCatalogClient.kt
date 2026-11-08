@@ -3,6 +3,7 @@ package astral.loader
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.ConnectException
@@ -15,6 +16,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 class LibraryCatalogClient(private val endpoint: String) {
+    private val supportedGames = listOf("CODMGR", "CODMFREE", "CODM", "PBS", "MLBB", "FL84", "8BP")
 
     suspend fun load(): Result<JSONObject> = withContext(Dispatchers.IO) {
         runCatching {
@@ -94,42 +96,79 @@ class LibraryCatalogClient(private val endpoint: String) {
 
     suspend fun redeem(licenseKey: String, serial: String): Result<JSONObject> = withContext(Dispatchers.IO) {
         runCatching {
-            val catalog = load().getOrThrow()
-            val items = catalog.getJSONArray("DATA")
-            val games = (0 until items.length())
-                .mapNotNull { items.optJSONObject(it)?.optString("TYPE")?.trim() }
-                .filter { it.isNotBlank() }
+            val publiclyListed = load().getOrNull()
+            val knownGames = publiclyListed?.optJSONArray("DATA")?.let { entries ->
+                (0 until entries.length()).mapNotNull { entries.optJSONObject(it)?.optString("TYPE") }
+            }.orEmpty()
+            val games = (knownGames + supportedGames)
+                .map { it.trim() }
+                .filter { it.matches(Regex("[A-Za-z0-9_-]{1,32}")) }
                 .distinct()
-                .take(12)
-
-            if (games.isEmpty()) throw IOException("No libraries are currently available")
-            val uri = URI(endpoint)
-            val connect = uri.resolve("/connect").toURL()
+            val connectUrl = URI(endpoint).resolve("/connect").toURL()
 
             for (game in games) {
-                val response = validateGame(connect, licenseKey, serial, game)
+                val response = postJson(connectUrl, listOf(
+                    "game" to game, "user_key" to licenseKey, "serial" to serial
+                ))
                 if (response.optBoolean("status", false)) {
+                    val assigned = readAssignedCatalog(licenseKey, serial, game)
+                    val owned = assigned.optJSONArray("DATA") ?: JSONArray()
+                    val public = publiclyListed?.optJSONArray("DATA") ?: JSONArray()
+                    val visible = JSONArray()
+                    for (i in 0 until owned.length()) {
+                        val row = owned.optJSONObject(i) ?: continue
+                        if (row.optString("TYPE") == game) visible.put(row)
+                    }
+                    for (i in 0 until public.length()) {
+                        val row = public.optJSONObject(i) ?: continue
+                        if (row.optString("TYPE") != game) continue
+                        val duplicate = (0 until visible.length()).any { j ->
+                            val existing = visible.optJSONObject(j)
+                            existing != null && existing.optString("NAME") == row.optString("NAME") &&
+                                existing.optString("DOWNLOAD") == row.optString("DOWNLOAD")
+                        }
+                        if (!duplicate) visible.put(row)
+                    }
+                    val catalog = JSONObject()
+                        .put("META", publiclyListed?.optJSONObject("META") ?: JSONObject())
+                        .put("DATA", visible)
                     return@runCatching JSONObject()
                         .put("status", true)
                         .put("game", game)
                         .put("catalog", catalog)
                 }
-                val reason = response.optString("reason", "")
-                if (reason.contains("database", true) ||
-                    reason.contains("maintenance", true) ||
-                    reason.contains("unavailable", true)) {
-                    throw IOException(reason.ifBlank { "The validation service is unavailable" })
+                val reason = response.optString("reason")
+                if (listOf("database", "maintenance", "unavailable", "configuration mismatch").any {
+                    reason.contains(it, ignoreCase = true)
+                }) {
+                    throw IOException(reason.ifBlank { "License service unavailable" })
                 }
             }
-            throw IOException("This key was not accepted for the available libraries")
+            throw IOException("This key was not accepted for any supported license type")
         }
     }
 
-    private fun validateGame(url: URL, key: String, serial: String, game: String): JSONObject {
-        val form = listOf("game" to game, "user_key" to key, "serial" to serial)
-            .joinToString("&") { (name, value) ->
-                "${URLEncoder.encode(name, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
+    private fun readAssignedCatalog(key: String, serial: String, game: String): JSONObject {
+        val url = URI(endpoint).resolve("/loader/catalog/assigned").toURL()
+        val response = try {
+            postJson(url, listOf("user_key" to key, "serial" to serial, "game" to game))
+        } catch (e: IOException) {
+            if (e.message.orEmpty().contains("HTTP 404")) {
+                throw IOException("The panel is missing its assigned-library endpoint", e)
             }
+            throw e
+        }
+        if (!response.optBoolean("status", false)) {
+            throw IOException(response.optString("reason", "Assigned library catalog unavailable"))
+        }
+        return response.optJSONObject("catalog")
+            ?: throw IOException("Invalid assigned-library catalog response")
+    }
+
+    private fun postJson(url: URL, values: List<Pair<String, String>>): JSONObject {
+        val form = values.joinToString("&") { (name, value) ->
+            "${URLEncoder.encode(name, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
+        }
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             doOutput = true
@@ -142,24 +181,19 @@ class LibraryCatalogClient(private val endpoint: String) {
         }
         return try {
             connection.outputStream.use { it.write(form.toByteArray(Charsets.UTF_8)) }
-            val status = connection.responseCode
-            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
                 ?.trim()?.removePrefix("\uFEFF")?.trim()
-                ?: throw IOException("No validation response (HTTP $status)")
+                ?: throw IOException("No validation response (HTTP $code)")
             if (body.startsWith("<") || connection.contentType?.contains("text/html", true) == true) {
-                throw IOException("The panel returned a web page instead of a validation response (HTTP $status)")
+                throw IOException("The panel returned an HTML page (HTTP $code)")
             }
-            if (!body.startsWith("{")) {
-                throw IOException("Invalid panel response (HTTP $status)")
-            }
-            val result = try {
-                JSONObject(body)
-            } catch (_: Exception) {
-                throw IOException("Invalid panel response (HTTP $status)")
-            }
-            if (status !in 200..299) {
-                throw IOException(result.optString("reason").ifBlank { "Panel unavailable (HTTP $status)" })
+            if (!body.startsWith("{")) throw IOException("Invalid panel response (HTTP $code)")
+            val result = try { JSONObject(body) }
+                catch (_: Exception) { throw IOException("Invalid panel JSON (HTTP $code)") }
+            if (code !in 200..299) {
+                throw IOException(result.optString("reason").ifBlank { "Panel unavailable (HTTP $code)" })
             }
             result
         } finally {

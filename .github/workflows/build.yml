@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'giveaway/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -134,3 +134,32 @@ jobs:
 
           echo "Published:"
           echo "https://github.com/$GITHUB_REPOSITORY/releases/download/latest/shai-loader-debug.apk"
+
+  giveaway:
+    name: Publish giveaway source and APK
+    runs-on: ubuntu-latest
+    needs: [apk, startup]
+    if: github.ref == 'refs/heads/giveaway/clay-freeshai-20261109' && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: shai-loader-debug
+          path: apk
+
+      - name: Package full clean source
+        run: |
+          zip -q -r SHAI-Loader-Giveaway-Source.zip . -x '.git/*' '.git' '*.apk' 'SHAl-Loader-Giveaway-Source.zip'
+
+      - name: Publish giveaway
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mv apk/app-debug.apk SHAI-Loader-Giveaway.apk
+          gh release delete giveaway-clay --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/giveaway-clay" >/dev/null 2>&1 || true
+          gh release create giveaway-clay             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "SHAI Loader, Giveaway Clay"             --notes "Full source and APK from the giveaway branch. Requires FreeSHAI /loader/catalog/assigned for account-owned libraries."             SHAI-Loader-Giveaway.apk SHAI-Loader-Giveaway-Source.zip

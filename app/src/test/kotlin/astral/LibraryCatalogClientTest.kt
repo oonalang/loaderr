@@ -36,6 +36,9 @@ class LibraryCatalogClientTest {
             server.enqueue(MockResponse().setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
                 .setBody("""{"status":true,"data":{"token":"ok"}}"""))
+            server.enqueue(MockResponse().setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("""{"status":true,"catalog":{"DATA":[{"TYPE":"CODMGR","NAME":"Owned"}]}}"""))
 
             val client = LibraryCatalogClient(server.url("/loader/catalog").toString())
             val result = client.redeem("TEST_KEY", "test-device")
@@ -53,6 +56,56 @@ class LibraryCatalogClientTest {
             assertTrue(firstValidation?.body?.readUtf8()?.contains("game=CODMFREE") == true)
             assertEquals("/connect", secondValidation?.path)
             assertTrue(secondValidation?.body?.readUtf8()?.contains("game=CODMGR") == true)
+            val assignedRequest = server.takeRequest(2, TimeUnit.SECONDS)
+            assertEquals("/loader/catalog/assigned", assignedRequest?.path)
+            assertTrue(assignedRequest?.body?.readUtf8()?.contains("game=CODMGR") == true)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun ownerLibraryLoadsWhenPublicCatalogIsEmpty() = runBlocking {
+        val server = MockWebServer()
+        server.start()
+        try {
+            server.enqueue(MockResponse().setResponseCode(200)
+                .setBody(Base64.getEncoder().encodeToString(
+                    """{"DATA":[]}""".toByteArray(Charsets.UTF_8))))
+            server.enqueue(MockResponse().setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("""{"status":true}"""))
+            server.enqueue(MockResponse().setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("""{"status":true,"catalog":{"DATA":[{"TYPE":"CODMGR","NAME":"Private"}]}}"""))
+            val result = LibraryCatalogClient(server.url("/loader/catalog").toString())
+                .redeem("TEST_KEY", "test-device")
+            assertTrue(result.exceptionOrNull()?.message.orEmpty(), result.isSuccess)
+            assertEquals("CODMGR", result.getOrThrow().getString("game"))
+            assertEquals(1, result.getOrThrow().getJSONObject("catalog").getJSONArray("DATA").length())
+            assertEquals("/loader/catalog", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+            assertEquals("/connect", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+            assertEquals("/loader/catalog/assigned", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun rejectsUnauthorizedOwnedLibraries() = runBlocking {
+        val server = MockWebServer()
+        server.start()
+        try {
+            server.enqueue(MockResponse().setBody(Base64.getEncoder().encodeToString(
+                """{"DATA":[]}""".toByteArray(Charsets.UTF_8))))
+            server.enqueue(MockResponse().setBody("""{"status":true}"""))
+            server.enqueue(MockResponse().setResponseCode(403)
+                .addHeader("Content-Type", "application/json")
+                .setBody("""{"status":false,"reason":"Device has not been authorized"}"""))
+            val result = LibraryCatalogClient(server.url("/loader/catalog").toString())
+                .redeem("TEST_KEY", "unauthorized-device")
+            assertFalse(result.isSuccess)
+            assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("Device has not been authorized"))
         } finally {
             server.shutdown()
         }
@@ -118,7 +171,7 @@ class LibraryCatalogClientTest {
             val result = client.redeem("TEST_KEY", "test-device")
             assertFalse(result.isSuccess)
             val message = result.exceptionOrNull()?.message.orEmpty()
-            assertTrue(message, message.contains("web page"))
+            assertTrue(message, message.contains("HTML page"))
             assertFalse(message.contains("<!DOCTYPE"))
         } finally {
             server.shutdown()

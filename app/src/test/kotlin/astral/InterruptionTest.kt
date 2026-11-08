@@ -30,18 +30,6 @@ class InterruptionTest {
         return controller to controller.setup().get()
     }
 
-    private fun invokeThemeTransition(activity: MainActivity) {
-        MainActivity::class.java.getDeclaredMethod("animateTheme").apply {
-            isAccessible = true
-        }.invoke(activity)
-    }
-
-    private fun notebookFractionOf(activity: MainActivity): Float {
-        val field = MainActivity::class.java.getDeclaredField("notebookFraction")
-        field.isAccessible = true
-        return field.getFloat(activity)
-    }
-
     private fun closedOffset(activity: MainActivity): Float {
         val dp = activity.resources.displayMetrics.density
         val width = min(
@@ -92,34 +80,10 @@ class InterruptionTest {
         assertEquals(View.VISIBLE, errorLine.visibility)
     }
 
-    @Test fun interruptedThemeTransitionSettlesOnTheSavedSelection() {
-        val (controller, activity) = start()
-        LoaderPreferences(activity).saveTheme("midnight")
-        invokeThemeTransition(activity)
-        idleMillis(80)
-        assertTrue("transition was mid-blend", ShaiPalette.night in 0f..1f)
-
-        controller.pause(); controller.stop()
-        assertEquals(1f, ShaiPalette.night)
-        assertEquals(0f, notebookFractionOf(activity), 0.001f)
-
-
-        val settled = ShaiPalette.night
-        controller.start()
-        assertEquals(settled, ShaiPalette.night)
-        controller.destroy()
-    }
-
-    @Test fun recreatedActivityKeepsTheSavedSelectionAfterAnInterruptedCrossfade() {
-        val (controller, activity) = start()
-        LoaderPreferences(activity).saveTheme("notebook")
-        invokeThemeTransition(activity)
-        idleMillis(80)
-        controller.pause(); controller.stop(); controller.destroy()
-
-        val (_, fresh) = start()
-        assertEquals(0f, ShaiPalette.night)
-        assertEquals(1f, notebookFractionOf(fresh), 0.001f)
+    @Test fun appearanceIsFixedToPastelAndTransitionStillExists() {
+        val (_, activity) = start()
+        assertEquals(0f, ShaiPalette.night, 0.001f)
+        assertTrue(activity.findViewById<View>(R.id.main_content).isShown || activity.findViewById<View>(R.id.main_content).visibility == View.VISIBLE)
     }
 
     @Test fun firstDrawerOpeningSlidesTheFullConfiguredWidth() {
@@ -193,7 +157,6 @@ class InterruptionTest {
             idleMillis(150)
         }
 
-        playsTap { activity.findViewById<View>(R.id.theme_button).performClick() }
         playsTap { activity.findViewById<View>(R.id.change_key_link).performClick() }
         playsTap { activity.findViewById<View>(R.id.about_button).performClick() }
         playsTap { activity.findViewById<View>(R.id.library_card).performClick() }

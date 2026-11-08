@@ -17,3 +17,9 @@ The panel must have the `loader_catalog` table and an active library entry. A va
 ## Audio
 
 Screen sounds use Android media volume. The initial screen uses pencil and paper cues. Verified screens use sounds matching the selected theme.
+
+## Private libraries
+
+Private entries require the FreeSHAI panel to deploy `POST /loader/catalog/assigned`. The loader validates the license with `/connect`, then retrieves entries owned by the account associated with the key. Public libraries stay available through `GET /loader/catalog`.
+
+The theme selector is removed. Sign-in transitions from paper to pastel clay.
