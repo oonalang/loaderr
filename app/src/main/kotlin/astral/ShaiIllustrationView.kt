@@ -82,7 +82,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
     override fun performClick(): Boolean { super.performClick(); return true }
     override fun onInitializeAccessibilityNodeInfo(info: android.view.accessibility.AccessibilityNodeInfo) {
         super.onInitializeAccessibilityNodeInfo(info)
-        if (portrait) info.addAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.R.id.button1, "Buy now! Open SHAI store"))
+        if (portrait) info.addAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.R.id.button1, "Open the SHAI store"))
     }
     override fun performAccessibilityAction(action: Int, arguments: android.os.Bundle?): Boolean {
         if (portrait && action == android.R.id.button1) { onSignClick?.invoke(); return true }
@@ -400,7 +400,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawLine(49f,142f,49f,161f,linePaint)
         canvas.drawLine(90f,124f,111f,132f,linePaint)
         fillPaint.color=ShaiPalette.ink;fillPaint.typeface=androidx.core.content.res.ResourcesCompat.getFont(context,R.font.caveat)
-        fillPaint.textSize=23f;canvas.drawText("Buy now!",13f,124f,fillPaint)
+        fillPaint.textSize=23f;canvas.drawText("Store",13f,124f,fillPaint)
         drawReaction(canvas,expression,true)
     }
 

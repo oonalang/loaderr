@@ -35,18 +35,18 @@ class RefinementTest {
     fun rotatingHeadlineStartsInOrderAndReservesTwoLines() {
         assertEquals(
             listOf(
-                "Choose your library.",
-                "Use your key to continue.",
-                "Buy now!",
-                "Pick the version you need.",
-                "Open About for help.",
-                "New libraries appear in the catalog."
+                "Enter your license key.",
+                "Verify your key to continue.",
+                "Open store.",
+                "Choose a library after sign-in.",
+                "View app details in About.",
+                "Check the library catalog."
             ),
             RotatingHeadlineView.MESSAGES.toList()
         )
         val context = RuntimeEnvironment.getApplication()
         val headline = RotatingHeadlineView(context)
-        assertEquals("Choose your library.", headline.text.toString())
+        assertEquals("Enter your license key.", headline.text.toString())
         headline.setMessageForTest(RotatingHeadlineView.BUY_NOW_INDEX)
         headline.measure(
             View.MeasureSpec.makeMeasureSpec(900, View.MeasureSpec.EXACTLY),
@@ -95,10 +95,10 @@ class RefinementTest {
         assertNull(shadowOf(activity).nextStartedActivity)
 
         headline.setMessageForTest(RotatingHeadlineView.BUY_NOW_INDEX)
-        assertTrue("Buy now is actionable", headline.isClickable)
+        assertTrue("The store link is actionable", headline.isClickable)
         assertTrue(headline.performClick())
         val first = shadowOf(activity).nextStartedActivity
-        assertNotNull("Buy now starts an external intent", first)
+        assertNotNull("The store link opens an external intent", first)
         assertEquals("https://shaistore.vercel.app", first!!.data.toString())
 
         headline.performClick()
@@ -157,7 +157,7 @@ class RefinementTest {
 
         val owner = dialog.findViewById<TextView>(R.id.about_detail_value)
         assertEquals(View.VISIBLE, owner.visibility)
-        assertEquals("@Shaiaintshyy", owner.text.toString())
+        assertEquals("@Ascension_shy", owner.text.toString())
         val labels = TextViewCollector(dialog.findViewById(R.id.about_details_card))
         assertTrue("version row is gone, not blank", labels.none { it.contains("version", ignoreCase = true) })
 

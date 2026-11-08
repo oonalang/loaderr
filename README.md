@@ -1,13 +1,19 @@
 # SHAI Loader
 
-Android Kotlin project for the SHAI library interface.
+Android app built with Kotlin and the Android SDK.
 
 ## Build
 
-Use JDK 17 and Android SDK 35. Run `./gradlew assembleDebug` from the project root. The debug APK is written to `app/build/outputs/apk/debug/`.
+JDK 17 and Android SDK 35 are required.
 
-## Interface
+Run `./gradlew assembleDebug`. Find the APK in `app/build/outputs/apk/debug/`.
 
-The key-entry screen uses paper-style audio feedback. After verification, touch feedback follows the selected theme. Audio plays through media volume.
+## License and catalog
 
-Library access requires a valid key and the configured backend. The repository includes the Gradle wrapper, runtime assets, and tests.
+The loader reads `GET https://shaii.x10.mx/loader/catalog` and attempts `/Loader/index.php` if the primary route fails. License validation uses `POST https://shaii.x10.mx/connect`.
+
+The panel must have the `loader_catalog` table and an active library entry. A valid license key is required to proceed. Keep database and signing credentials outside the repository.
+
+## Audio
+
+Screen sounds use Android media volume. The initial screen uses pencil and paper cues. Verified screens use sounds matching the selected theme.

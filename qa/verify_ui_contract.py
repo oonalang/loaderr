@@ -360,13 +360,13 @@ check('onDetachedFromWindow' in headline and 'removeCallbacks(advanceRunnable)' 
       'rotation callbacks are cancelled with the view')
 check('ValueAnimator.areAnimatorsEnabled()' in headline,
       'the rotating tip respects reduced motion')
-for message in ('Choose your library.', 'Use your key to continue.', 'Buy now!',
-                'Pick the version you need.', 'Open About for help.', 'New libraries appear in the catalog.'):
+for message in ('Enter your license key.', 'Verify your key to continue.', 'Open store.',
+                'Choose a library after sign-in.', 'View app details in About.', 'Check the library catalog.'):
     check(message in headline, f'exact rotating tip present: {message}')
 check('shaistore.vercel.app' in headline and 'SHAI store' in headline,
-      'Buy now points at the SHAI store')
+      'the store link opens the official shop')
 check('isClickable = buyNow' in headline and 'messageIndex == BUY_NOW_INDEX' in headline,
-      'only Buy now is actionable')
+      'only the store message is actionable')
 check('HL_FADE' not in headline and 'FADE_OUT_MS' in headline and 'FADE_IN_MS' in headline,
       'the tip handover is a fade, not a typing animation')
 check('animator?.cancel()' in ILLUSTRATION, 'the reveal is interruptible')
@@ -478,7 +478,7 @@ check('ShaiPalette.clayBg' in about and 'ShaiType.display' in about,
       'the about sheet belongs to the clay system')
 check('about_art' in about_layout and 'about_details_card' in about_layout,
       'about uses the keykeeper illustration and a real details card')
-check('@Shaiaintshyy' in (APP / 'kotlin/astral/AboutDialog.kt').read_text(),
+check('@Ascension_shy' in (APP / 'kotlin/astral/AboutDialog.kt').read_text(),
       'creator attribution is part of the page')
 check('about_logo' not in about_layout and 'about_pill' not in about_layout and
       'about_info_card' not in about_layout,

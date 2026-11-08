@@ -120,7 +120,7 @@ internal class AboutDialog(
 
 
         val details = listOf(
-            Detail(R.id.detail_username, R.drawable.ic_about, "Owner", "@Shaiaintshyy")
+            Detail(R.id.detail_username, R.drawable.ic_about, "Owner", "@Ascension_shy")
         )
 
         details.forEach { detail ->

@@ -29,12 +29,12 @@ class RotatingHeadlineView @JvmOverloads constructor(
         const val SHOP_URL = "https://shaistore.vercel.app"
         const val BUY_NOW_INDEX = 2
         val MESSAGES = arrayOf(
-            "Choose your library.",
-            "Use your key to continue.",
-            "Buy now!",
-            "Pick the version you need.",
-            "Open About for help.",
-            "New libraries appear in the catalog."
+            "Enter your license key.",
+            "Verify your key to continue.",
+            "Open store.",
+            "Choose a library after sign-in.",
+            "View app details in About.",
+            "Check the library catalog."
         )
     }
 
@@ -152,7 +152,7 @@ class RotatingHeadlineView @JvmOverloads constructor(
         isClickable = buyNow
         isFocusable = buyNow
         contentDescription = if (buyNow) {
-            "Buy now! Opens the SHAI store"
+            "Open store. Opens the SHAI store"
         } else {
             message
         }
