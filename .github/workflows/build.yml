@@ -31,6 +31,26 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       # The wrapper is committed without the exec bit to keep Windows checkouts clean.
+      - name: Probe public panel endpoints
+        run: |
+          python3 - <<'PY'
+          import urllib.request
+          import urllib.error
+          from urllib.parse import urlparse
+          root = "https://shaii.x10.mx"
+          for path in ("/loader/catalog", "/Loader/index.php", "/connect"):
+              req = urllib.request.Request(root + path, headers={"Accept": "text/plain, application/json", "User-Agent": "SHAI-Catalog-Healthcheck/1.0"})
+              try:
+                  with urllib.request.urlopen(req, timeout=12) as response:
+                      sample = response.read(250)
+                      print(f"{path}: HTTP {response.status}; type={response.headers.get('Content-Type', 'missing')}; final_path={urlparse(response.geturl()).path}; html={sample.lstrip().lower().startswith(b'<')}; sampled_bytes={len(sample)}")
+              except urllib.error.HTTPError as error:
+                  sample = error.read(250)
+                  print(f"{path}: HTTP {error.code}; type={error.headers.get('Content-Type', 'missing')}; html={sample.lstrip().lower().startswith(b'<')}")
+              except Exception as error:
+                  print(f"{path}: NETWORK {type(error).__name__}: {str(error)[:140]}")
+          PY
+
       - name: Make the wrapper executable
         run: chmod +x gradlew
 
