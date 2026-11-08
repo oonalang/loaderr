@@ -151,6 +151,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var errorMotion: MotionValue
 
 
+    private fun playTap() {
+        val cue = when {
+            !licenseVerified -> ShaiSounds.Cue.TAP
+            loaderPreferences.getTheme() == "notebook" -> ShaiSounds.Cue.WRITE
+            loaderPreferences.getTheme() == "midnight" -> ShaiSounds.Cue.DIGITAL
+            else -> ShaiSounds.Cue.CLAY_TAP
+        }
+        sounds.play(cue)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         restoredFromState = savedInstanceState != null
         super.onCreate(null)
@@ -214,7 +224,7 @@ class MainActivity : AppCompatActivity() {
         setupLibraryDrawer()
         errorMotion = MotionValue(findViewById(R.id.key_field), 0f) { fieldSurface.errorProgress = it }
         findViewById<View>(R.id.theme_button).setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             showThemePicker()
         }
         heroIllustration.setOnClickListener {
@@ -222,7 +232,7 @@ class MainActivity : AppCompatActivity() {
             heroIllustration.react(reaction)
             sounds.play(if (licenseVerified) ShaiSounds.Cue.HAPPY else ShaiSounds.Cue.CRY)
         }
-        listOf(delaySpinner, methodSpinner).forEach { (it as ClaySpinner).onChoice = { sounds.play(ShaiSounds.Cue.TAP) } }
+        listOf(delaySpinner, methodSpinner).forEach { (it as ClaySpinner).onChoice = { playTap() } }
 
         val savedMode = loaderPreferences.getMode()
         if (savedMode == "auto") {
@@ -278,23 +288,23 @@ class MainActivity : AppCompatActivity() {
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
             loaderPreferences.saveMode(if (checkedId == R.id.radio_auto) "auto" else "manual")
             updateModeSegments()
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
         }
         updateModeSegments()
 
         findViewById<View>(R.id.library_card).setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             setLibraryDrawerOpen(true)
         }
         findViewById<View>(R.id.about_button).setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             AboutDialog(this, licenseVerified, sounds).show()
         }
         findViewById<View>(R.id.change_key_link).setOnClickListener {
             if (isPreparingLibrary) {
                 showToast("Finish the current preparation first")
             } else {
-                sounds.play(ShaiSounds.Cue.TAP)
+                playTap()
                 setLibraryDrawerOpen(false)
                 clearAuthenticatedPhase()
                 licenseKeyInput.text?.clear()
@@ -323,7 +333,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         loginButton.setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            sounds.play(if (licenseVerified) ShaiSounds.Cue.CLAY_TAP else ShaiSounds.Cue.PAPER)
             if (isReadyToInject) {
                 injectLibrary(LIBRARY_FILE_NAME)
                 showToast("Injecting, please wait...")
@@ -444,7 +454,7 @@ class MainActivity : AppCompatActivity() {
             pendingRememberedKey = remembered
         }
         rememberKeyCheck.setOnCheckedChangeListener { _, isChecked ->
-            sounds.play(ShaiSounds.Cue.TAP)
+            sounds.play(ShaiSounds.Cue.CHECK)
             if (isChecked) {
                 val key = licenseKeyInput.text?.toString()?.trim().orEmpty()
                 if (key.isNotBlank()) {
@@ -459,6 +469,9 @@ class MainActivity : AppCompatActivity() {
         licenseKeyInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (count > 0 && licenseKeyInput.hasFocus() && !licenseVerified) {
+                    sounds.play(ShaiSounds.Cue.WRITE)
+                }
                 if (rememberKeyCheck.isChecked) {
                     val key = s?.toString()?.trim().orEmpty()
                     if (key.isNotBlank()) loaderPreferences.saveRememberedKey(key)
@@ -555,7 +568,7 @@ class MainActivity : AppCompatActivity() {
         heroIllustration = findViewById(R.id.hero_art)
         headlineView = findViewById(R.id.hero_headline)
         headlineView.onBuyNowClick = {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             openStorefront()
         }
         findViewById<View>(R.id.library_card).background = libraryCardSurface
@@ -898,7 +911,7 @@ class MainActivity : AppCompatActivity() {
             values.indexOf(loaderPreferences.getTheme()), materialProgress) { index ->
             loaderPreferences.saveTheme(values[index])
             animateTheme()
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
         }.apply { show() }
     }
 
@@ -1048,11 +1061,11 @@ class MainActivity : AppCompatActivity() {
         libraryDrawer.post { if (!isDrawerOpen) libraryDrawer.translationX = drawerClosedX() }
 
         findViewById<View>(R.id.drawer_close).setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             setLibraryDrawerOpen(false)
         }
         drawerScrim.setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             setLibraryDrawerOpen(false)
         }
 
@@ -1074,7 +1087,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         findViewById<View>(R.id.drawer_about).setOnClickListener {
-            sounds.play(ShaiSounds.Cue.TAP)
+            playTap()
             setLibraryDrawerOpen(false)
             openStore()
         }
@@ -1291,7 +1304,7 @@ class MainActivity : AppCompatActivity() {
 
             row.setOnClickListener {
                 if (available) {
-                    sounds.play(ShaiSounds.Cue.TAP)
+                    playTap()
                     selectLibraryFromDrawer(library)
                 } else {
                     showToast("$name is under maintenance")
