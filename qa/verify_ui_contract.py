@@ -196,8 +196,8 @@ check('browse_button' not in KOTLIN and 'library_menu_button' not in KOTLIN,
 check('browse_button' not in BASE.read_text() and 'library_menu_button' not in BASE.read_text(),
       'the removed list button and menu control have no layout space')
 check('setLibraryDrawerOpen(true)' not in inside(
-          '                    // The verified state never opens or selects anything.',
-          '                }\n            }'),
+          '                filterLibraries(false)',
+          '                sounds.play(ShaiSounds.Cue.SUCCESS)'),
       'authentication never opens the library drawer by itself')
 check('HapticFeedbackConstants.CONFIRM' in KOTLIN,
       'verified state gives a confirmation haptic')
