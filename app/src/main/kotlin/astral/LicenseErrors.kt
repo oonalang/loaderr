@@ -8,9 +8,10 @@ internal object LicenseErrors {
         message.equals("Invalid license key", true) ||
             message.equals("Key validation failed", true) ||
             message.contains("not accepted", true) -> "This key was not accepted."
+        message.startsWith("Catalog unavailable. Primary: ") -> message
         message.contains("web page", true) ||
-            message.contains("html", true) -> "The panel sent a web page instead of a validation response. Check the server configuration."
-        message.contains("catalog", true) -> "Unable to load the library catalog. Check the server connection."
+            message.contains("html", true) -> "The panel sent an HTML response instead of JSON. Check the server routes."
+        message.contains("catalog", true) -> "The library catalog is unavailable. Check the server routes or database."
         else -> message
     }
 }
