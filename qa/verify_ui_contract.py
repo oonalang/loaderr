@@ -405,7 +405,7 @@ check('drawBevel' in visuals and 'LinearGradient' in visuals,
 check('clipRect(rect)' in visuals, 'the bevel is clipped to the moulded form')
 check('clayShadow(): Boolean' in visuals and 'Kind.SEARCH, Kind.SELECT -> false' in visuals,
       'recessed controls take an inner light instead of casting a shadow')
-check('clayInset()' in visuals and 'at least the shadow reach' in visuals,
+check('clayInset()' in visuals and '(clayInset() - 1.5f).coerceIn(0f, 6f)' in visuals,
       'every raised surface reserves room for its own shadow')
 check('state.any { it == android.R.attr.state_pressed }' in visuals,
       'press feedback comes from the surface state, not a tint')

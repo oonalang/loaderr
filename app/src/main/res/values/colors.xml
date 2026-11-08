@@ -9,7 +9,7 @@
     <color name="sketch_highlight">#FFF176</color>
     <color name="sketch_paper_card">#FFFFFF</color>
     <color name="sketch_ink">#1F2937</color>
-    <color name="sketch_pencil">#566071</color>
+    <color name="sketch_pencil">#777B84</color>
     
     <color name="sketch_draft">#1F2937</color>
 
@@ -39,7 +39,7 @@
 
     <color name="clay_bg">#F4EEFF</color>
     <color name="clay_ink">#2B2340</color>
-    <color name="clay_muted">#544863</color>
+    <color name="clay_muted">#5F536F</color>
     <color name="clay_raised">#FAF7FF</color>
     <color name="clay_sunken">#E9E1F7</color>
     <color name="clay_pink">#FFB8D9</color>
