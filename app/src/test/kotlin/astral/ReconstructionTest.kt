@@ -28,11 +28,11 @@ import java.time.ZonedDateTime
 class ReconstructionTest {
     @Test fun greetingsUseAllLocalBoundaries() {
         val samples = mapOf("00:00" to "Still awake?", "04:59" to "Still awake?",
-            "05:00" to "wow, it's sunrise.", "07:59" to "wow, it's sunrise.",
-            "08:00" to "What a great day.", "10:22" to "What a great day.",
-            "11:29" to "What a great day.", "11:30" to "How's lunch time lad?",
-            "13:59" to "How's lunch time lad?", "14:00" to "What a great day.",
-            "17:59" to "What a great day.", "18:00" to "Good evening.", "23:59" to "Good evening.")
+            "05:00" to "Good morning.", "07:59" to "Good morning.",
+            "08:00" to "Hello.", "10:22" to "Hello.",
+            "11:29" to "Hello.", "11:30" to "Good afternoon.",
+            "13:59" to "Good afternoon.", "14:00" to "Hello.",
+            "17:59" to "Hello.", "18:00" to "Good evening.", "23:59" to "Good evening.")
         samples.forEach { (time, greeting) ->
             assertEquals(greeting, LocalGreeting.message(ZonedDateTime.parse("2026-10-26T${time}:00-04:00[America/New_York]")))
         }
@@ -43,16 +43,16 @@ class ReconstructionTest {
         var rendered = ""
         val clock = GreetingClock(context, { rendered = it }, { now })
         clock.setEnabled(true); clock.start()
-        assertEquals("What a great day.", rendered)
+        assertEquals("Hello.", rendered)
         now = now.plusSeconds(1)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
-        assertEquals("How's lunch time lad?", rendered)
+        assertEquals("Good afternoon.", rendered)
         clock.stop(); now = now.withHour(19); clock.start()
         assertEquals("Good evening.", rendered)
         now = now.withHour(6)
         context.sendBroadcast(Intent(Intent.ACTION_TIMEZONE_CHANGED))
         shadowOf(Looper.getMainLooper()).idle()
-        assertEquals("wow, it's sunrise.", rendered)
+        assertEquals("Good morning.", rendered)
         clock.stop()
     }
     @Test fun repeatedModeTapNeverUnchecksAndPersists() {
