@@ -78,11 +78,11 @@ class ReconstructionTest {
             assertEquals(color, bitmap.getPixel(80,80))
         }
     }
-    @Test fun soundFirstEventWaitsForLoadAndSilentModeSuppressesPlayback() {
+    @Test fun soundFirstEventWaitsForLoadAndRapidRepeatsAreDebounced() {
         val context = RuntimeEnvironment.getApplication()
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
-        audio.setStreamVolume(AudioManager.STREAM_SYSTEM, 5, 0)
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0)
         val sounds = ShaiSounds(context); sounds.start()
         val pool = ShaiSounds::class.java.getDeclaredField("soundPool").apply { isAccessible = true }.get(sounds) as SoundPool
         val shadow = shadowOf(pool)
@@ -90,11 +90,10 @@ class ReconstructionTest {
         assertFalse(shadow.wasResourcePlayed(R.raw.ui_success))
         shadow.notifyResourceLoaded(R.raw.ui_success, true)
         assertTrue(shadow.wasResourcePlayed(R.raw.ui_success))
-        shadow.clearPlayed(); audio.ringerMode = AudioManager.RINGER_MODE_SILENT
+        shadow.clearPlayed()
         sounds.play(ShaiSounds.Cue.SUCCESS)
         assertFalse(shadow.wasResourcePlayed(R.raw.ui_success))
         sounds.stop()
-        audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
         sounds.play(ShaiSounds.Cue.SUCCESS)
         assertFalse(shadow.wasResourcePlayed(R.raw.ui_success))
     }

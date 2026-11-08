@@ -12,7 +12,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
-/** Shared clay selection sheet, also used by the persistent theme picker. */
+
 internal class ClayChoiceDialog(context: Context, title: String, choices: List<String>, selected: Int,
     private val phase: Float = 1f, private val choose: (Int) -> Unit) : Dialog(context) {
     private val body = LinearLayout(context)
@@ -54,7 +54,7 @@ internal class ClayChoiceDialog(context: Context, title: String, choices: List<S
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT));setDimAmount(.24f)
             setLayout((context.resources.displayMetrics.widthPixels*.9f).toInt(),ViewGroup.LayoutParams.WRAP_CONTENT)
         }
-        // Keep every choice reachable in landscape/large text via the scroll viewport.
+
         body.post {
             val scroll=body.getChildAt(1)
             val max=(context.resources.displayMetrics.heightPixels*.65f).toInt()

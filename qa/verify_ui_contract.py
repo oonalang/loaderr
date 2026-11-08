@@ -360,8 +360,8 @@ check('onDetachedFromWindow' in headline and 'removeCallbacks(advanceRunnable)' 
       'rotation callbacks are cancelled with the view')
 check('ValueAnimator.areAnimatorsEnabled()' in headline,
       'the rotating tip respects reduced motion')
-for message in ('Shai Premium is better.', 'Shai updates every week!', 'Buy now!',
-                'Suggest more feats!', 'Hey did you know?', 'Promo drops every week too!'):
+for message in ('Choose your library.', 'Use your key to continue.', 'Buy now!',
+                'Pick the version you need.', 'Open About for help.', 'New libraries appear in the catalog.'):
     check(message in headline, f'exact rotating tip present: {message}')
 check('shaistore.vercel.app' in headline and 'SHAI store' in headline,
       'Buy now points at the SHAI store')
@@ -459,8 +459,8 @@ check('class ShaiSounds' in sounds and 'SoundPool' in sounds and
       'R.raw.ui_tap' in sounds and 'R.raw.ui_success' in sounds and
       'R.raw.ui_error' in sounds and 'R.raw.ui_ready' in sounds,
       'the UI sound kit plays four bundled cues through SoundPool')
-check('RINGER_MODE_NORMAL' in sounds and 'STREAM_SYSTEM' in sounds,
-      'the sound kit respects silent mode and system volume')
+check('USAGE_MEDIA' in sounds and 'R.raw.pencil_write' in sounds and 'R.raw.paper_crumple' in sounds,
+      'UI feedback uses media volume and includes material-specific sounds')
 check(all(term not in sounds for term in ("setLooping", "LoopPoint")),
       'no cue loops or runs as ambience')
 check('sound_toggle' not in layout_text_again and 'sound_toggle' not in KOTLIN and

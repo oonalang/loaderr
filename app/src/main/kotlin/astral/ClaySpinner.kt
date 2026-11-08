@@ -7,7 +7,7 @@ import android.graphics.Path
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatSpinner
 
-/** Keeps the existing Spinner adapter/selection contract; replaces the native popup entirely. */
+
 class ClaySpinner @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : AppCompatSpinner(context,attrs) {
     private val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply { style=Paint.Style.STROKE;strokeCap=Paint.Cap.ROUND;strokeJoin=Paint.Join.ROUND }
     private val path=Path()

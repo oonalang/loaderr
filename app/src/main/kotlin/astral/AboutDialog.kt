@@ -20,11 +20,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 
-/**
- * About is part of the product, not a legacy settings sheet. When it is opened
- * after redemption it is the same clay page; opened from the sheet it is still
- * a notebook page. Both states share one layout and one set of surfaces.
- */
+
 internal class AboutDialog(
     context: Context,
     private val signedIn: Boolean = false,
@@ -70,7 +66,7 @@ internal class AboutDialog(
         ViewCompat.requestApplyInsets(scroll)
     }
 
-    /** Same short press language as the main screen, adapted to a dialog. */
+
     private fun installPress(view: View) = InteractionMotion.press(view)
 
     private fun playbackEntrance() {
@@ -121,9 +117,8 @@ internal class AboutDialog(
 
     private fun bindDetails() {
         val iconTint = if (phase > .5f) ShaiPalette.clayMuted else ShaiPalette.pencil
-        // The version row is intentionally not listed: a loader whose catalog
-        // can force an update dialog never shows a number readers could mistake
-        // for the currently supported one.
+
+
         val details = listOf(
             Detail(R.id.detail_username, R.drawable.ic_about, "Owner", "@Shaiaintshyy")
         )

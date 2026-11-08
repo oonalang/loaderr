@@ -9,7 +9,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatCheckBox
 
-/** The check is drawn into the surface; CompoundButton still owns accessibility and state. */
+
 class AnimatedRememberBox @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : AppCompatCheckBox(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val path = Path()
@@ -19,7 +19,7 @@ class AnimatedRememberBox @JvmOverloads constructor(context: Context, attrs: Att
     init { buttonDrawable = null; buttonTintList = null }
     override fun setChecked(checked: Boolean) {
         super.setChecked(checked)
-        // CompoundButton's constructor can dispatch this override before fields initialize.
+
         if (ready()) motion.to(if (checked) 1f else 0f, isAttachedToWindow)
     }
     private fun ready(): Boolean = (motion as MotionValue?) != null
