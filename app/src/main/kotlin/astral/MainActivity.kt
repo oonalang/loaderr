@@ -1609,10 +1609,12 @@ class MainActivity : AppCompatActivity() {
         isPreparingLibrary = false
         clearAuthenticatedPhase()
         showKeyError(LicenseErrors.presentation(message))
-        findViewById<TextView>(R.id.hero_caption).text = if (savedKeyRejected) {
-            "The saved key was not accepted. Check it, or turn off Remember."
-        } else {
-            "Check the key and try again."
+        val serverProblem = listOf("catalog", "panel", "server", "response", "connection", "HTTP", "maintenance")
+            .any { message.contains(it, ignoreCase = true) }
+        findViewById<TextView>(R.id.hero_caption).text = when {
+            serverProblem -> "The license service is unavailable. Try again later."
+            savedKeyRejected -> "The saved key was not accepted. Check it, or turn off Remember."
+            else -> "Check the key and try again."
         }
         loginButton.text = "Redeem key"
         loginButton.isEnabled = true
