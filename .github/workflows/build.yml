@@ -32,6 +32,24 @@ jobs:
       - name: Make the wrapper executable
         run: chmod +x gradlew
 
+      - name: Check FreeSHAI API response status
+        run: |
+          python3 - <<'PY'
+          import urllib.request
+          import urllib.error
+          root = "https://freeshai.x10.mx"
+          for path in ("/loader/catalog", "/Loader/index.php", "/connect"):
+              req = urllib.request.Request(root + path, headers={"Accept": "application/json, text/plain"})
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as response:
+                      body = response.read(120)
+                      print(f"{path}: HTTP {response.status}, type={response.headers.get('Content-Type', 'unknown')}, length_sample={len(body)}")
+              except urllib.error.HTTPError as error:
+                  print(f"{path}: HTTP {error.code}, type={error.headers.get('Content-Type', 'unknown')}")
+              except Exception as error:
+                  print(f"{path}: {type(error).__name__}")
+          PY
+
       - name: Verify UI and native component contracts
         run: |
           python3 qa/verify_ui_contract.py
