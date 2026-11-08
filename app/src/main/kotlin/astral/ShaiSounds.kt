@@ -2,88 +2,116 @@ package astral.loader
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioManager
 import android.media.SoundPool
 import android.os.SystemClock
+import android.util.Log
 
-/** Short bundled cues, preloaded when the screen starts. Device audio settings govern playback. */
 internal class ShaiSounds(context: Context) {
-    enum class Cue { TAP, SUCCESS, ERROR, READY, CRY, HAPPY, GIGGLE }
-    private val appContext = context.applicationContext
+    enum class Cue {
+        TAP, SUCCESS, ERROR, READY, CRY, HAPPY, GIGGLE,
+        WRITE, PAPER, CHECK, CLAY_TAP, DIGITAL
+    }
+
+    private val context = context.applicationContext
     private var soundPool: SoundPool? = null
-    private val soundIds = HashMap<Cue, Int>()
-    private val ready = HashSet<Cue>()
+    private val soundIds = mutableMapOf<Cue, Int>()
+    private val loaded = mutableSetOf<Int>()
+    private val lastPlayed = mutableMapOf<Cue, Long>()
     private var pending: Pair<Cue, Long>? = null
-    private var lastTapAt: Long? = null
-    private var activeStream = 0
-    private var busyUntil = 0L
-    private val cues = mapOf(Cue.TAP to R.raw.ui_tap, Cue.SUCCESS to R.raw.ui_success,
-        Cue.ERROR to R.raw.ui_error, Cue.READY to R.raw.ui_ready,
-        Cue.CRY to R.raw.ui_cry, Cue.HAPPY to R.raw.ui_happy, Cue.GIGGLE to R.raw.ui_giggle)
+
+    private val resources = mapOf(
+        Cue.TAP to R.raw.ui_tap,
+        Cue.SUCCESS to R.raw.ui_success,
+        Cue.ERROR to R.raw.ui_error,
+        Cue.READY to R.raw.ui_ready,
+        Cue.CRY to R.raw.ui_cry,
+        Cue.HAPPY to R.raw.ui_happy,
+        Cue.GIGGLE to R.raw.ui_giggle,
+        Cue.WRITE to R.raw.pencil_write,
+        Cue.PAPER to R.raw.paper_crumple,
+        Cue.CHECK to R.raw.pencil_check,
+        Cue.CLAY_TAP to R.raw.clay_tap,
+        Cue.DIGITAL to R.raw.digital_click
+    )
 
     fun start() {
         if (soundPool != null) return
-        val pool = SoundPool.Builder().setMaxStreams(1).setAudioAttributes(
-            AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build()
-        soundPool = pool
-        pool.setOnLoadCompleteListener { source, id, status ->
-            if (source !== soundPool) return@setOnLoadCompleteListener
-            val cue = soundIds.entries.firstOrNull { it.value == id }?.key ?: return@setOnLoadCompleteListener
-            if (status == 0) {
-                ready.add(cue)
+        try {
+            val pool = SoundPool.Builder()
+                .setMaxStreams(4)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                .build()
+            soundPool = pool
+            pool.setOnLoadCompleteListener { source, id, status ->
+                if (source !== soundPool || status != 0) return@setOnLoadCompleteListener
+                loaded.add(id)
                 val waiting = pending
-                if (waiting?.first == cue) {
+                if (waiting != null && soundIds[waiting.first] == id) {
                     pending = null
-                    if (SystemClock.elapsedRealtime() - waiting.second <= 500L) playLoaded(cue)
+                    if (SystemClock.uptimeMillis() - waiting.second <= 400L) {
+                        playLoaded(waiting.first)
+                    }
                 }
             }
+            resources.forEach { (cue, resourceId) ->
+                runCatching { pool.load(context, resourceId, 1) }
+                    .onSuccess { id -> if (id > 0) soundIds[cue] = id }
+                    .onFailure { Log.w("ShaiSounds", "Could not load $cue", it) }
+            }
+        } catch (error: Exception) {
+            Log.w("ShaiSounds", "Audio playback is unavailable", error)
+            stop()
         }
-        cues.forEach { (cue, resource) -> soundIds[cue] = pool.load(appContext, resource, 1) }
     }
 
     fun play(cue: Cue) {
-        // No resurrection after onStop: the next onStart preloads a fresh pool.
-        if (soundPool == null || !audible()) return
-        val now = SystemClock.elapsedRealtime()
-        if (cue == Cue.TAP && now < busyUntil) return
-        if (cue == Cue.TAP) {
-            if (lastTapAt?.let { now - it < 110L } == true) return
-            lastTapAt = now
+        if (soundPool == null) return
+        val now = SystemClock.uptimeMillis()
+        val interval = when (cue) {
+            Cue.WRITE -> 45L
+            Cue.TAP, Cue.DIGITAL, Cue.CLAY_TAP, Cue.CHECK -> 65L
+            Cue.PAPER -> 160L
+            else -> 180L
         }
-        if (cue in ready) playLoaded(cue) else pending = cue to now
+        if (now - (lastPlayed[cue] ?: Long.MIN_VALUE / 2L) < interval) return
+        lastPlayed[cue] = now
+        val id = soundIds[cue] ?: return
+        if (id in loaded) {
+            playLoaded(cue)
+        } else {
+            pending = cue to now
+        }
     }
 
-    private fun audible(): Boolean {
-        val audio = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
-        // Assistance sonification rides the system stream: mute it and the cues mute.
-        return audio.ringerMode == AudioManager.RINGER_MODE_NORMAL &&
-            audio.getStreamVolume(AudioManager.STREAM_SYSTEM) > 0
-    }
     private fun playLoaded(cue: Cue) {
-        if (!audible()) return
-        val id = soundIds[cue] ?: return
         val pool = soundPool ?: return
-        if (cue == Cue.TAP && SystemClock.elapsedRealtime() < busyUntil) return
-        if (activeStream != 0) pool.stop(activeStream)
-        activeStream = pool.play(id, .8f, .8f, 1, 0, 1f)
-        if (activeStream == 0) android.util.Log.w("ShaiSounds", "SoundPool could not allocate a UI stream")
-        busyUntil = SystemClock.elapsedRealtime() + when(cue) {
-            Cue.TAP -> 60L
-            Cue.ERROR -> 250L
-            Cue.SUCCESS, Cue.READY -> 450L
-            else -> 650L
+        val id = soundIds[cue] ?: return
+        val volume = when (cue) {
+            Cue.WRITE -> 0.30f
+            Cue.PAPER -> 0.50f
+            Cue.CHECK -> 0.38f
+            Cue.DIGITAL -> 0.32f
+            Cue.CLAY_TAP -> 0.38f
+            Cue.TAP -> 0.35f
+            else -> 0.55f
         }
+        runCatching { pool.play(id, volume, volume, 1, 0, 1f) }
+            .onFailure { Log.w("ShaiSounds", "Could not play $cue", it) }
     }
+
     fun stop() {
-        soundPool?.setOnLoadCompleteListener(null)
-        soundPool?.release()
+        val pool = soundPool
         soundPool = null
-        ready.clear()
+        runCatching { pool?.setOnLoadCompleteListener(null) }
+        runCatching { pool?.release() }
         soundIds.clear()
+        loaded.clear()
+        lastPlayed.clear()
         pending = null
-        lastTapAt = null
-        activeStream = 0
-        busyUntil = 0L
     }
 }
