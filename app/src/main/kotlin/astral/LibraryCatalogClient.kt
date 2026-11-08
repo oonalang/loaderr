@@ -113,14 +113,14 @@ class LibraryCatalogClient(private val endpoint: String) {
                 if (response.optBoolean("status", false)) {
                     val assigned = readAssignedCatalog(licenseKey, serial, game)
                     val owned = assigned.optJSONArray("DATA") ?: JSONArray()
-                    val public = publiclyListed?.optJSONArray("DATA") ?: JSONArray()
+                    val sharedEntries = publiclyListed?.optJSONArray("DATA") ?: JSONArray()
                     val visible = JSONArray()
                     for (i in 0 until owned.length()) {
                         val row = owned.optJSONObject(i) ?: continue
                         if (row.optString("TYPE") == game) visible.put(row)
                     }
-                    for (i in 0 until public.length()) {
-                        val row = public.optJSONObject(i) ?: continue
+                    for (i in 0 until sharedEntries.length()) {
+                        val row = sharedEntries.optJSONObject(i) ?: continue
                         if (row.optString("TYPE") != game) continue
                         val duplicate = (0 until visible.length()).any { j ->
                             val existing = visible.optJSONObject(j)
