@@ -17,11 +17,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import java.net.NetworkInterface
 
-/**
- * The cover page. It exists to run the real launch checks — VPN gate and the
- * one-time notification prompt — and leaves as soon as they settle. It never
- * waits for the drawing to finish.
- */
+
 class SplashActivity : AppCompatActivity() {
 
     init {
@@ -87,15 +83,19 @@ class SplashActivity : AppCompatActivity() {
         val brand = findViewById<android.widget.TextView>(R.id.splash_brand)
         val art = findViewById<ShaiIllustrationView>(R.id.splash_art)
         val content = findViewById<android.view.View>(R.id.splash_content)
+        val originalLeft = content.paddingLeft
+        val originalTop = content.paddingTop
+        val originalRight = content.paddingRight
+        val originalBottom = content.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
             view.setPadding(
-                view.paddingLeft,
-                view.paddingTop + bars.top,
-                view.paddingRight,
-                view.paddingBottom + bars.bottom
+                originalLeft + bars.left,
+                originalTop + bars.top,
+                originalRight + bars.right,
+                originalBottom + bars.bottom
             )
             insets
         }
@@ -131,8 +131,7 @@ class SplashActivity : AppCompatActivity() {
         }
         notificationPermissionRequester = NotificationPermissionRequester(this, permissionLauncher)
 
-        // The real gate runs immediately; navigation waits only for the checks,
-        // plus two frames so the cover has actually painted. No animation wait.
+
         Choreographer.getInstance().postFrameCallback {
             notificationPermissionRequester.request {
                 checksSettled = true
@@ -148,7 +147,7 @@ class SplashActivity : AppCompatActivity() {
         if (detectedVpn != null) {
             showDialog(
                 this,
-                "VPN DETECTED",
+                "VPN detected",
                 "Detected VPN Interface:\n$detectedVpn\n\nPlease disable your VPN and try again."
             )
             return

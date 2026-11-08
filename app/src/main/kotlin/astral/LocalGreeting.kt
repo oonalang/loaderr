@@ -11,15 +11,15 @@ import java.time.Duration
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
-/** Device-local wall time, independent of promotional rotation and authentication. */
+
 internal object LocalGreeting {
     private val boundaries = listOf(0 to 0, 5 to 0, 8 to 0, 11 to 30, 14 to 0, 18 to 0)
     fun message(now: ZonedDateTime): String = when (now.hour * 60 + now.minute) {
         in 0 until 300 -> "Still awake?"
-        in 300 until 480 -> "wow, it's sunrise."
-        in 480 until 690 -> "What a great day."
-        in 690 until 840 -> "How's lunch time lad?"
-        in 840 until 1080 -> "What a great day."
+        in 300 until 480 -> "Good morning."
+        in 480 until 690 -> "Hello."
+        in 690 until 840 -> "Good afternoon."
+        in 840 until 1080 -> "Hello."
         else -> "Good evening."
     }
 
@@ -30,7 +30,7 @@ internal object LocalGreeting {
     }.filter { it.isAfter(now) }.minBy { it.toInstant() }
 }
 
-/** One callback at the next boundary, rescheduled on resume or a clock/zone change. */
+
 internal class GreetingClock(
     private val context: Context,
     private val render: (String) -> Unit,

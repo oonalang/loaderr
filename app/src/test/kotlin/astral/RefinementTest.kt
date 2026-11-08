@@ -35,18 +35,18 @@ class RefinementTest {
     fun rotatingHeadlineStartsInOrderAndReservesTwoLines() {
         assertEquals(
             listOf(
-                "Shai Premium is better.",
-                "Shai updates every week!",
+                "Choose your library.",
+                "Use your key to continue.",
                 "Buy now!",
-                "Suggest more feats!",
-                "Hey did you know?",
-                "Promo drops every week too!"
+                "Pick the version you need.",
+                "Open About for help.",
+                "New libraries appear in the catalog."
             ),
             RotatingHeadlineView.MESSAGES.toList()
         )
         val context = RuntimeEnvironment.getApplication()
         val headline = RotatingHeadlineView(context)
-        assertEquals("Shai Premium is better.", headline.text.toString())
+        assertEquals("Choose your library.", headline.text.toString())
         headline.setMessageForTest(RotatingHeadlineView.BUY_NOW_INDEX)
         headline.measure(
             View.MeasureSpec.makeMeasureSpec(900, View.MeasureSpec.EXACTLY),
@@ -154,13 +154,13 @@ class RefinementTest {
         assertEquals("About uses the same finished keykeeper", 1f, art.phase, 0.001f)
         val back = dialog.findViewById<View>(R.id.about_back)
         assertTrue("back control keeps a 48dp target", back.height >= 48 * metrics.density - 1)
-        // The owner row carries the creator identity the credit line used to hold.
+
         val owner = dialog.findViewById<TextView>(R.id.about_detail_value)
         assertEquals(View.VISIBLE, owner.visibility)
         assertEquals("@Shaiaintshyy", owner.text.toString())
         val labels = TextViewCollector(dialog.findViewById(R.id.about_details_card))
         assertTrue("version row is gone, not blank", labels.none { it.contains("version", ignoreCase = true) })
-        // One real row with a muted label and its ink value: nothing else.
+
         assertEquals("one real row remains", 2, labels.size)
     }
 
@@ -222,7 +222,7 @@ class RefinementTest {
         apply.invoke(this)
     }
 
-    /** Collects every visible TextView text under a view, in order. */
+
     private fun TextViewCollector(root: View?): List<String> {
         if (root == null) return emptyList()
         val out = ArrayList<String>()

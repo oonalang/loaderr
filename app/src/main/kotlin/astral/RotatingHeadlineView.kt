@@ -15,14 +15,7 @@ import android.view.Gravity
 import android.view.View
 import androidx.appcompat.widget.AppCompatTextView
 
-/**
- * The sheet's changing tip line.
- *
- * One TextView owns the whole loop: the message, the measured highlighter, the
- * Buy now affordance and the accessibility state. Nothing on the page is
- * rebuilt when a tip changes, and the timer is tied to the view being both
- * attached and actually visible.
- */
+
 class RotatingHeadlineView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -36,16 +29,16 @@ class RotatingHeadlineView @JvmOverloads constructor(
         const val SHOP_URL = "https://shaistore.vercel.app"
         const val BUY_NOW_INDEX = 2
         val MESSAGES = arrayOf(
-            "Shai Premium is better.",
-            "Shai updates every week!",
+            "Choose your library.",
+            "Use your key to continue.",
             "Buy now!",
-            "Suggest more feats!",
-            "Hey did you know?",
-            "Promo drops every week too!"
+            "Pick the version you need.",
+            "Open About for help.",
+            "New libraries appear in the catalog."
         )
     }
 
-    /** Supplies the external navigation; the view never opens anything itself. */
+
     var onBuyNowClick: (() -> Unit)? = null
 
     private val density = resources.displayMetrics.density
@@ -77,9 +70,8 @@ class RotatingHeadlineView @JvmOverloads constructor(
         setLineSpacing(0f, 1f)
         setPadding(dp(4), dp(2), dp(8), dp(6))
         setAutoSizeTextTypeUniformWithConfiguration(24, 30, 1, TypedValue.COMPLEX_UNIT_SP)
-        // minLines alone does not reserve two real line boxes once auto-size is
-        // involved. Pin the space at the largest permitted line height so a
-        // one-line tip and a two-line tip occupy the same composition.
+
+
         val maxLine = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_SP, 30f, resources.displayMetrics
         ) * 1.18f
@@ -89,7 +81,7 @@ class RotatingHeadlineView @JvmOverloads constructor(
         setOnClickListener {
             if (!clay && messageIndex == BUY_NOW_INDEX) {
                 val now = SystemClock.elapsedRealtime()
-                // A tap on a moving target must not open two tabs.
+
                 if (now - lastStoreLaunchAt < 900L) return@setOnClickListener
                 lastStoreLaunchAt = now
                 onBuyNowClick?.invoke()
@@ -98,10 +90,7 @@ class RotatingHeadlineView @JvmOverloads constructor(
         applyMessage()
     }
 
-    /**
-     * 0 = the sheet; 1 = the finished clay page. In clay the rotation stops and
-     * the same TextView becomes the static success heading.
-     */
+
     fun setPhase(signedIn: Boolean) {
         if (clay == signedIn) return
         clay = signedIn
@@ -130,19 +119,19 @@ class RotatingHeadlineView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** Pauses the loop without losing the current tip, for a stopped window. */
+
     fun stopRotation() {
         rotationEnabled = false
         suspendRotation()
     }
 
-    /** Resumes the loop only when the view is actually on screen. */
+
     fun startRotation() {
         rotationEnabled = true
         syncRotation()
     }
 
-    /** Called from the activity's teardown; detachment also calls this. */
+
     fun release() {
         removeCallbacks(advanceRunnable)
         rotationScheduled = false
@@ -259,17 +248,14 @@ class RotatingHeadlineView @JvmOverloads constructor(
         super.onDraw(canvas)
     }
 
-    /**
-     * The marker follows the measured text, line by line, instead of tinting the
-     * whole view. A one-line tip gets one stroke; a two-line tip gets two.
-     */
+
     private fun drawHighlighter(canvas: Canvas) {
         val textLayout = layout ?: return
         if (textLayout.lineCount == 0) return
         highlightPaint.alpha = 196
         val offsetX = totalPaddingLeft + scrollX
-        // Gravity is start + center so a one-line tip sits inside the reserved
-        // two-line box. The marker has to follow that vertical offset too.
+
+
         val available = height - compoundPaddingTop - compoundPaddingBottom
         val verticalOffset = ((available - textLayout.height) * .5f).coerceAtLeast(0f)
         val offsetY = compoundPaddingTop + verticalOffset + scrollY
