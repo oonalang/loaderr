@@ -70,8 +70,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     init {
-        // The product is a light sheet in both phases; forcing night on the
-        // window made Material dialogs and popups disagree with the page.
+
+
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     }
 
@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var keyFingerprint: TextView
     private lateinit var delayAdapter: SimpleSpinnerAdapter
     private lateinit var methodAdapter: SimpleSpinnerAdapter
-    
+
     private val commandRunner = CommandRunner()
     private val catalogClient = LibraryCatalogClient(SERVER_LIST_URL)
     private val sounds by lazy { ShaiSounds(this) }
@@ -174,8 +174,8 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
-                    // Re-arm if a host or another callback kept us alive; the
-                    // next back press must still close an open drawer.
+
+
                     isEnabled = true
                 }
             }
@@ -187,17 +187,17 @@ class MainActivity : AppCompatActivity() {
         librarySearch = findViewById(R.id.library_search)
         libraryList = findViewById(R.id.library_list)
         libraryCount = findViewById(R.id.library_count)
-        
+
         val appCacheDir = cacheDir.absolutePath
         val outputFile = File(appCacheDir, LIBRARY_FILE_NAME)
         if (outputFile.exists()) {
             outputFile.delete()
         }
-        
+
         val versionCode = getAppVersionCode()
-        
+
         progressBar = findViewById(R.id.progressBar)
-        
+
         librarySpinner = findViewById(R.id.my_spinner)
         delaySpinner = findViewById(R.id.delay_spinner)
         methodSpinner = findViewById(R.id.method_spinner)
@@ -215,7 +215,7 @@ class MainActivity : AppCompatActivity() {
             .load(R.drawable.shai_mark)
             .centerCrop()
             .into(appBanner)
-        
+
         loaderPreferences = LoaderPreferences(this)
         ShaiPalette.night = if (loaderPreferences.getTheme() == "midnight") 1f else 0f
         notebookFraction = if (loaderPreferences.getTheme() == "notebook") 1f else 0f
@@ -252,10 +252,10 @@ class MainActivity : AppCompatActivity() {
             findViewById<View>(R.id.options_gap).layoutParams = LinearLayout.LayoutParams(1, (12 * resources.displayMetrics.density).toInt())
         }
 
-        
+
         val savedDelay = loaderPreferences.getDelaySeconds()
         val savedMethod = loaderPreferences.getInjectionMethod()
-        
+
         delaySpinner.setSelection(savedDelay)
         methodSpinner.setSelection(when (savedMethod) {
             "1" -> 0
@@ -263,7 +263,7 @@ class MainActivity : AppCompatActivity() {
             "3" -> 2
             else -> 0
         })
-        
+
         delaySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 delaySeconds = position
@@ -271,7 +271,7 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
-        
+
         methodSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 injectionMethod = when (position) {
@@ -302,7 +302,7 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.change_key_link).setOnClickListener {
             if (isPreparingLibrary) {
-                showToast("Finish the current preparation first")
+                showToast("Library preparation is still running.")
             } else {
                 playTap()
                 setLibraryDrawerOpen(false)
@@ -356,9 +356,9 @@ class MainActivity : AppCompatActivity() {
                 beginLicenseRedemption()
             }
         }
-        
+
         appBanner.setOnLongClickListener {
-            // A brief acknowledgement, not an alpha jump that reads as a glitch.
+
             if (ValueAnimator.areAnimatorsEnabled()) {
                 InteractionMotion.rest(appBanner, 1f)
                 appBanner.animate().cancel()
@@ -373,27 +373,25 @@ class MainActivity : AppCompatActivity() {
                     }
                     .start()
             }
-            
+
             filterLibraries(!showTestLibraries)
-            
+
             val message = if (showTestLibraries) {
                 "Test libraries shown"
             } else {
                 "Test libraries hidden"
             }
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            
+
             true
         }
-        
+
         playEntranceMotion()
         loadLibraryCatalog()
         updateRootStatus()
     }
-    
 
-    /** Edge-to-edge is enforced on API 35, so the page pads itself instead of
-     *  relying on the system bars, and the field stays above the keyboard. */
+
     private fun applyWindowInsets() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val content = findViewById<View>(R.id.main_content)
@@ -445,7 +443,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRememberedKey() {
-        // The toggle is a drawn box on paper; the theme must not wash it grey.
+
         rememberKeyCheck.buttonTintList = null
         val remembered = loaderPreferences.getRememberedKey()
         rememberKeyCheck.isChecked = !remembered.isNullOrBlank()
@@ -481,7 +479,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    /** Runs once per launch, after catalog/version checks. It never downloads a library. */
+
     private fun maybeAutoLogin() {
         if (autoLoginStarted || restoredFromState || licenseVerified) return
         val key = pendingRememberedKey?.trim().orEmpty()
@@ -514,7 +512,7 @@ class MainActivity : AppCompatActivity() {
             resetLoginState("Invalid key syntax.", focusKey = false)
             return
         }
-        // Once there is something to check, get the keyboard out of the way.
+
         hideKeyboard()
         val detectedVpn = SplashActivity.getDetectedVPN()
         if (detectedVpn != null) {
@@ -547,8 +545,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Keep a single layout and change its material treatment only when the server
-    // accepts the entered license. A saved text value does not restore this state.
+
     private fun setupVisuals() {
         backdrop = findViewById(R.id.phase_backdrop)
         libraryCardSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.CARD)
@@ -615,7 +612,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.license_section).visibility = View.VISIBLE
         findViewById<View>(R.id.success_section).visibility = View.GONE
         hideSuccessDetail()
-        findViewById<TextView>(R.id.hero_caption).text = "Redeem your key."
+        findViewById<TextView>(R.id.hero_caption).text = "Enter your key to access libraries."
         appBanner.isEnabled = true
         licenseKeyInput.isEnabled = true
         librarySpinner.isEnabled = true
@@ -624,14 +621,14 @@ class MainActivity : AppCompatActivity() {
         animateToPhase(0f)
     }
 
-    /** Per-frame view cache: updateTheme runs on every phase-animation frame. */
+
     private val viewCache = HashMap<Int, View>()
 
     private fun cv(id: Int): View = viewCache.getOrPut(id) { findViewById(id) }
 
     private fun tv(id: Int): TextView = cv(id) as TextView
 
-    /** Reused matrix for the banner desaturation; the filter copies it at construction. */
+
     private val phaseColorMatrix = ColorMatrix()
 
     private fun animateToPhase(target: Float) {
@@ -642,7 +639,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         phaseAnimator = ValueAnimator.ofFloat(phaseProgress, target).apply {
-            // Deliberate entry, quicker exit: the sheet returns faster than the court assembles.
+
             duration = if (target < phaseProgress) ShaiMotion.PHASE_OUT_MS else ShaiMotion.PHASE_IN_MS
             interpolator = ShaiMotion.easeInOut
             addUpdateListener { updateTheme(it.animatedValue as Float) }
@@ -731,7 +728,7 @@ class MainActivity : AppCompatActivity() {
         phaseColorMatrix.setSaturation(phaseProgress)
         appBanner.colorFilter = ColorMatrixColorFilter(phaseColorMatrix)
         if (lastCourtToggle != clay) {
-            // On paper the boxes are inked and ticked by hand; in clay they are beads.
+
             val box = if (clay) R.drawable.checkbox_clay else R.drawable.checkbox_sheet
             (rememberKeyCheck as AnimatedRememberBox).invalidate()
             tv(R.id.success_emblem).setBackgroundResource(
@@ -750,10 +747,10 @@ class MainActivity : AppCompatActivity() {
             headlineView.visibility = if (displaySignedIn) View.GONE else View.VISIBLE
             tv(R.id.hero_greeting).visibility = if (displaySignedIn) View.VISIBLE else View.GONE
             tv(R.id.hero_caption).apply {
-                text = "Redeem your key."
+                text = "Enter your key to access libraries."
                 visibility = if (displaySignedIn) View.GONE else View.VISIBLE
             }
-            // Paper tilt keeps the hand-placed quality of a sketch on a page.
+
             heroIllustration.rotation = if (displaySignedIn) 0f else -1.5f
             applyTypefaces(clay)
             findViewById<TextView>(R.id.library_status).apply {
@@ -771,18 +768,18 @@ class MainActivity : AppCompatActivity() {
             lastDisplayedSignedIn = displaySignedIn
         }
         findViewById<ImageButton>(R.id.drawer_close).setColorFilter(accent)
-        // The drawer scrim is ink on paper and soft plum in clay.
+
         drawerScrim.setBackgroundColor(
             ShaiPalette.blend(Color.argb(185, 0, 0, 0), Color.argb(82, 43, 35, 64), materialProgress)
         )
         val systemBar = ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.clayBg, materialProgress)
         window.statusBarColor = systemBar
         window.navigationBarColor = systemBar
-        // Both materials are light surfaces, so the bars always take dark icons.
+
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility =
             if (clay && ShaiPalette.night > .5f) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        // Rows are created asynchronously when the catalog arrives.
+
         for (i in 0 until libraryList.childCount) {
             styleDrawerRow(libraryList.getChildAt(i))
         }
@@ -810,7 +807,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Status chips carry the pastel material: mint when available, pink when not. */
+
     private fun applyPill(pill: TextView, available: Boolean, clay: Boolean) {
         pill.setBackgroundResource(
             when {
@@ -830,11 +827,7 @@ class MainActivity : AppCompatActivity() {
         pill.typeface = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
     }
 
-    /**
-     * The card's status is only shown when it adds a machine state the title
-     * does not already express: ready, preparing, or offline. "Selected" and
-     * "Choose library" were duplicates, so they stay quiet.
-     */
+
     private fun applyStatusChrome(clay: Boolean) {
         val pill = tv(R.id.library_status)
         val label = pill.text?.toString().orEmpty()
@@ -864,10 +857,7 @@ class MainActivity : AppCompatActivity() {
         pill.typeface = ShaiType.label(this)
     }
 
-    /**
-     * Two voices, swapped at the single point where the material changes.
-     * Space Grotesk drafts the sheet; Fredoka and Nunito finish the object.
-     */
+
     private fun applyTypefaces(clay: Boolean) {
         val display = if (clay) ShaiType.display(this) else ShaiType.sheetDisplay(this)
         val label = if (clay) ShaiType.label(this) else ShaiType.sheetDisplay(this)
@@ -889,7 +879,7 @@ class MainActivity : AppCompatActivity() {
             R.id.about_button, R.id.drawer_about
         ).forEach { tv(it).typeface = body }
         loginButton.typeface = label
-        // Display tracking belongs to the drafting sheet; clay sets it tight and round.
+
         tv(R.id.brand_title).letterSpacing = if (clay) -0.01f else -0.015f
         tv(R.id.operation_heading).letterSpacing = if (clay) -0.005f else 0f
         tv(R.id.drawer_about).letterSpacing = if (clay) 0f else 0.08f
@@ -975,7 +965,7 @@ class MainActivity : AppCompatActivity() {
         methodSpinner.adapter = methodAdapter
         methodAdapter.applyPhase(phaseProgress)
     }
-    
+
     private fun saveLicenseKeyForLibrary(libraryName: String, licenseKey: String) {
         loaderPreferences.licenses.saveForLibrary(libraryName, licenseKey)
     }
@@ -1004,8 +994,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // Older loader versions use the public catalog. This client reads
-            // update metadata only and waits for /redeem before showing entries.
+
             refreshLibraryDrawer()
             if (!licenseVerified && !redemptionInFlight) {
                 loginButton.text = "Redeem key"
@@ -1014,7 +1003,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun openStore() {
         val storeIntent = Intent(Intent.ACTION_VIEW, Uri.parse(STORE_URL))
         try {
@@ -1025,7 +1014,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** The rotating Buy now tip is the only path to the SHAI shop. */
+
     private fun openStorefront() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(SHOP_URL)).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)
@@ -1038,7 +1027,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Keeps the card's small machine-state chip in step with preparation. */
+
     private fun refreshLibraryCardStatus() {
         if (!::libraryCardSurface.isInitialized) return
         val label = when {
@@ -1095,12 +1084,7 @@ class MainActivity : AppCompatActivity() {
         refreshLibraryDrawer()
     }
 
-    /**
-     * The panel is inset by its own margin, so "closed" has to clear that too.
-     * A GONE drawer is never laid out, so its measured width is 0; the configured
-     * width from setupLibraryDrawer is the geometry the panel will use, and the
-     * direction matches the side the panel is anchored to.
-     */
+
     private fun drawerClosedX(): Float {
         val params = libraryDrawer.layoutParams as? ViewGroup.MarginLayoutParams
         val width = libraryDrawer.width.takeIf { it > 0 } ?: params?.width ?: 0
@@ -1109,8 +1093,7 @@ class MainActivity : AppCompatActivity() {
         return if (resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL) offset else -offset
     }
 
-    /** Deterministic off-screen resting place, used whenever the panel is not
-     *  being animated; a cancelled close must not leave it halfway. */
+
     private fun parkLibraryDrawer() {
         if (!::libraryDrawer.isInitialized) return
         libraryDrawer.animate().cancel()
@@ -1145,8 +1128,7 @@ class MainActivity : AppCompatActivity() {
                 .setInterpolator(ShaiMotion.easeOut)
                 .start()
 
-            // Park from the configured geometry, not the measured one: a drawer
-            // that has never been laid out still has a width to hide behind.
+
             if (libraryDrawer.visibility != View.VISIBLE) {
                 libraryDrawer.translationX = drawerClosedX()
             }
@@ -1185,12 +1167,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Rows follow the panel in with a short, capped stagger. */
+
     private fun animateDrawerRows() {
         if (!::libraryList.isInitialized) return
         val density = resources.displayMetrics.density
-        // Cap the cascade: only the first screenful participates, so a long
-        // catalogue cannot turn an open into dozens of concurrent animations.
+
+
         for (index in 0 until minOf(libraryList.childCount, 12)) {
             val row = libraryList.getChildAt(index)
             row.animate().cancel()
@@ -1257,7 +1239,7 @@ class MainActivity : AppCompatActivity() {
                     allLibraries.isEmpty() -> "No libraries are available for this key."
                     else -> "No results. Try another search."
                 }
-                // The drawer is clay-only, so its empty state speaks clay too.
+
                 setTextColor(ShaiPalette.clayMuted)
                 typeface = ShaiType.body(this@MainActivity)
                 textSize = 15f
@@ -1288,7 +1270,7 @@ class MainActivity : AppCompatActivity() {
                 text = status
                 applyPill(this, available, phaseProgress >= .5f)
             }
-            // A consistent drawable that adapts to the sketch and ethereal phases.
+
             val selected = available && name == selectedLibrary.name
             val rowSurface = PhaseSurfaceDrawable(this, PhaseSurfaceDrawable.Kind.ROW)
             rowSurface.phase = phaseProgress
@@ -1356,10 +1338,10 @@ class MainActivity : AppCompatActivity() {
         }
         updateSpinnerWithFilteredData()
     }
-    
+
     private fun updateSpinnerWithFilteredData() {
-        // The legacy spinner is not visible. Never let its automatic first-item
-        // callback count as a user selection after redeeming a license.
+
+
         librarySpinner.onItemSelectedListener = null
         val labels = filteredLibraries.map { it.optString("NAME") }
         librarySpinner.adapter = ArrayAdapter<String>(
@@ -1415,11 +1397,11 @@ class MainActivity : AppCompatActivity() {
         }
         val logoUrl = jsonObject.optString("LOGO")
         loadArtwork(appBanner as RoundedArtworkView, logoUrl)
-        
+
         refreshLibraryDrawer()
         updateTheme(phaseProgress)
         if (switchedWithinGame) {
-            // Never reuse a previously downloaded .so for another catalog entry.
+
             isPreparingLibrary = false
             isReadyToInject = false
             remoteLibrarySize = 0
@@ -1460,7 +1442,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun showVersionMismatchDialog(message: String, updateUrl: String?) {
         runOnUiThread {
             val builder = AlertDialog.Builder(this, R.style.DarkAlertDialog)
@@ -1490,7 +1472,7 @@ class MainActivity : AppCompatActivity() {
             builder.show()
         }
     }
- 
+
     private fun getAppVersionCode(): Int {
         return try {
             packageManager.getPackageInfo(packageName, 0).longVersionCode.toInt()
@@ -1501,8 +1483,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun validateLicense(licenseKey: String) {
         lifecycleScope.launch(Dispatchers.IO) {
-            // The server selects the game based on keys_code.game, never a
-            // user-selected label. Only that game's entries are returned.
+
+
             withContext(Dispatchers.Main) { catalogLoading = true; refreshLibraryDrawer() }
             val result = catalogClient.redeem(licenseKey, licenseValidator.deviceSerial())
             val redemption = result.getOrElse { error ->
@@ -1536,16 +1518,14 @@ class MainActivity : AppCompatActivity() {
                 redeemedGame = game
                 redeemedKey = licenseKey
                 licenseVerified = true
-                // The one success cue: only an actually verified key sounds it,
-                // once, and it is quieter than any toast.
-                // Populate only matching library entries. The spinner and drawer
-                // now reflect the authenticated game's group.
+
+
                 filterLibraries(false)
                 findViewById<View>(R.id.license_section).visibility = View.GONE
                 findViewById<View>(R.id.success_section).apply {
                     visibility = View.VISIBLE
-                    // The plaque is revealed by the phase timeline in updateTheme,
-                    // so it rises with the court instead of racing it with a fade.
+
+
                     if (!ValueAnimator.areAnimatorsEnabled()) alpha = 1f
                 }
                 sounds.play(ShaiSounds.Cue.SUCCESS)
@@ -1564,7 +1544,7 @@ class MainActivity : AppCompatActivity() {
                     visibility = View.VISIBLE
                 }
                 animateToPhase(1f)
-                // The signed-in affordances and live controls arrive with the plaque.
+
                 setSignedInControlsVisible(true)
                 setInjectionControlsEnabled(true)
                 if (filteredLibraries.isEmpty()) {
@@ -1591,8 +1571,8 @@ class MainActivity : AppCompatActivity() {
                     loginButton.isEnabled = true
                     appBanner.isEnabled = true
                     refreshLibraryDrawer()
-                    // The verified state never opens or selects anything. The user
-                    // taps the card or the primary action when they are ready.
+
+
                 }
             }
         }
@@ -1602,7 +1582,7 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    /** Transient operation feedback belongs beside the primary action. */
+
     private fun setSuccessDetail(message: String) {
         findViewById<TextView>(R.id.success_detail).apply {
             text = message
@@ -1616,7 +1596,7 @@ class MainActivity : AppCompatActivity() {
             visibility = View.GONE
         }
     }
-    
+
     private fun saveSelectedLibrary(libraryName: String) {
         loaderPreferences.licenses.saveSelectedLibrary(libraryName)
     }
@@ -1624,7 +1604,7 @@ class MainActivity : AppCompatActivity() {
     private fun resetLoginState(message: String, focusKey: Boolean = true) {
         val savedKeyRejected = autoLoginStarted && pendingRememberedKey != null
         pendingRememberedKey = null
-        // A real validation or preparation failure gets its own low cue, once.
+
         sounds.play(ShaiSounds.Cue.ERROR)
         isPreparingLibrary = false
         clearAuthenticatedPhase()
@@ -1645,8 +1625,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Return an error to the field that caused it, without stealing focus for
-     *  download or preparation failures that the key cannot fix. */
+
     private fun revealKeyEntry() {
         val target = findViewById<View>(R.id.license_section)
         mainScroll.post {
@@ -1661,8 +1640,7 @@ class MainActivity : AppCompatActivity() {
         manager.hideSoftInputFromWindow(licenseKeyInput.windowToken, 0)
     }
 
-    /** The library selector, mode/delay controls and browse action belong to the
-     *  signed-in court; the unauthenticated sheet shows only the key form. */
+
     private fun setSignedInControlsVisible(visible: Boolean) {
         val views = listOf(
             findViewById<View>(R.id.library_card),
@@ -1699,8 +1677,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** One place owns enablement and the visual state of the injection controls,
-     *  so a disabled spinner and mode row read as disabled instead of inert. */
+
     private fun setInjectionControlsEnabled(enabled: Boolean) {
         listOf(delaySpinner, methodSpinner, radioGroup, radioAuto, radioManual).forEach { view ->
             view.isEnabled = enabled
@@ -1740,8 +1717,8 @@ class MainActivity : AppCompatActivity() {
                             loginButton.text = "Inject"
                             setSuccessDetail("$currentLibrary is ready. Tap Inject when you are ready.")
                             showToast("Ready to inject")
-                            // The preparation is genuinely finished here; a soft
-                            // ready cue confirms it rather than a second toast.
+
+
                             sounds.play(ShaiSounds.Cue.READY)
                             loginButton.isEnabled = true
                             setInjectionControlsEnabled(true)
@@ -1763,14 +1740,14 @@ class MainActivity : AppCompatActivity() {
         val libraryFile = File(cacheDir, LIBRARY_FILE_NAME)
         return libraryFile.isFile && libraryFile.length() > 0L
     }
-    
+
     private fun injectLibrary(libraryFileName: String) {
         val appCacheDir = cacheDir.absolutePath
         val outputFile = File(appCacheDir, libraryFileName)
         if (!outputFile.exists() || outputFile.length().toInt() != remoteLibrarySize) {
             return
         }
-        
+
         val cacheDirectory = File(cacheDir.absolutePath)
         cacheDirectory.setReadable(true, false)
         cacheDirectory.setWritable(true, false)
@@ -1802,7 +1779,7 @@ class MainActivity : AppCompatActivity() {
             scheduleInjectionStatus()
         }
     }
-    
+
     private fun scheduleInjectionStatus() {
         lifecycleScope.launch(Dispatchers.Main) {
             delay(3000)
@@ -1814,7 +1791,7 @@ class MainActivity : AppCompatActivity() {
             setInjectionControlsEnabled(true)
         }
     }
-    
+
     private fun launchGame(packageName: String): Boolean {
         return try {
             val intent = packageManager.getLaunchIntentForPackage(packageName)
@@ -1830,7 +1807,7 @@ class MainActivity : AppCompatActivity() {
             false
         }
     }
-    
+
     private fun downloadLibraryIfNeeded(
         context: Context,
         url: String,
@@ -1883,7 +1860,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun updateRootStatus() {
         lifecycleScope.launch(Dispatchers.IO) {
             val isRooted = commandRunner.hasRootAccess()
@@ -1898,13 +1875,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun cleanUp() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
         LibraryDownloader.cancelNotification(this)
     }
-    
+
     override fun onStart() {
         super.onStart()
         volumeControlStream = android.media.AudioManager.STREAM_MUSIC
@@ -1927,8 +1904,8 @@ class MainActivity : AppCompatActivity() {
         (rememberKeyCheck as AnimatedRememberBox).settle()
         InteractionMotion.cancelTree(findViewById(R.id.main_content))
         if (::errorMotion.isInitialized) errorMotion.finish()
-        // A transition cut short must still land on the saved selection, or the
-        // next paint renders an intermediate blend that outlives the animator.
+
+
         val keptTheme = loaderPreferences.getTheme()
         ShaiPalette.night = if (keptTheme == "midnight") 1f else 0f
         notebookFraction = if (keptTheme == "notebook") 1f else 0f

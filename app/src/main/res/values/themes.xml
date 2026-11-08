@@ -1,7 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Both materials are light pages. The window must never flash the
-             retired violet court while the activity is inflating. -->
+        
         <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="fontFamily">@font/space_grotesk</item>
         <item name="android:navigationBarColor">@color/sketch_paper</item>
@@ -16,14 +15,11 @@
         <item name="android:forceDarkAllowed">false</item>
     </style>
 
-    <!-- Light window surface so the paper splash never flashes the dark theme. -->
     <style name="SplashTheme" parent="AppTheme">
         <item name="android:windowBackground">@color/sketch_paper</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <!-- Errors and confirmations belong to the same light material as the app.
-         The old near-black sheet made every dialog look like a different product. -->
     <style name="DarkAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="colorPrimary">@color/clay_ink</item>
         <item name="colorSurface">@color/clay_raised</item>
