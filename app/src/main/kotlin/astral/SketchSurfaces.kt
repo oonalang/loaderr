@@ -10,12 +10,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import androidx.annotation.ColorInt
 
-/**
- * The key field is a box someone drew on the page, not a filled Material control.
- * Edges are four slightly bowed strokes that overshoot their corners, plus a
- * second, lighter pass at a different offset. Bounds stay exactly where the
- * layout put them, so the control is still geometrically honest for touch.
- */
+
 internal class SketchFieldDrawable(
     private val density: Float = android.content.res.Resources.getSystem().displayMetrics.density
 ) : Drawable() {
@@ -60,8 +55,7 @@ internal class SketchFieldDrawable(
         val paperOnly = 1f - clay
         val radius = (4f + 14f * clay) * dp
 
-        // A fresh sheet sits inside the drawn edge so ruling never runs through the key;
-        // in clay the field becomes a shallow well pressed into the page.
+
         paint.style = Paint.Style.FILL
         paint.color = withAlpha(ShaiPalette.blend(ShaiPalette.paperCard, ShaiPalette.claySunken, clay), alpha)
         fillRect.set(left - 1f * dp, top - 1f * dp, right + 1f * dp, bottom + 1f * dp)
@@ -95,7 +89,7 @@ internal class SketchFieldDrawable(
         buildOutline(left, top, right, bottom, dp, focused)
         canvas.drawPath(path, paint)
 
-        // Second pass: a lighter re-ink one pixel off, so the line reads as drawn twice.
+
         paint.strokeWidth = (if (focused) 1.1f else 0.9f) * dp
         paint.color = withAlpha(
             ShaiPalette.pencil,
@@ -108,19 +102,19 @@ internal class SketchFieldDrawable(
     private fun buildOutline(l: Float, t: Float, r: Float, b: Float, dp: Float, focused: Boolean) {
         val w = r - l
         val h = b - t
-        // Fixed irregularity — the same hand every time, not noise.
+
         val bow = if (focused) 1.9f * dp else 1.3f * dp
         path.reset()
-        // Top edge, drawn right-to-left with a small overshoot at both ends.
+
         path.moveTo(r + 1.5f * dp, t - 0.6f * dp)
         path.cubicTo(l + w * .68f, t + bow, l + w * .30f, t - bow * .7f, l - 1.8f * dp, t + 0.9f * dp)
-        // Left edge.
+
         path.moveTo(l + 0.4f * dp, t - 1.6f * dp)
         path.cubicTo(l - bow * .8f, t + h * .34f, l + bow, t + h * .70f, l + 1.2f * dp, b + 1.4f * dp)
-        // Bottom edge.
+
         path.moveTo(l - 1.4f * dp, b - 0.4f * dp)
         path.cubicTo(l + w * .33f, b + bow, l + w * .72f, b - bow * .8f, r + 1.6f * dp, b + 0.7f * dp)
-        // Right edge.
+
         path.moveTo(r - 0.6f * dp, b + 1.8f * dp)
         path.cubicTo(r + bow, b - h * .30f, r - bow * .7f, t + h * .66f, r + 0.4f * dp, t - 1.2f * dp)
     }
@@ -144,10 +138,7 @@ internal class SketchFieldDrawable(
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }
 
-/**
- * One highlighter pass under a headline. Reveals left to right from a clip,
- * never loops, and turns to a quiet gold wash as the court takes over.
- */
+
 internal class HighlightSweepDrawable : Drawable() {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -177,7 +168,7 @@ internal class HighlightSweepDrawable : Drawable() {
         path.cubicTo(w * .62f, h * .98f, w * .28f, h * .86f, w * .008f, h * .94f)
         path.close()
         paint.color = ShaiPalette.highlight
-        // The marker belongs to the sheet; clay sets its headline without one.
+
         paint.alpha = (190f * (1f - phase * 1.6f)).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.clipRect(0f, 0f, w * progress, h)

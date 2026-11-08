@@ -9,7 +9,7 @@ import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.sqrt
 
-/** A bounded spring response: damping .82, natural response 320ms, no perpetual physics loop. */
+
 internal object InteractionMotion {
     const val CHANGE_MS = 240L
     const val SPRING_MS = 360L
@@ -47,13 +47,7 @@ internal object InteractionMotion {
             .setInterpolator(ShaiMotion.easeOut).start()
     }
 
-    /**
-     * Records the values a view must hold once its animation is over, so a
-     * cancelled animation can be settled to its destination instead of being
-     * frozen halfway. Views never animated here keep the old behaviour of
-     * cancellation: their own properties (a deliberately dimmed control, for
-     * instance) are left alone.
-     */
+
     fun rest(view: View, alpha: Float, tx: Float = 0f, ty: Float = 0f) {
         view.setTag(R.id.anim_rest, floatArrayOf(alpha, tx, ty))
     }
@@ -65,8 +59,8 @@ internal object InteractionMotion {
 
     private fun settleNode(view: View) {
         view.animate().cancel()
-        // Drop the listener so a cancelled animation cannot run its own
-        // end-action afterwards and undo this settlement.
+
+
         view.animate().setListener(null)
         (view.getTag(R.id.anim_rest) as? FloatArray)?.let { rest ->
             view.alpha = rest[0]
@@ -77,7 +71,7 @@ internal object InteractionMotion {
     }
 }
 
-/** Animates a scalar from its current presentation; detachment settles and releases it. */
+
 internal class MotionValue(owner: View, initial: Float, private val draw: (Float) -> Unit) {
     var value = initial; private set
     private var target = initial

@@ -13,20 +13,7 @@ import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 
-/**
- * The keykeeper, inked on the page and then sculpted out of it.
- *
- * One illustration carries the whole identity. On paper every line is a stroked
- * contour revealed through [PathMeasure]; as the clay phase arrives the same
- * coordinates become a moulded form: the silhouette fills with matte pink clay,
- * the face is a cream inset, the construction hatching and the ground line are
- * drawn out, and the padlock in her grip inflates into a mint object whose
- * shackle swings open. Nothing swaps: the drawing is the model.
- *
- * The padlock is the brief's second promise. On the unauthenticated sheet it is
- * shut — nothing opens until the key is checked — and in the finished piece the
- * same lock, same place in her hand, hangs with its shackle lifted clear.
- */
+
 class ShaiIllustrationView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
@@ -106,7 +93,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         if (visibility != VISIBLE) settleReaction()
     }
 
-    /** The silhouette and the face opening, filled only once clay arrives. */
+
     private val cloak = Path()
     private val clayGroove = Path()
     private val clayFace = Path()
@@ -114,14 +101,14 @@ class ShaiIllustrationView @JvmOverloads constructor(
     private val face = Path()
     private var cloakShader: LinearGradient? = null
 
-    /** 0 = blank page, 1 = finished drawing. */
+
     var reveal: Float = 1f
         set(value) {
             field = value.coerceIn(0f, 1f)
             invalidate()
         }
 
-    /** Paper sheet (0) to moulded clay (1). */
+
     var phase: Float = 0f
         set(value) {
             field = value.coerceIn(0f, 1f)
@@ -137,7 +124,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
             strokes += Stroke(Path().apply(build), ink, start, end)
         }
 
-        // Ground: one loose line the figure stands on.
+
         stroke(Ink.GROUND, 0f, .20f) {
             moveTo(30f, 160f); cubicTo(82f, 156f, 204f, 163f, 290f, 158f)
         }
@@ -145,7 +132,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
             moveTo(36f, 166f); lineTo(113f, 166f)
             moveTo(234f, 165f); lineTo(279f, 165f)
         }
-        // Hood and shoulder silhouette, in one breath.
+
         stroke(Ink.FRAME, .03f, .38f) {
             moveTo(93f, 157f)
             cubicTo(81f, 130f, 83f, 91f, 95f, 63f)
@@ -154,7 +141,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
             cubicTo(193f, 94f, 197f, 109f, 211f, 124f)
             lineTo(230f, 158f)
         }
-        // Swept hair: the heavy mass, then the lighter parting line inside it.
+
         stroke(Ink.FRAME, .14f, .40f) {
             moveTo(104f, 100f)
             cubicTo(91f, 80f, 105f, 40f, 133f, 32f)
@@ -166,7 +153,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
             cubicTo(135f, 57f, 119f, 66f, 106f, 68f)
             lineTo(104f, 100f)
         }
-        // Three-quarter face.
+
         stroke(Ink.FRAME, .20f, .54f) {
             moveTo(142f, 43f)
             cubicTo(151f, 51f, 167f, 55f, 180f, 56f)
@@ -181,10 +168,8 @@ class ShaiIllustrationView @JvmOverloads constructor(
             lineTo(127f, 76f)
             cubicTo(135f, 65f, 139f, 53f, 142f, 43f)
         }
-        // Features, inked only after the head has settled. The expression is
-        // worried while the panel must still approve the pasted key: the brow is
-        // lifted, the eye is flat rather than curved up, and the mouth is a
-        // small downturned arc under one crease.
+
+
         stroke(Ink.FEATURE, .46f, .55f) { moveTo(149f, 71f); quadTo(157f, 65f, 164f, 70f) }
         stroke(Ink.FEATURE, .49f, .57f) { moveTo(151f, 78f); quadTo(157f, 75.5f, 162f, 78f) }
         stroke(Ink.DETAIL, .50f, .56f) { moveTo(174f, 73f); lineTo(179f, 75f) }
@@ -192,7 +177,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         stroke(Ink.DETAIL, .53f, .60f) { moveTo(153f, 105f); lineTo(162f, 108f) }
         stroke(Ink.DETAIL, .50f, .58f) { moveTo(118f, 79f); quadTo(125f, 76f, 122f, 86f) }
         stroke(Ink.DETAIL, .54f, .62f) { moveTo(157f, 66f); lineTo(158f, 61f) }
-        // Folded collar.
+
         stroke(Ink.FRAME, .42f, .60f) {
             moveTo(119f, 105f); lineTo(143f, 126f); lineTo(166f, 115f); lineTo(183f, 126f)
         }
@@ -202,7 +187,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         stroke(Ink.FRAME, .50f, .64f) {
             moveTo(87f, 157f); quadTo(88f, 128f, 108f, 119f)
         }
-        // Edge hatching makes the medium explicit without shading the form.
+
         stroke(Ink.HATCH, .64f, .82f) {
             moveTo(89f, 113f); lineTo(95f, 108f)
             moveTo(88f, 121f); lineTo(96f, 114f)
@@ -212,9 +197,8 @@ class ShaiIllustrationView @JvmOverloads constructor(
             moveTo(195f, 107f); lineTo(206f, 114f)
             moveTo(201f, 118f); lineTo(213f, 126f)
         }
-        // Her grip on the padlock: a short arm from the cloak, then two finger
-        // lines folded over the body's near edge. Small on purpose — a full
-        // forearm reads as a mask at this study size.
+
+
         stroke(Ink.DETAIL, .58f, .72f) {
             moveTo(207f, 119f); quadTo(222f, 122f, 239f, 126f)
         }
@@ -223,9 +207,8 @@ class ShaiIllustrationView @JvmOverloads constructor(
             moveTo(237f, 133f); quadTo(246f, 129f, 254f, 133f)
             moveTo(239f, 141f); quadTo(246f, 138f, 252f, 141f)
         }
-        // The padlock she holds: the only object the drawing asks you to look
-        // at, and the one thing the highlighter touches. The shackle is shut:
-        // on this page nothing is open until the key is checked.
+
+
         stroke(Ink.LOCK, .68f, .84f) {
             moveTo(250f, 124f)
             lineTo(250f, 110f)
@@ -241,7 +224,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
             lineTo(256f, 143f)
         }
 
-        // The same geometry, closed, so the paper drawing can become a form.
+
         cloak.moveTo(93f, 157f)
         cloak.cubicTo(81f, 130f, 83f, 91f, 95f, 63f)
         cloak.cubicTo(104f, 34f, 128f, 18f, 151f, 22f)
@@ -267,7 +250,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         face.close()
     }
 
-    /** Inks the drawing once. Respects the system animation scale. */
+
     fun playReveal(delayMs: Long = 0L) {
         animator?.cancel()
         if (!ValueAnimator.areAnimatorsEnabled()) {
@@ -328,12 +311,12 @@ class ShaiIllustrationView @JvmOverloads constructor(
             canvas.restore()
             return
         }
-        // The pen leaves before the clay sets, so the two never overlap as a
-        // double exposure. This is the whole trick of the handover.
+
+
         val form = (((clay - .34f) / .66f).coerceIn(0f, 1f))
         if (form > 0.01f) drawClayForm(canvas, form, smooth(progress))
 
-        // One highlighter mark, laid under the lock after its outline is inked.
+
         val wash = local(progress, .86f, 1f)
         if (wash > 0f && clay < .99f) {
             fillPaint.style = Paint.Style.FILL
@@ -357,7 +340,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
             linePaint.alpha = ink.alpha.coerceIn(0, 255)
             val path = if (local >= 1f) stroke.path else segmentOf(stroke.path, smooth(local)) ?: continue
             canvas.drawPath(path, linePaint)
-            // Clay is lit: grooves take a light below them, pellets a rim above.
+
             val accent = ink.accent
             if (accent != null && accent.alpha > 0) {
                 val shift = accent.offset * dp
@@ -410,7 +393,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         clayGroove.moveTo(150f,84f);clayGroove.quadTo(155f,91f,149f,92f)
         clayGroove.moveTo(141f,101f);clayGroove.quadTo(151f,109f+expression*3,162f,101f)
         canvas.drawPath(clayGroove,linePaint)
-        // Hand-drawn sign: real destination, not decoration. Same study-space geometry for hit testing.
+
         fillPaint.color=ShaiPalette.paper;canvas.drawRoundRect(signRect,3f,3f,fillPaint)
         linePaint.color=ShaiPalette.ink;linePaint.strokeWidth=1.5f
         canvas.drawRoundRect(signRect,3f,3f,linePaint)
@@ -421,9 +404,9 @@ class ShaiIllustrationView @JvmOverloads constructor(
         drawReaction(canvas,expression,true)
     }
 
-    /** The paper drawing, sculpted: filled silhouette, cream face, clay padlock. */
+
     private fun drawClayForm(canvas: Canvas, clay: Float, inked: Float) {
-        // The figure sits on the page: a soft contact shadow replaces the ground line.
+
         val contact = clay * .11f * inked
         fillPaint.style = Paint.Style.FILL
         fillPaint.color = ShaiPalette.clayInk
@@ -435,7 +418,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         }
         fillPaint.alpha = 255
 
-        // Cloak: matte pink clay, lit from the upper left.
+
         if (cloakShader == null) {
             cloakShader = LinearGradient(
                 95f, 22f, 230f, 158f,
@@ -449,7 +432,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         fillPaint.shader = null
         fillPaint.alpha = 255
 
-        // Rim light, clipped to the form so only its inner edge catches the light.
+
         canvas.save()
         canvas.clipPath(cloak)
         linePaint.style = Paint.Style.STROKE
@@ -459,8 +442,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(cloak, linePaint)
         canvas.restore()
 
-        // The face is re-authored in clay: a front-facing plane inside the same
-        // hooded silhouette. A filled profile reads as a mask at this size.
+
         val strength = clay * inked
         fillPaint.style = Paint.Style.FILL
         fillPaint.color = ShaiPalette.blend(ShaiPalette.clayPink, ShaiPalette.clayRaised, .55f)
@@ -468,7 +450,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(face, fillPaint)
         fillPaint.alpha = 255
 
-        // The hood's edge sits *in front of* the face, so it casts into it.
+
         canvas.save()
         canvas.clipPath(face)
         linePaint.style = Paint.Style.STROKE
@@ -478,15 +460,15 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(face, linePaint)
         canvas.restore()
 
-        // Carved features: a groove, then the light that catches its lower lip.
+
         clayGroove.reset()
-        // The very same eye, brow, nose and mouth landmarks as the notebook profile.
+
         clayGroove.moveTo(149f, 71f); clayGroove.quadTo(157f, 65f, 164f, 70f)
         clayGroove.moveTo(151f, 78f); clayGroove.quadTo(157f, 75.5f, 162f, 78f)
         clayGroove.moveTo(174f, 73f); clayGroove.lineTo(179f, 75f)
         clayGroove.moveTo(157f, 98f); clayGroove.quadTo(164f, 105f, 172f, 98f)
         clayGroove.moveTo(118f, 79f); clayGroove.quadTo(125f, 76f, 122f, 86f)
-        // Hair parting follows the notebook's swept silhouette.
+
         clayGroove.moveTo(104f, 100f); clayGroove.cubicTo(91f, 80f, 105f, 40f, 133f, 32f)
         clayGroove.cubicTo(159f, 23f, 184f, 35f, 189f, 57f)
         linePaint.style = Paint.Style.STROKE
@@ -501,9 +483,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(clayGroove, linePaint)
         canvas.restore()
 
-        // The padlock is its own object in clay, in the hand the paper drew: a
-        // mint body, a carved keyhole, and a shackle that has swung open once
-        // the key is checked.
+
         clayGroove.reset()
         clayGroove.addRoundRect(RectF(240f, 120f, 272f, 158f), 8f, 8f, Path.Direction.CW)
         canvas.save()
@@ -524,7 +504,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(clayGroove, fillPaint)
         canvas.restore()
         fillPaint.alpha = 255
-        // One lit edge on the upper-left face of the body.
+
         clayGroove.reset()
         clayGroove.moveTo(243f, 150f)
         clayGroove.quadTo(242f, 128f, 244f, 125f)
@@ -534,9 +514,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         linePaint.alpha = (110 * strength).toInt().coerceIn(0, 255)
         canvas.drawPath(clayGroove, linePaint)
 
-        // A pink mitt from the cloak still holds the body's near edge, so the
-        // finished lock stays in the hand the paper drew. Small and shallow —
-        // only the near edge is covered, and only a light counts.
+
         linePaint.style = Paint.Style.STROKE
         linePaint.strokeCap = Paint.Cap.ROUND
         linePaint.strokeWidth = 6.4f
@@ -570,7 +548,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(clayGroove, linePaint)
         canvas.restore()
 
-        // The keyhole stays carved in the body, not floating with the shackle.
+
         clayGroove.reset()
         clayGroove.addCircle(256f, 134f, 3.4f, Path.Direction.CW)
         clayGroove.moveTo(256f, 138f)
@@ -586,8 +564,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         canvas.drawPath(clayGroove, linePaint)
         canvas.restore()
 
-        // The shackle, rotated open about its seated leg. At strength 0 the
-        // rotation is zero: the same closed lock the paper drew.
+
         canvas.save()
         canvas.rotate(-40f * strength, 250f, 126f)
         clayGroove.reset()
@@ -623,17 +600,17 @@ class ShaiIllustrationView @JvmOverloads constructor(
         val accent: Accent? = null
     )
 
-    /** A second pass: engraved grooves take light, clay pellets take a rim highlight. */
+
     private class Accent(val color: Int, val alpha: Int, val scale: Float, val offset: Float)
 
     private fun strokeInk(ink: Ink, clay: Float): InkStyle {
         return when (ink) {
-            // The outline is replaced by the filled form, so it leaves the page.
+
             Ink.FRAME -> InkStyle(
                 ShaiPalette.ink, 1.7f,
                 (255 * (1f - clay * 3.1f).coerceAtLeast(0f)).toInt()
             )
-            // The inked profile is paper only; clay draws its own carved face.
+
             Ink.FEATURE -> InkStyle(
                 ShaiPalette.ink, 1.7f,
                 (255 * (1f - clay * 2.6f).coerceAtLeast(0f)).toInt()
@@ -642,7 +619,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
                 ShaiPalette.pencil, 1f,
                 (190 * (1f - clay * 2.6f).coerceAtLeast(0f)).toInt()
             )
-            // Construction marks: hatching and the ground line are blueprint only.
+
             Ink.HATCH -> InkStyle(
                 ShaiPalette.pencil, 1f,
                 (190 * (1f - clay * 1.9f).coerceAtLeast(0f)).toInt()
@@ -672,7 +649,7 @@ class ShaiIllustrationView @JvmOverloads constructor(
         return ((progress - start) / (end - start)).coerceIn(0f, 1f)
     }
 
-    /** Slow in, slow out: a pen does not start or stop at full speed. */
+
     private fun smooth(t: Float): Float = t * t * (3f - 2f * t)
 
     private companion object {

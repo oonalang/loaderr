@@ -17,27 +17,22 @@ import android.view.View
 import androidx.annotation.ColorInt
 import android.graphics.Outline
 
-/**
- * Two material states, one set of tokens.
- *
- * 0 = the concept sheet: paper, ink, pencil, highlighter.
- * 1 = the clay build: pale lavender, matte pastel, one upper-left light.
- */
+
 internal object ShaiPalette {
-    // Concept sheet. Five roles only: paper, grid, ink, pencil, highlighter.
+
     val paper = Color.rgb(253, 252, 247)
     val paperCard = Color.rgb(255, 255, 255)
     val ink = Color.rgb(31, 41, 55)
     val pencil = Color.rgb(119, 123, 132)
     val gridBlue = Color.rgb(201, 218, 248)
     val highlight = Color.rgb(255, 241, 118)
-    /** Paper emphasis is ink weight, not a sixth hue; clay turns it pink. */
+
     val draft = ink
 
-    // Midnight changes only the clay material; authentication remains separate.
+
     var night: Float = 0f
     private fun tone(day: Int, dark: Int): Int = blend(day, dark, night)
-    // Clay. Same identity, finished material.
+
     val clayBg get() = tone(Color.rgb(244, 238, 255), Color.rgb(28, 25, 41))
     val clayInk get() = tone(Color.rgb(43, 35, 64), Color.rgb(244, 236, 255))
     val clayMuted get() = tone(Color.rgb(95, 83, 111), Color.rgb(195, 184, 213))
@@ -61,7 +56,7 @@ internal object ShaiPalette {
     }
 }
 
-/** Quiet notebook edge; illustration belongs to the scrolling content, never behind inputs. */
+
 class LoaderBackdropView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
@@ -72,8 +67,8 @@ class LoaderBackdropView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        // Construction lines fade out before the clay arrives: they are the
-        // blueprint, not part of the finished object.
+
+
         val ruling = (1f - phase * 2.2f).coerceIn(0f, 1f)
         canvas.drawColor(ShaiPalette.blend(ShaiPalette.paper, ShaiPalette.clayBg, phase))
         paint.style = Paint.Style.STROKE
@@ -81,7 +76,7 @@ class LoaderBackdropView @JvmOverloads constructor(
         paint.color = ShaiPalette.gridBlue
         paint.alpha = ((GRID_ALPHA * ruling).toInt()).coerceIn(0, 255)
         if (paint.alpha > 0) {
-            // One geometry pass: 24dp ruling, drawn rather than tiled from a bitmap.
+
             val step = GRID_STEP_DP * density
             var gx = step
             while (gx < width) {
@@ -104,21 +99,13 @@ class LoaderBackdropView @JvmOverloads constructor(
     }
 }
 
-/**
- * Every functional surface in the app, in both materials.
- *
- * On paper it is a ruled edge or a drawn box. In clay it is a moulded form:
- * a soft stack shadow, a matte face, and a bevel lit from the upper left.
- * Pressing compresses the form instead of tinting it, and recessed controls
- * (search, dropdowns) are lit from the inside — the one rule that separates a
- * finished clay interface from rounded rectangles with shadows.
- */
+
 internal class PhaseSurfaceDrawable(
     context: Context,
     private val kind: Kind
 ) : Drawable() {
 
-    /** Measured in the view's own density, so a 30dp radius is 30dp everywhere. */
+
     private val density: Float = context.resources.displayMetrics.density
 
     enum class Kind { CARD, PRIMARY, SECONDARY, SUCCESS, DRAWER, SEARCH, ROW, SELECT, PLAQUE, SEGMENT }
@@ -160,8 +147,8 @@ internal class PhaseSurfaceDrawable(
         val b = bounds
         val dp = density
         val clay = phase
-        // Paper keeps 2dp so its strokes are never clipped; clay reserves real
-        // room inside the view for the shadow to fall into.
+
+
         val inset = (2f + (clayInset() - 2f) * clay) * dp
         val left = b.left.toFloat() + inset
         val top = b.top.toFloat() + inset
@@ -170,14 +157,14 @@ internal class PhaseSurfaceDrawable(
         if (right - left < 8f * dp || bottom - top < 8f * dp) return
 
         val savedAlpha = globalAlpha
-        // An empty state means "not synced yet", not "disabled"; only an explicit
-        // absence of state_enabled dims the surface.
+
+
         if (state.isNotEmpty() && state.none { it == android.R.attr.state_enabled }) {
             globalAlpha = (globalAlpha * .55f).toInt()
         }
         val pressed = state.any { it == android.R.attr.state_pressed }
         val focused = state.any { it == android.R.attr.state_focused }
-        // A press sinks the form 1dp and takes the shadow with it.
+
         val sink = if (pressed) 1.2f * dp * clay else 0f
         val radius = (sketchRadius() + (clayRadius() - sketchRadius()) * clay) * dp
 
@@ -193,7 +180,7 @@ internal class PhaseSurfaceDrawable(
             drawBevel(canvas, faceRect, radius, dp, clay, sunken = !clayShadow())
         }
 
-        // Paper pass: the ruled edge, then the drawn box. Fades as clay sets.
+
         paint.shader = null
         if (clay < .999f) {
             paint.style = Paint.Style.FILL
@@ -211,7 +198,7 @@ internal class PhaseSurfaceDrawable(
                 canvas.drawLine(left, bottom, right, bottom, paint)
             } else if (kind != Kind.DRAWER) {
                 canvas.drawRoundRect(faceRect, radius, radius, paint)
-                // Sketch double pass: a slightly offset re-ink.
+
                 paint.alpha = (95 * paperOnly).toInt()
                 canvas.save()
                 canvas.translate(1.3f * dp, -0.8f * dp)
@@ -251,11 +238,7 @@ internal class PhaseSurfaceDrawable(
         globalAlpha = savedAlpha
     }
 
-    /**
-     * Soft shadow as concentric rounded rings: deterministic, allocation-free,
-     * and identical on every device. `BlurMaskFilter` is not reliable on a
-     * hardware canvas, so the falloff is drawn rather than filtered.
-     */
+
     private fun drawStackShadow(
         canvas: Canvas, rect: RectF, radius: Float, dp: Float, clay: Float, pressed: Boolean
     ) {
@@ -275,10 +258,7 @@ internal class PhaseSurfaceDrawable(
         }
     }
 
-    /**
-     * One light source, upper left: a white rim on the top-left and a shade on
-     * the bottom-right. Recessed controls invert it, so they read as pressed in.
-     */
+
     private fun drawBevel(
         canvas: Canvas, rect: RectF, radius: Float, dp: Float, clay: Float, sunken: Boolean
     ) {
@@ -309,7 +289,7 @@ internal class PhaseSurfaceDrawable(
         bevelPaint.alpha = (255 * clay).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.clipRect(rect)
-        // Stroke sits on the edge; clipping keeps only its inner half.
+
         val band = bevelPaint.strokeWidth * .5f
         outlineRect.set(rect.left + band, rect.top + band, rect.right - band, rect.bottom - band)
         canvas.drawRoundRect(outlineRect, radius - band, radius - band, bevelPaint)
@@ -324,7 +304,7 @@ internal class PhaseSurfaceDrawable(
         else -> true
     }
 
-    /** Must be at least the shadow reach, or the falloff is cut off at the view edge. */
+
     private fun clayInset(): Float = when (kind) {
         Kind.CARD, Kind.SUCCESS, Kind.PLAQUE -> 9f
         Kind.PRIMARY, Kind.SECONDARY -> 8f
@@ -339,7 +319,7 @@ internal class PhaseSurfaceDrawable(
         Kind.PRIMARY -> 22f
         Kind.SECONDARY -> 20f
         Kind.SUCCESS, Kind.PLAQUE -> 20f
-        // The panel is a slab now, not a full-bleed sheet: it needs its own corners.
+
         Kind.DRAWER -> 28f
         Kind.SEARCH, Kind.SELECT -> 16f
         Kind.ROW -> 18f
@@ -389,7 +369,7 @@ internal class PhaseSurfaceDrawable(
         return Color.argb(alpha.coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
     }
 
-    /** Lets the system elevation shadow follow the moulded radius, not the view box. */
+
     override fun getOutline(outline: Outline) {
         val inset = clayInset() * density * phase + 2f * density * (1f - phase)
         val target = outlineRect
