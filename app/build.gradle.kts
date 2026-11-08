@@ -81,5 +81,6 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.9.3")
     testImplementation("org.robolectric:robolectric:4.14.1")
 }
