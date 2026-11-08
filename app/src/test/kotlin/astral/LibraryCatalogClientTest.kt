@@ -59,17 +59,45 @@ class LibraryCatalogClientTest {
     }
 
     @Test
-    fun catalogRejectsAnHtmlResponse() = runBlocking {
+    fun fallsBackToTheExistingLegacyCatalogRoute() = runBlocking {
         val server = MockWebServer()
         server.start()
         try {
-            server.enqueue(MockResponse().setResponseCode(200)
+            server.enqueue(MockResponse().setResponseCode(404)
                 .addHeader("Content-Type", "text/html")
-                .setBody("<!DOCTYPE html><html><body>Login</body></html>"))
+                .setBody("<!DOCTYPE html><html><body>Not found</body></html>"))
+            server.enqueue(MockResponse().setResponseCode(200)
+                .addHeader("Content-Type", "text/plain")
+                .setBody(encodedCatalog()))
+            val result = LibraryCatalogClient(server.url("/loader/catalog").toString()).load()
+            assertTrue(result.exceptionOrNull()?.message.orEmpty(), result.isSuccess)
+            assertEquals(2, result.getOrThrow().getJSONArray("DATA").length())
+            assertEquals("/loader/catalog", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+            assertEquals("/Loader/index.php", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun catalogRejectsHtmlOnBothRoutesWithAnActionableError() = runBlocking {
+        val server = MockWebServer()
+        server.start()
+        try {
+            repeat(2) {
+                server.enqueue(MockResponse().setResponseCode(200)
+                    .addHeader("Content-Type", "text/html")
+                    .setBody("<!DOCTYPE html><html><body>Login</body></html>"))
+            }
             val client = LibraryCatalogClient(server.url("/loader/catalog").toString())
             val result = client.load()
             assertFalse(result.isSuccess)
-            assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("web page"))
+            val message = result.exceptionOrNull()?.message.orEmpty()
+            assertTrue(message, message.contains("Primary: HTML response"))
+            assertTrue(message, message.contains("Legacy: HTML response"))
+            assertFalse(message.contains("<!DOCTYPE"))
+            assertEquals("/loader/catalog", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+            assertEquals("/Loader/index.php", server.takeRequest(2, TimeUnit.SECONDS)?.path)
         } finally {
             server.shutdown()
         }
