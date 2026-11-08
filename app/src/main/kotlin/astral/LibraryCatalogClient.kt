@@ -5,6 +5,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
@@ -14,44 +18,78 @@ class LibraryCatalogClient(private val endpoint: String) {
 
     suspend fun load(): Result<JSONObject> = withContext(Dispatchers.IO) {
         runCatching {
-            val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-                connectTimeout = TIMEOUT_MS
-                readTimeout = TIMEOUT_MS
-                requestMethod = "GET"
-                useCaches = false
-                setRequestProperty("Accept", "text/plain, application/json")
-            }
+            val primary = URL(endpoint)
             try {
-                val status = connection.responseCode
-                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-                val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-                    ?: throw IOException("Catalog unavailable (HTTP $status)")
-                if (status !in 200..299) throw IOException("Catalog unavailable (HTTP $status)")
-                val body = raw.trim().removePrefix("\uFEFF").trim()
-                if (body.isBlank()) throw IOException("Catalog returned an empty response")
-                if (body.startsWith("<") || connection.contentType?.contains("text/html", true) == true) {
-                    throw IOException("Catalog unavailable. The server returned a web page instead of catalog data.")
+                fetchCatalog(primary)
+            } catch (first: Exception) {
+                val alternate = URI(endpoint).resolve("/Loader/index.php").toURL()
+                if (primary.toExternalForm() == alternate.toExternalForm()) throw first
+                try {
+                    fetchCatalog(alternate)
+                } catch (second: Exception) {
+                    throw IOException(
+                        "Catalog unavailable. Primary: ${failureReason(first)}. " +
+                            "Legacy: ${failureReason(second)}."
+                    )
                 }
-
-                val decoded = try {
-                    String(Base64.decode(body, Base64.DEFAULT), Charsets.UTF_8).trim()
-                } catch (_: IllegalArgumentException) {
-                    throw IOException("The catalog response is not valid Base64")
-                }
-                if (!decoded.startsWith("{")) throw IOException("The decoded catalog is not valid JSON")
-                val catalog = try {
-                    JSONObject(decoded)
-                } catch (_: Exception) {
-                    throw IOException("The decoded catalog is not valid JSON")
-                }
-                if (catalog.optJSONArray("DATA") == null) {
-                    throw IOException("The catalog response does not contain a library list")
-                }
-                catalog
-            } finally {
-                connection.disconnect()
             }
         }
+    }
+
+    private fun fetchCatalog(url: URL): JSONObject {
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            connectTimeout = TIMEOUT_MS
+            readTimeout = TIMEOUT_MS
+            requestMethod = "GET"
+            useCaches = false
+            setRequestProperty("Accept", "text/plain, application/json")
+        }
+        return try {
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                ?: throw IOException("HTTP $status: empty response")
+            if (status !in 200..299) throw IOException("HTTP $status")
+            val body = raw.trim().removePrefix("\uFEFF").trim()
+            if (body.isBlank()) throw IOException("empty response")
+            if (body.startsWith("<") || connection.contentType?.contains("text/html", true) == true) {
+                throw IOException("HTML response (HTTP $status)")
+            }
+            val decoded = try {
+                String(Base64.decode(body, Base64.DEFAULT), Charsets.UTF_8).trim()
+            } catch (_: IllegalArgumentException) {
+                throw IOException("invalid catalog encoding")
+            }
+            if (!decoded.startsWith("{")) throw IOException("invalid catalog encoding")
+            val catalog = try {
+                JSONObject(decoded)
+            } catch (_: Exception) {
+                throw IOException("invalid catalog JSON")
+            }
+            if (catalog.optJSONArray("DATA") == null) {
+                throw IOException("missing library list")
+            }
+            catalog
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun failureReason(error: Exception): String = when (error) {
+        is UnknownHostException -> "DNS lookup failed"
+        is SocketTimeoutException -> "request timed out"
+        is ConnectException -> "connection refused"
+        is SSLException -> "TLS error"
+        is IOException -> when {
+            error.message.orEmpty().startsWith("HTTP ") -> error.message.orEmpty()
+            error.message.orEmpty() in setOf(
+                "empty response", "invalid catalog encoding",
+                "invalid catalog JSON", "missing library list"
+            ) -> error.message.orEmpty()
+            error.message.orEmpty().startsWith("HTML response") -> error.message.orEmpty()
+            else -> "network error"
+        }
+        else -> "request failed"
     }
 
     suspend fun redeem(licenseKey: String, serial: String): Result<JSONObject> = withContext(Dispatchers.IO) {
