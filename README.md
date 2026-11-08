@@ -10,7 +10,7 @@ Run `./gradlew assembleDebug`. Find the APK in `app/build/outputs/apk/debug/`.
 
 ## License and catalog
 
-The loader reads `GET https://shaii.x10.mx/loader/catalog` and attempts `/Loader/index.php` if the primary route fails. License validation uses `POST https://shaii.x10.mx/connect`.
+The loader reads `GET https://freeshai.x10.mx/loader/catalog` and attempts `/Loader/index.php` if the primary route fails. License validation uses `POST https://freeshai.x10.mx/connect`.
 
 The panel must have the `loader_catalog` table and an active library entry. A valid license key is required to proceed. Keep database and signing credentials outside the repository.
 
