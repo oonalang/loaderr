@@ -1703,7 +1703,7 @@ class MainActivity : AppCompatActivity() {
 
         val detectedVpn = SplashActivity.getDetectedVPN()
         if (detectedVpn == null) {
-            downloadLibraryIfNeeded(this@MainActivity, selectedLibrary.downloadUrl, LIBRARY_FILE_NAME) { success ->
+            downloadLibraryIfNeeded(this@MainActivity, selectedLibrary.downloadUrl, LIBRARY_FILE_NAME) { success, failure ->
                 if (currentLibrary != selectedLibrary.name || !licenseVerified) return@downloadLibraryIfNeeded
                 if (success) {
                     showToast("Download successful")
@@ -1731,7 +1731,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } else {
-                    resetLoginState("FAILED TO DOWNLOAD, \nRETRY AGAIN.", focusKey = false)
+                    resetLoginState(failure ?: "FAILED TO DOWNLOAD, RETRY AGAIN.", focusKey = false)
                     isReadyToInject = false
                 }
             }
@@ -1814,51 +1814,30 @@ class MainActivity : AppCompatActivity() {
         context: Context,
         url: String,
         libraryFileName: String,
-        callback: (Boolean) -> Unit
+        callback: (Boolean, String?) -> Unit
     ) {
-        val libraryDownloader = LibraryDownloader(context)
         val outputFile = File(context.cacheDir, libraryFileName)
         lifecycleScope.launch(Dispatchers.IO) {
-            var success = false
-            try {
-                val connection = URL(url).openConnection()
-                try {
-                    connection.connect()
-                    remoteLibrarySize = connection.contentLength
-                    if (remoteLibrarySize >= 9999) {
-                        val needToDownload = if (outputFile.exists()) {
-                            val localFileSize = outputFile.length().toInt()
-                            localFileSize != remoteLibrarySize
-                        } else {
-                            true
-                        }
-
-                        if (!needToDownload) {
-                            success = true
-                        } else {
-                            withContext(Dispatchers.Main) {
-                                showToast("Downloading updates...")
-                                progressBar.visibility = View.VISIBLE
-                                progressBar.progress = 0
-                            }
-                            success = libraryDownloader.download(url, libraryFileName) { progress ->
-                                runOnUiThread {
-                                    progressBar.progress = progress
-                                }
-                            }
-                        }
-                    }
-                } finally {
-                    (connection as? HttpURLConnection)?.disconnect()
-                }
-            } catch (_: Exception) {
-            }
-
+            val libraryDownloader = LibraryDownloader(context)
             withContext(Dispatchers.Main) {
-                callback(success)
-                if (::progressBar.isInitialized) {
-                    progressBar.visibility = View.GONE
-                }
+                showToast("Downloading library...")
+                progressBar.visibility = View.VISIBLE
+                progressBar.progress = 0
+            }
+            val downloaded = libraryDownloader.download(url, libraryFileName) { progress ->
+                runOnUiThread { progressBar.progress = progress }
+            }
+            val actualSize = if (downloaded) outputFile.length() else 0L
+            val valid = downloaded && actualSize in 4L..Int.MAX_VALUE.toLong()
+            val failure = when {
+                !downloaded -> libraryDownloader.failureReason ?: "Unable to download the library"
+                !valid -> "Downloaded library has an invalid size"
+                else -> null
+            }
+            if (valid) remoteLibrarySize = actualSize.toInt()
+            withContext(Dispatchers.Main) {
+                if (::progressBar.isInitialized) progressBar.visibility = View.GONE
+                callback(valid, failure)
             }
         }
     }
