@@ -62,8 +62,8 @@ import com.google.android.material.button.MaterialButton
 class MainActivity : AppCompatActivity() {
 
     private companion object {
-        const val SERVER_LIST_URL = "https://freeshai.x10.mx/loader/catalog"
-        const val PANEL_URL = "https://freeshai.x10.mx/connect"
+        const val SERVER_LIST_URL = "https://shaii.x10.mx/loader/catalog"
+        const val PANEL_URL = "https://shaii.x10.mx/connect"
         const val STORE_URL = "https://ethnir-storefront.vercel.app/#home"
         const val SHOP_URL = "https://shaistore.vercel.app"
         const val LIBRARY_FILE_NAME = "libexternal.so"
